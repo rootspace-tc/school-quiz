@@ -24,9 +24,14 @@
             padding: 30px;
             border-radius: 20px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            
+            /* --- ✨ 텍스트 복사 방지 코드 추가 --- */
+            user-select: none; /* 표준 구문 */
+            -webkit-user-select: none; /* Safari, Chrome */
+            -moz-user-select: none;    /* Firefox */
+            -ms-user-select: none;     /* IE */
         }
         
-        /* 시작 화면 스타일 */
         #start-container {
             display: flex;
             flex-direction: column;
@@ -58,9 +63,8 @@
              background-color: #218838;
         }
         
-        /* 퀴즈 화면 스타일 (기존 #quiz-container) */
         #quiz-container {
-            display: none; /* 시작 시 숨김 */
+            display: none;
         }
 
         #quiz-header {
@@ -103,6 +107,12 @@
             border-radius: 10px;
             font-family: 'Jua', sans-serif;
             margin-bottom: 20px;
+            
+            /* --- ✨ 입력창은 복사가 가능하도록 재설정 --- */
+            user-select: auto;
+            -webkit-user-select: auto;
+            -moz-user-select: auto;
+            -ms-user-select: auto;
         }
 
         .btn {
@@ -234,7 +244,6 @@
         let currentFontSize = 18;
         const synth = window.speechSynthesis;
 
-        // --- DOM 요소 ---
         const startContainer = document.getElementById('start-container');
         const quizContainer = document.getElementById('quiz-container');
         const startBtn = document.getElementById('start-btn');
@@ -250,7 +259,6 @@
         const questionCounterEl = document.getElementById('question-counter');
         const timerDisplay = document.getElementById('timer-display');
 
-        // --- 타이머 변수 ---
         let timerInterval;
         let startTime;
 
@@ -331,8 +339,6 @@
                 hint1Btn.disabled = false;
                 hint2Btn.disabled = false;
                 speak(`문제 입니다. ${currentQuiz.question}`);
-            } else {
-                // 이 부분은 마지막 문제 정답 시 stopTimer로 대체됨
             }
         }
 
@@ -354,7 +360,6 @@
             const correctAnswer = shuffledQuizData[currentQuestionIndex].answer;
 
             if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
-                // --- 정답일 경우 ---
                 answerFeedbackEl.innerHTML = `<span style="color:blue; font-weight:bold;">정답입니다!</span> 😊`;
                 explanationEl.innerHTML = `<strong>[해설]</strong><br>${shuffledQuizData[currentQuestionIndex].explanation}`;
                 
@@ -364,7 +369,6 @@
                 hint1Btn.style.display = 'none';
                 hint2Btn.style.display = 'none';
                 
-                // 마지막 문제인지 확인
                 if (currentQuestionIndex === shuffledQuizData.length - 1) {
                     stopTimer();
                     answerInputEl.style.display = 'none';
@@ -374,11 +378,10 @@
                 }
 
             } else {
-                // --- 오답일 경우 ---
                 answerFeedbackEl.innerHTML = `<span style="color:red; font-weight:bold;">아쉬워요!</span> 😢 다시 한번 풀어보세요!`;
-                explanationEl.innerHTML = ''; // 해설 숨김
+                explanationEl.innerHTML = '';
                 resultEl.style.display = 'block';
-                answerInputEl.value = ''; // 입력창 비우기
+                answerInputEl.value = '';
                 answerInputEl.focus();
             }
         }
@@ -393,7 +396,6 @@
             document.body.style.fontSize = currentFontSize + 'px';
         }
 
-        // --- 이벤트 리스너 ---
         startBtn.addEventListener('click', startQuiz);
         hint1Btn.addEventListener('click', showHint1);
         hint2Btn.addEventListener('click', showHint2);
@@ -404,7 +406,6 @@
             }
         });
         nextBtn.addEventListener('click', nextQuestion);
-
     </script>
 </body>
 </html>
