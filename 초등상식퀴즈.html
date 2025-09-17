@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>초등 상식 퀴즈</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #f0f8ff;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+            font-size: 1.2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 시작 화면 스타일 */
+        #start-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 70vh;
+        }
+
+        #start-container h1 {
+            font-size: 3.5em;
+            color: #0056b3;
+            margin-bottom: 20px;
+        }
+        
+        #start-container p {
+            font-size: 1.5em;
+            color: #555;
+            margin-bottom: 40px;
+        }
+
+        #start-btn {
+            font-size: 1.8em;
+            padding: 20px 50px;
+            background-color: #28a745;
+            color: white;
+            border-radius: 15px;
+        }
+        #start-btn:hover {
+             background-color: #218838;
+        }
+        
+        /* 퀴즈 화면 스타일 (기존 #quiz-container) */
+        #quiz-container {
+            display: none; /* 시작 시 숨김 */
+        }
+
+        #quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        #timer-display {
+            font-size: 1.5em;
+            background-color: #e9ecef;
+            padding: 5px 15px;
+            border-radius: 10px;
+            color: #007bff;
+        }
+        
+        h1 {
+            color: #0056b3;
+            font-size: 2.5em;
+        }
+        
+        #question-counter {
+            font-size: 1.2em;
+            color: #555;
+        }
+
+        #question {
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            line-height: 1.5;
+            min-height: 100px;
+        }
+
+        #answer-input {
+            width: 60%;
+            padding: 15px;
+            font-size: 1.2em;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            font-family: 'Jua', sans-serif;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: 'Jua', sans-serif;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        #hint1-btn { background-color: #ffc107; color: white; }
+        #hint2-btn { background-color: #28a745; color: white; }
+        #submit-btn { background-color: #007bff; color: white; }
+        #next-btn { background-color: #17a2b8; color: white; display: none; }
+        
+        #result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #e9ecef;
+            font-size: 1.2em;
+        }
+
+        #explanation {
+            text-align: left;
+            margin-top: 15px;
+            line-height: 1.6;
+        }
+
+        #font-size-controls {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="start-container" class="container">
+        <h1>✨초등 상식 퀴즈✨</h1>
+        <p>50개의 상식 퀴즈에 도전해보세요!</p>
+        <button id="start-btn" class="btn">퀴즈 시작하기!</button>
+    </div>
+
+    <div id="quiz-container" class="container">
+        <div id="font-size-controls">
+            <button class="btn" onclick="changeFontSize(-2)">글자 작게</button>
+            <button class="btn" onclick="changeFontSize(2)">글자 크게</button>
+        </div>
+        <hr>
+        <div id="quiz-header">
+            <div id="question-counter"></div>
+            <div id="timer-display">00:00</div>
+        </div>
+        <div id="question">문제를 불러오는 중입니다...</div>
+        <input type="text" id="answer-input" placeholder="정답을 입력하세요">
+        <br>
+        <button id="hint1-btn" class="btn">힌트 1 (글자 수)</button>
+        <button id="hint2-btn" class="btn">힌트 2 (초성)</button>
+        <button id="submit-btn" class="btn">정답 확인</button>
+        <button id="next-btn" class="btn">다음 문제</button>
+
+        <div id="result" style="display: none;">
+            <div id="answer-feedback"></div>
+            <div id="explanation"></div>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            { question: "물에 젖지 않는 흙을 무엇이라고 할까요?", answer: "소수성흙", explanation: "소수성 흙은 물을 밀어내는 성질을 가지고 있어 물에 젖지 않습니다. 연잎 효과와 비슷한 원리입니다." },
+            { question: "지구의 대기 중에서 가장 많은 비율을 차지하는 기체는 무엇일까요?", answer: "질소", explanation: "지구 대기의 약 78%는 질소로 이루어져 있습니다. 우리가 숨 쉬는 데 필요한 산소는 약 21%를 차지합니다." },
+            { question: "태양계에서 가장 큰 행성은 무엇일까요?", answer: "목성", explanation: "목성은 태양계의 모든 다른 행성들을 합친 것보다 2.5배나 더 무거운 거대한 가스 행성입니다." },
+            { question: "식물이 빛을 이용하여 양분을 스스로 만드는 과정을 무엇이라고 할까요?", answer: "광합성", explanation: "광합성은 식물이 엽록체에서 빛 에너지를 이용해 이산화탄소와 물을 포도당과 산소로 바꾸는 과정입니다." },
+            { question: "소금의 주성분인 염화나트륨은 어떤 원소들의 화합물일까요?", answer: "나트륨과염소", explanation: "소금(염화나트륨, NaCl)은 나트륨(Na) 원자와 염소(Cl) 원자가 결합하여 만들어진 이온 결합 화합물입니다." },
+            { question: "몸의 온도가 주변 환경에 따라 변하는 동물을 무엇이라고 할까요?", answer: "변온동물", explanation: "파충류, 양서류, 어류 등은 스스로 체온을 조절하지 못하고 주변 온도에 따라 체온이 변하는 변온동물입니다." },
+            { question: "지구 자기장이 만들어내는 오로라는 주로 어느 지역에서 관찰될까요?", answer: "극지방", explanation: "오로라는 태양에서 날아온 대전 입자가 지구 자기장에 이끌려 대기권의 기체와 충돌하면서 빛을 내는 현상으로, 주로 북극과 남극 근처에서 보입니다." },
+            { question: "거울처럼 빛을 반사하는 물체의 표면을 이용해 멀리 있는 물체를 가까이 볼 수 있게 만든 도구는 무엇일까요?", answer: "잠망경", explanation: "잠망경은 두 개의 거울이나 프리즘을 이용해 빛의 경로를 꺾어, 장애물 너머나 물속에서 물 위를 볼 수 있게 해줍니다." },
+            { question: "액체 상태의 물이 끓어서 기체 상태의 수증기로 변하는 현상을 무엇이라고 할까요?", answer: "기화", explanation: "물질이 액체에서 기체로 상태가 변하는 현상을 기화라고 합니다. 물이 끓는 것이 대표적인 예입니다." },
+            { question: "우리 몸에서 피를 온몸으로 보내주는 펌프 역할을 하는 기관은 무엇일까요?", answer: "심장", explanation: "심장은 규칙적인 수축과 이완을 통해 혈액을 온몸의 혈관으로 보내 산소와 영양분을 공급하는 중요한 기관입니다." },
+            { question: "지구의 자전으로 인해 나타나는 현상으로, 물체가 운동 방향의 오른쪽(북반구)이나 왼쪽(남반구)으로 휘는 것처럼 보이게 하는 힘은 무엇일까요?", answer: "전향력", explanation: "전향력 또는 코리올리 힘은 회전하는 기준계에서 나타나는 가상의 힘으로, 태풍의 회전 방향 등을 설명하는 데 사용됩니다." },
+            { question: "뼈를 튼튼하게 하고 혈액 응고에 중요한 역할을 하는 무기질은 무엇일까요?", answer: "칼슘", explanation: "칼슘은 뼈와 치아를 구성하는 주요 성분이며, 근육 수축과 신경 전달에도 필수적인 역할을 합니다." },
+            { question: "땅속의 마그마가 지표면으로 분출하여 만들어진 암석을 무엇이라고 할까요?", answer: "화성암", explanation: "화성암은 마그마가 식어서 굳어진 암석입니다. 땅속 깊은 곳에서 천천히 식으면 심성암, 지표면에서 빠르게 식으면 화산암이 됩니다." },
+            { question: "하나의 세포로 이루어진 생물을 무엇이라고 할까요?", answer: "단세포생물", explanation: "아메바, 짚신벌레, 유글레나 등은 몸 전체가 하나의 세포로 이루어져 생명 활동을 하는 단세포생물입니다." },
+            { question: "소리의 높낮이를 결정하는 요소는 무엇일까요?", answer: "진동수", explanation: "진동수(주파수)는 1초 동안 진동하는 횟수를 의미하며, 진동수가 높을수록 높은 소리가 나고 낮을수록 낮은 소리가 납니다. 단위는 헤르츠(Hz)를 사용합니다." },
+            { question: "지구의 그림자에 달이 들어가서 달이 보이지 않거나 어둡게 보이는 현상은 무엇일까요?", answer: "월식", explanation: "월식은 태양-지구-달이 일직선으로 위치할 때 지구의 그림자가 달을 가려서 발생합니다." },
+            { question: "자석의 같은 극끼리는 서로 밀어내고, 다른 극끼리는 서로 끌어당기는 힘을 무엇이라고 할까요?", answer: "자기력", explanation: "자기력은 자석이나 전류가 흐르는 도체 주위에 생기는 자기장에 의해 발생하는 힘입니다." },
+            { question: "식물의 뿌리, 줄기, 잎과 같이 식물체를 구성하는 기관을 무엇이라고 할까요?", answer: "영양기관", explanation: "영양기관은 식물이 살아가는데 필요한 양분을 만들고 운반하며 저장하는 역할을 합니다. 꽃, 열매, 씨앗은 생식기관입니다." },
+            { question: "지진의 규모를 나타내는 단위로, 숫자가 1 증가할 때마다 에너지는 약 32배 커지는 것을 나타내는 척도는 무엇일까요?", answer: "리히터규모", explanation: "리히터 규모(혹은 릭터 규모)는 지진파의 진폭을 바탕으로 지진이 방출하는 에너지의 양을 나타내는 척도입니다." },
+            { question: "주변의 빛을 흡수했다가 어두운 곳에서 스스로 빛을 내는 현상을 무엇이라고 할까요?", answer: "야광", explanation: "야광(축광)은 물질이 빛 에너지를 흡수하여 저장했다가 서서히 방출하면서 어두운 곳에서 빛을 내는 현상입니다." },
+            { question: "지구 표면의 약 70%를 덮고 있으며, 생명 유지에 필수적인 액체는 무엇일까요?", answer: "물", explanation: "물은 모든 생명체의 기본 구성 요소이며, 다양한 물질을 녹이고 체온을 조절하는 등 중요한 역할을 합니다." },
+            { question: "벌레를 잡아먹고 사는 식물을 무엇이라고 할까요?", answer: "식충식물", explanation: "파리지옥, 끈끈이주걱, 네펜데스 같은 식충식물은 질소가 부족한 척박한 땅에서 살기 위해 벌레를 잡아 양분을 보충합니다." },
+            { question: "물체가 위에서 아래로 떨어지게 하는 지구의 힘은 무엇일까요?", answer: "중력", explanation: "중력은 질량을 가진 모든 물체 사이에 작용하는 힘으로, 지구가 물체를 끌어당기는 힘을 의미합니다." },
+            { question: "우리 눈에서 빛을 감지하여 뇌로 신호를 보내는 세포가 모여 있는 곳은 어디일까요?", answer: "망막", explanation: "망막은 눈의 가장 안쪽에 있는 투명한 신경조직으로, 카메라의 필름이나 이미지 센서와 같은 역할을 합니다." },
+            { question: "지구의 대기권 밖의 넓은 공간을 무엇이라고 할까요?", answer: "우주", explanation: "우주는 천체들이 존재하는 무한한 공간으로, 아직도 많은 비밀을 간직하고 있습니다." },
+            { question: "전기가 흐르는 길을 무엇이라고 할까요?", answer: "전기회로", explanation: "전기회로는 전지, 전선, 스위치, 전구 등이 연결되어 전기가 흐를 수 있도록 만들어진 길입니다." },
+            { question: "날씨를 예측하고 연구하는 학문을 무엇이라고 할까요?", answer: "기상학", explanation: "기상학은 대기 중에서 일어나는 여러 현상을 연구하여 날씨를 예측하고 기후 변화 등을 분석하는 학문입니다." },
+            { question: "어두운 곳에 있다가 밝은 곳으로 가면 눈동자의 크기가 어떻게 변할까요?", answer: "작아진다", explanation: "우리 눈의 홍채는 빛의 양을 조절하는데, 밝은 곳에서는 눈으로 들어오는 빛의 양을 줄이기 위해 동공(눈동자)의 크기를 작게 만듭니다." },
+            { question: "애벌레가 나비나 나방이 되기 위해 거치는 과정, 즉 모습이 완전히 바뀌는 것을 무엇이라고 할까요?", answer: "완전탈바꿈", explanation: "완전탈바꿈은 알, 애벌레, 번데기, 성충의 4단계를 거치며 모습이 크게 변하는 곤충의 성장 과정입니다." },
+            { question: "태양, 달, 행성 등 하늘에 있는 모든 물체를 통틀어 무엇이라고 부를까요?", answer: "천체", explanation: "천체는 우주에 존재하는 모든 자연적인 물체를 의미합니다." },
+            { question: "우리 몸의 뼈와 뼈를 연결하는 부분을 무엇이라고 할까요?", answer: "관절", explanation: "관절 덕분에 우리는 팔다리를 구부리거나 돌리는 등 다양한 움직임을 할 수 있습니다." },
+            { question: "지층이나 암석 속에 남아있는 옛날 생물의 흔적이나 유해를 무엇이라고 할까요?", answer: "화석", explanation: "화석을 통해 과거에 살았던 생물의 종류나 당시의 환경을 연구할 수 있습니다." },
+            { question: "공기 중의 수증기가 찬 공기를 만나 작은 물방울로 변해 하늘에 떠 있는 것을 무엇이라고 할까요?", answer: "구름", explanation: "구름을 이루는 물방울이나 얼음 알갱이가 무거워지면 비나 눈이 되어 내립니다." },
+            { question: "산성 용액과 염기성 용액을 구별하는 데 사용하는 종이를 무엇이라고 할까요?", answer: "리트머스시험지", explanation: "푸른색 리트머스 시험지는 산성 용액에서 붉게 변하고, 붉은색 리트머스 시험지는 염기성 용액에서 푸르게 변합니다." },
+            { question: "지구가 태양 주위를 한 바퀴 도는 데 걸리는 시간은 얼마일까요?", answer: "1년", explanation: "지구의 공전 주기는 약 365.25일이며, 이로 인해 계절의 변화가 나타납니다." },
+            { question: "같은 종류의 물질 1세제곱센티미터(cm³)의 질량을 무엇이라고 할까요?", answer: "밀도", explanation: "밀도는 물질의 고유한 특성으로, 밀도가 큰 물질은 물에 가라앉고 작은 물질은 물에 뜹니다." },
+            { question: "우리 몸으로 들어온 음식물을 잘게 부수고 분해하여 영양분을 흡수하는 과정을 무엇이라고 할까요?", answer: "소화", explanation: "소화는 입, 위, 소장, 대장 등 여러 소화 기관을 거치면서 일어납니다." },
+            { question: "지구로부터 가장 가까운 별은 무엇일까요?", answer: "태양", explanation: "태양은 스스로 빛을 내는 별이며, 태양계의 중심입니다. 밤하늘의 별들은 태양보다 훨씬 멀리 있습니다." },
+            { question: "물질을 이루는 기본 입자를 무엇이라고 할까요?", answer: "원자", explanation: "세상의 모든 물질은 매우 작은 입자인 원자로 이루어져 있습니다." },
+            { question: "서로 다른 물질이 섞여 원래의 성질을 잃지 않으면서 고르게 퍼져 있는 것을 무엇이라고 할까요?", answer: "혼합물", explanation: "소금물, 흙탕물, 공기 등은 여러 물질이 섞여 있는 혼합물입니다." },
+            { question: "생물이 살아가는 데 필요한 환경과 그 속에서 살아가는 모든 생물을 합쳐 무엇이라고 부를까요?", answer: "생태계", explanation: "생태계는 생산자, 소비자, 분해자가 서로 영향을 주고받으며 균형을 이룹니다." },
+            { question: "지구가 하루에 한 바퀴 스스로 도는 것을 무엇이라고 할까요?", answer: "자전", explanation: "지구의 자전 때문에 낮과 밤이 생기고, 태양과 별이 동쪽에서 떠서 서쪽으로 지는 것처럼 보입니다." },
+            { question: "열이 이동하는 세 가지 방법 중, 액체나 기체에서 물질이 직접 이동하며 열을 전달하는 방법은 무엇일까요?", answer: "대류", explanation: "주전자의 물이 끓거나 방 안의 공기가 따뜻해지는 것은 대류 현상 때문입니다." },
+            { question: "주변 환경과 비슷한 색이나 모양으로 몸을 바꿔 자신을 보호하는 것을 무엇이라고 할까요?", answer: "보호색", explanation: "카멜레온이나 대벌레는 보호색을 이용하여 천적의 눈을 피하거나 먹잇감에 쉽게 다가갑니다." },
+            { question: "자동차나 공장에서 나오는 연기가 햇빛과 반응하여 뿌옇게 하늘을 덮는 현상을 무엇이라고 할까요?", answer: "스모그", explanation: "스모그는 대기 오염의 한 종류로, 우리 건강에 해로운 영향을 줄 수 있습니다." },
+            { question: "식물의 잎 뒷면에 있으며, 식물이 숨을 쉬고 물을 내보내는 작은 구멍을 무엇이라고 할까요?", answer: "기공", explanation: "기공은 식물이 광합성과 증산 작용을 하는 데 중요한 역할을 합니다." },
+            { question: "지진으로 인해 땅이 갈라지고 흔들릴 때 발생하는 파동을 무엇이라고 할까요?", answer: "지진파", explanation: "지진파에는 P파와 S파 등이 있으며, 이를 분석하여 지진의 위치와 규모를 알 수 있습니다." },
+            { question: "씨앗이 싹을 트는 데 필요한 조건 3가지는 무엇일까요?", answer: "물온도산소", explanation: "대부분의 식물 씨앗은 적절한 양의 물과 적당한 온도, 그리고 숨을 쉴 수 있는 산소가 있어야 싹을 틔울 수 있습니다." },
+            { question: "무지개는 빛이 물방울을 통과하면서 어떻게 되어 나타나는 현상일까요?", answer: "분산", explanation: "햇빛(백색광)이 공기 중의 물방울을 통과할 때 굴절되고 분산되면서 여러 가지 색깔로 나뉘어 보이는 것이 무지개입니다." },
+            { question: "동물의 먹고 먹히는 관계가 사슬처럼 연결된 것을 무엇이라고 할까요?", answer: "먹이사슬", explanation: "먹이사슬은 생태계의 에너지가 어떻게 흐르는지를 보여주며, 여러 먹이사슬이 얽혀 먹이그물을 이룹니다." }
+        ];
+
+        let shuffledQuizData = [];
+        let currentQuestionIndex = 0;
+        let currentFontSize = 18;
+        const synth = window.speechSynthesis;
+
+        // --- DOM 요소 ---
+        const startContainer = document.getElementById('start-container');
+        const quizContainer = document.getElementById('quiz-container');
+        const startBtn = document.getElementById('start-btn');
+        const questionEl = document.getElementById('question');
+        const answerInputEl = document.getElementById('answer-input');
+        const hint1Btn = document.getElementById('hint1-btn');
+        const hint2Btn = document.getElementById('hint2-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const resultEl = document.getElementById('result');
+        const answerFeedbackEl = document.getElementById('answer-feedback');
+        const explanationEl = document.getElementById('explanation');
+        const questionCounterEl = document.getElementById('question-counter');
+        const timerDisplay = document.getElementById('timer-display');
+
+        // --- 타이머 변수 ---
+        let timerInterval;
+        let startTime;
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function getChosung(str) {
+            const cho = ["ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
+            let result = "";
+            for (let i = 0; i < str.length; i++) {
+                const code = str.charCodeAt(i) - 44032;
+                if (code > -1 && code < 11172) result += cho[Math.floor(code / 588)];
+                else result += str.charAt(i);
+            }
+            return result;
+        }
+        
+        function speak(text) {
+            if (synth.speaking) synth.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ko-KR';
+            utterance.rate = 1;
+            utterance.pitch = 1;
+            synth.speak(utterance);
+        }
+
+        function startQuiz() {
+            startContainer.style.display = 'none';
+            quizContainer.style.display = 'block';
+            shuffledQuizData = shuffle([...quizData]);
+            currentQuestionIndex = 0;
+            startTimer();
+            loadQuestion();
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function updateTimer() {
+            const elapsedTime = Date.now() - startTime;
+            const minutes = Math.floor(elapsedTime / 60000);
+            const seconds = Math.floor((elapsedTime % 60000) / 1000);
+            timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        
+        function stopTimer() {
+            clearInterval(timerInterval);
+            const elapsedTime = Date.now() - startTime;
+            const minutes = Math.floor(elapsedTime / 60000);
+            const seconds = Math.floor((elapsedTime % 60000) / 1000);
+            const timeString = `총 걸린 시간은 ${minutes}분 ${seconds}초 입니다.`;
+            questionEl.textContent = `모든 퀴즈를 다 푸셨습니다! 🎉\n${timeString}`;
+            speak(timeString);
+        }
+
+        function loadQuestion() {
+            if (currentQuestionIndex < shuffledQuizData.length) {
+                const currentQuiz = shuffledQuizData[currentQuestionIndex];
+                questionCounterEl.textContent = `${currentQuestionIndex + 1} / ${shuffledQuizData.length}`;
+                questionEl.textContent = currentQuiz.question;
+                answerInputEl.value = '';
+                resultEl.style.display = 'none';
+                answerInputEl.disabled = false;
+                answerInputEl.focus();
+                submitBtn.style.display = 'inline-block';
+                hint1Btn.style.display = 'inline-block';
+                hint2Btn.style.display = 'inline-block';
+                nextBtn.style.display = 'none';
+                hint1Btn.textContent = '힌트 1 (글자 수)';
+                hint2Btn.textContent = '힌트 2 (초성)';
+                hint1Btn.disabled = false;
+                hint2Btn.disabled = false;
+                speak(`문제 입니다. ${currentQuiz.question}`);
+            } else {
+                // 이 부분은 마지막 문제 정답 시 stopTimer로 대체됨
+            }
+        }
+
+        function showHint1() {
+            const answerLength = shuffledQuizData[currentQuestionIndex].answer.length;
+            hint1Btn.textContent = `${answerLength}글자`;
+            hint1Btn.disabled = true;
+        }
+
+        function showHint2() {
+            const answer = shuffledQuizData[currentQuestionIndex].answer;
+            const chosung = getChosung(answer);
+            hint2Btn.textContent = `초성: ${chosung}`;
+            hint2Btn.disabled = true;
+        }
+
+        function checkAnswer() {
+            const userAnswer = answerInputEl.value.trim().replace(/\s/g, "");
+            const correctAnswer = shuffledQuizData[currentQuestionIndex].answer;
+
+            if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
+                // --- 정답일 경우 ---
+                answerFeedbackEl.innerHTML = `<span style="color:blue; font-weight:bold;">정답입니다!</span> 😊`;
+                explanationEl.innerHTML = `<strong>[해설]</strong><br>${shuffledQuizData[currentQuestionIndex].explanation}`;
+                
+                resultEl.style.display = 'block';
+                answerInputEl.disabled = true;
+                submitBtn.style.display = 'none';
+                hint1Btn.style.display = 'none';
+                hint2Btn.style.display = 'none';
+                
+                // 마지막 문제인지 확인
+                if (currentQuestionIndex === shuffledQuizData.length - 1) {
+                    stopTimer();
+                    answerInputEl.style.display = 'none';
+                    nextBtn.style.display = 'none';
+                } else {
+                    nextBtn.style.display = 'inline-block';
+                }
+
+            } else {
+                // --- 오답일 경우 ---
+                answerFeedbackEl.innerHTML = `<span style="color:red; font-weight:bold;">아쉬워요!</span> 😢 다시 한번 풀어보세요!`;
+                explanationEl.innerHTML = ''; // 해설 숨김
+                resultEl.style.display = 'block';
+                answerInputEl.value = ''; // 입력창 비우기
+                answerInputEl.focus();
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+        
+        function changeFontSize(amount) {
+            currentFontSize += amount;
+            document.body.style.fontSize = currentFontSize + 'px';
+        }
+
+        // --- 이벤트 리스너 ---
+        startBtn.addEventListener('click', startQuiz);
+        hint1Btn.addEventListener('click', showHint1);
+        hint2Btn.addEventListener('click', showHint2);
+        submitBtn.addEventListener('click', checkAnswer);
+        answerInputEl.addEventListener('keyup', function(event) {
+            if (event.key === "Enter") {
+                checkAnswer();
+            }
+        });
+        nextBtn.addEventListener('click', nextQuestion);
+
+    </script>
+</body>
+</html>
