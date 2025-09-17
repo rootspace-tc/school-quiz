@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎲 야찌 게임 (최종판)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #f0f8ff;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            font-size: 18px;
+            transition: font-size 0.3s;
+        }
+        .game-container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+        .game-panel {
+            flex: 1;
+            background-color: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .score-panel {
+            flex: 1;
+            background-color: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #007bff;
+            margin-top: 0;
+        }
+        .font-controls {
+            margin-bottom: 20px;
+        }
+        .font-controls button {
+            font-family: 'Jua', sans-serif;
+            font-size: 1em;
+            padding: 8px 15px;
+            margin: 0 5px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        #dice-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        .dice {
+            width: 70px;
+            height: 70px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5em;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease-in-out;
+        }
+        .dice.held {
+            background-color: #ffeaa7;
+            border-color: #fdcb6e;
+        }
+        #roll-button {
+            font-family: 'Jua', sans-serif;
+            font-size: 1.2em;
+            padding: 15px 30px;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        #roll-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #roll-info {
+            font-size: 1.2em;
+            color: #555;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        .score-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .score-table th, .score-table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .score-table th {
+            background-color: #f2f2f2;
+        }
+        .score-table .category-name {
+            font-weight: bold;
+        }
+        .score-table .score-value {
+            text-align: center;
+            font-weight: bold;
+        }
+        .score-table tr.score-row:not(.scored):hover {
+            background-color: #e9f5ff;
+            cursor: pointer;
+        }
+        .score-table tr.scored {
+            background-color: #f8f9fa;
+            color: #aaa;
+        }
+        .score-table .potential-score {
+            color: #007bff;
+            font-size: 0.9em;
+            margin-left: 8px;
+        }
+        .total-row {
+            font-size: 1.1em;
+            background-color: #e9ecef;
+        }
+        .bonus-section {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ffc107;
+            background-color: #fff3cd;
+            border-radius: 5px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <div class="game-panel">
+            <h1>🎲 야찌 주사위 굴리기</h1>
+            <div class="font-controls">
+                <button id="decrease-font">- 글씨 작게</button>
+                <button id="increase-font">+ 글씨 크게</button>
+            </div>
+            <div id="dice-container"></div>
+            <button id="roll-button">게임 시작</button>
+            <p id="roll-info">버튼을 눌러 게임을 시작하세요.</p>
+        </div>
+        <div class="score-panel">
+            <h2>📜 점수표</h2>
+            <table class="score-table">
+                <thead><tr><th>항목</th><th>점수</th></tr></thead>
+                <tbody>
+                    <tr id="aces" class="score-row"><td class="category-name">Aces (1)</td><td class="score-value"></td></tr>
+                    <tr id="twos" class="score-row"><td class="category-name">Twos (2)</td><td class="score-value"></td></tr>
+                    <tr id="threes" class="score-row"><td class="category-name">Threes (3)</td><td class="score-value"></td></tr>
+                    <tr id="fours" class="score-row"><td class="category-name">Fours (4)</td><td class="score-value"></td></tr>
+                    <tr id="fives" class="score-row"><td class="category-name">Fives (5)</td><td class="score-value"></td></tr>
+                    <tr id="sixes" class="score-row"><td class="category-name">Sixes (6)</td><td class="score-value"></td></tr>
+                    <tr class="total-row"><td class="category-name">상단 합계 / 보너스 (+35)</td><td id="upper-bonus" class="score-value">0 / 0</td></tr>
+                    <tr id="three_of_a_kind" class="score-row"><td class="category-name">3 of a Kind</td><td class="score-value"></td></tr>
+                    <tr id="four_of_a_kind" class="score-row"><td class="category-name">4 of a Kind</td><td class="score-value"></td></tr>
+                    <tr id="full_house" class="score-row"><td class="category-name">Full House (25)</td><td class="score-value"></td></tr>
+                    <tr id="small_straight" class="score-row"><td class="category-name">Small Straight (30)</td><td class="score-value"></td></tr>
+                    <tr id="large_straight" class="score-row"><td class="category-name">Large Straight (40)</td><td class="score-value"></td></tr>
+                    <tr id="yahtzee" class="score-row"><td class="category-name">Yahtzee (50)</td><td class="score-value"></td></tr>
+                    <tr id="chance" class="score-row"><td class="category-name">Chance</td><td class="score-value"></td></tr>
+                    <tr class="total-row"><td class="category-name">야찌 보너스 (+100)</td><td id="yahtzee-bonus" class="score-value">0</td></tr>
+                    <tr class="total-row"><td class="category-name">총점</td><td id="grand-total" class="score-value">0</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const diceContainer = document.getElementById('dice-container');
+        const rollButton = document.getElementById('roll-button');
+        const rollInfo = document.getElementById('roll-info');
+        
+        let diceValues = [1, 2, 3, 4, 5];
+        let heldDice = [false, false, false, false, false];
+        let rollsLeft = 3;
+        let isGameStarted = false;
+        let scores = {};
+        let yahtzeeBonusCount = 0;
+
+        const calculate = {
+            sum: dice => dice.reduce((a, b) => a + b, 0),
+            sumOf: (dice, num) => dice.filter(d => d === num).reduce((a, b) => a + b, 0),
+            counts: dice => {
+                const counts = {};
+                dice.forEach(d => counts[d] = (counts[d] || 0) + 1);
+                return counts;
+            },
+            of_a_kind: (dice, num) => Object.values(calculate.counts(dice)).some(c => c >= num) ? calculate.sum(dice) : 0,
+            full_house: dice => {
+                const counts = Object.values(calculate.counts(dice));
+                return counts.includes(3) && counts.includes(2) ? 25 : 0;
+            },
+            small_straight: dice => {
+                const unique = [...new Set(dice)].sort((a,b)=> a-b).join('');
+                return /(1234|2345|3456)/.test(unique) ? 30 : 0;
+            },
+            large_straight: dice => {
+                const unique = [...new Set(dice)].sort((a,b)=> a-b).join('');
+                return /(12345|23456)/.test(unique) ? 40 : 0;
+            },
+            yahtzee: dice => new Set(dice).size === 1 ? 50 : 0,
+        };
+        
+        const categories = {
+            'aces': dice => calculate.sumOf(dice, 1),
+            'twos': dice => calculate.sumOf(dice, 2),
+            'threes': dice => calculate.sumOf(dice, 3),
+            'fours': dice => calculate.sumOf(dice, 4),
+            'fives': dice => calculate.sumOf(dice, 5),
+            'sixes': dice => calculate.sumOf(dice, 6),
+            'three_of_a_kind': dice => calculate.of_a_kind(dice, 3),
+            'four_of_a_kind': dice => calculate.of_a_kind(dice, 4),
+            'full_house': dice => calculate.full_house(dice),
+            'small_straight': dice => calculate.small_straight(dice),
+            'large_straight': dice => calculate.large_straight(dice),
+            'yahtzee': dice => calculate.yahtzee(dice),
+            'chance': dice => calculate.sum(dice),
+        };
+
+        function selectScore(category) {
+            if (scores[category] !== undefined || rollsLeft === 3 || !isGameStarted) return;
+            
+            const isYahtzee = calculate.yahtzee(diceValues) === 50;
+            // 야찌 보너스 및 조커 규칙
+            if (isYahtzee && scores['yahtzee'] === 50) {
+                yahtzeeBonusCount++;
+                const upperCategoryForYahtzee = ['aces', 'twos', 'threes', 'fours', 'fives', 'sixes'][diceValues[0] - 1];
+                
+                // 조커 규칙: 1순위 (상단)
+                if (scores[upperCategoryForYahtzee] === undefined && category === upperCategoryForYahtzee) {
+                     // 정상 진행
+                } // 2순위 (하단)
+                else if (scores[upperCategoryForYahtzee] !== undefined && Object.keys(categories).slice(7).includes(category)) {
+                    // 정상 진행
+                } // 3순위 (다른 상단 0점 처리)
+                else if (scores[upperCategoryForYahtzee] !== undefined && Object.keys(categories).slice(7).every(c => scores[c] !== undefined)) {
+                    // 정상 진행 (0점 처리)
+                }
+                else {
+                    alert("조커 규칙에 따라 점수를 기록해주세요!\n1. 해당하는 상단 항목\n2. 비어있는 하단 항목");
+                    return;
+                }
+            }
+            
+            const score = categories[category](diceValues);
+            scores[category] = score;
+            document.querySelector(`#${category} .score-value`).textContent = score;
+            document.getElementById(category).classList.add('scored');
+
+            updateTotals();
+            startNewTurn();
+        }
+        
+        function updateTotals() {
+            const upperScore = ['aces', 'twos', 'threes', 'fours', 'fives', 'sixes'].reduce((sum, cat) => sum + (scores[cat] || 0), 0);
+            const bonus = upperScore >= 63 ? 35 : 0;
+            document.getElementById('upper-bonus').textContent = `${upperScore} / ${bonus}`;
+            
+            const lowerScore = Object.keys(categories).slice(6).reduce((sum, cat) => sum + (scores[cat] || 0), 0);
+            const yahtzeeBonus = yahtzeeBonusCount * 100;
+            document.getElementById('yahtzee-bonus').textContent = yahtzeeBonus;
+
+            document.getElementById('grand-total').textContent = upperScore + bonus + lowerScore + yahtzeeBonus;
+        }
+
+        function startNewTurn() {
+            if (Object.keys(scores).length === 13) {
+                rollInfo.textContent = "게임 종료! 최종 점수를 확인하세요.";
+                rollButton.disabled = true;
+                return;
+            }
+            rollsLeft = 3;
+            heldDice.fill(false);
+            updateDisplay(true); // clear potential scores
+            rollInfo.textContent = `새 턴입니다. (남은 기회: 3)`;
+            rollButton.disabled = false;
+        }
+        
+        function updatePotentialScores() {
+            if (rollsLeft === 3) return;
+            document.querySelectorAll('.score-row').forEach(row => {
+                const category = row.id;
+                if (scores[category] === undefined) {
+                    const score = categories[category](diceValues);
+                    row.querySelector('.score-value').innerHTML = `<span class="potential-score">(+${score})</span>`;
+                }
+            });
+        }
+        
+        function rollDice() {
+            if (!isGameStarted) {
+                isGameStarted = true;
+                rollButton.textContent = "주사위 굴리기";
+            }
+            if (rollsLeft === 0) return;
+            rollsLeft--;
+            diceValues = diceValues.map((val, i) => heldDice[i] ? val : Math.ceil(Math.random() * 6));
+            updateDisplay();
+            updatePotentialScores();
+        }
+
+        function updateDisplay(clearPotential = false) {
+            diceContainer.innerHTML = '';
+            const diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+            diceValues.forEach((value, index) => {
+                const dieEl = document.createElement('div');
+                dieEl.className = 'dice';
+                dieEl.textContent = diceFaces[value - 1];
+                if (heldDice[index]) dieEl.classList.add('held');
+                dieEl.addEventListener('click', () => toggleHold(index));
+                diceContainer.appendChild(dieEl);
+            });
+            rollButton.disabled = (rollsLeft === 0 && isGameStarted);
+            rollInfo.textContent = isGameStarted ? `남은 기회: ${rollsLeft}` : `버튼을 눌러 게임을 시작하세요.`;
+            if (clearPotential) {
+                 document.querySelectorAll('.potential-score').forEach(el => el.remove());
+            }
+        }
+
+        function toggleHold(index) {
+            if (isGameStarted && rollsLeft < 3) {
+                heldDice[index] = !heldDice[index];
+                updateDisplay();
+            }
+        }
+
+        let currentFontSize = 18;
+        function changeFontSize(amount) {
+            currentFontSize = Math.max(12, Math.min(30, currentFontSize + amount));
+            document.body.style.fontSize = `${currentFontSize}px`;
+        }
+        
+        rollButton.addEventListener('click', rollDice);
+        document.getElementById('increase-font').addEventListener('click', () => changeFontSize(2));
+        document.getElementById('decrease-font').addEventListener('click', () => changeFontSize(-2));
+        document.querySelectorAll('.score-row').forEach(row => row.addEventListener('click', () => selectScore(row.id)));
+
+        updateDisplay();
+    </script>
+</body>
+</html>
