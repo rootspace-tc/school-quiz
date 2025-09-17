@@ -8,27 +8,162 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Jua', sans-serif; background-color: #f4f1de; color: #3d405b; display: flex; justify-content: center; align-items: flex-start; padding: 20px; }
-        .game-container { position: relative; display: flex; gap: 30px; align-items: flex-start; }
-        #game-board { display: grid; grid-template-columns: repeat(15, 45px); grid-template-rows: repeat(15, 45px); gap: 4px; background-color: #e07a5f; padding: 10px; border-radius: 10px; border: 5px solid #81b29a; }
-        .board-cell { width: 45px; height: 45px; background-color: #f2cc8f; border-radius: 5px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: all 0.3s ease; }
-        .board-cell:hover { background-color: #d8b780; }
-        .board-cell.ai-move-highlight { box-shadow: 0 0 15px 5px #ffeb3b; border-radius: 8px; transform: scale(1.1); }
-        .tile { width: 42px; height: 42px; border-radius: 5px; display: flex; justify-content: center; align-items: center; font-size: 28px; cursor: pointer; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); border: 2px solid transparent; }
-        .sidebar { width: 250px; background-color: #81b29a; padding: 20px; border-radius: 10px; text-align: center; }
-        .hand-area { margin-top: 15px; background-color: #f4f1de; padding: 10px; border-radius: 5px; min-height: 150px; }
-        .hand-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .tile.selected { border-color: #e07a5f; transform: scale(1.1); }
-        .tile.ai-tile-hidden { background-color: #3d405b !important; color: #3d405b !important; }
-        #score-area { margin-top: 20px; background-color: #f4f1de; padding: 10px; border-radius: 5px; }
-        #message { margin-top: 15px; font-size: 1.2em; color: #e07a5f; min-height: 40px; font-weight: bold; }
-        .btn { font-family: 'Jua', sans-serif; font-size: 1.1em; padding: 10px 15px; margin-top: 10px; border: none; border-radius: 5px; cursor: pointer; background-color: #3d405b; color: white; }
-        .btn:disabled { background-color: #999; cursor: not-allowed; }
-        .score-popup { position: absolute; font-size: 2.5em; font-weight: bold; color: #e07a5f; text-shadow: 2px 2px 3px white; z-index: 20; pointer-events: none; opacity: 0; transition: all 1s ease-out; }
-        .modal { display: none; position: fixed; z-index: 10; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); }
-        .modal-content { text-align: center; background-color: #f4f1de; margin: 15% auto; padding: 30px; border: 5px solid #81b29a; border-radius: 10px; width: 80%; max-width: 500px; position: relative; }
-        .close-btn { color: #aaa; position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
-        .close-btn:hover { color: #3d405b; }
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #f4f1de;
+            color: #3d405b;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+        }
+        .game-container {
+            position: relative;
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(15, 45px);
+            grid-template-rows: repeat(15, 45px);
+            gap: 4px;
+            background-color: #e07a5f;
+            padding: 10px;
+            border-radius: 10px;
+            border: 5px solid #81b29a;
+        }
+        .board-cell {
+            width: 45px;
+            height: 45px;
+            background-color: #f2cc8f;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        .board-cell:hover {
+            background-color: #d8b780;
+        }
+        .board-cell.ai-move-highlight {
+            box-shadow: 0 0 15px 5px #ffeb3b;
+            border-radius: 8px;
+            transform: scale(1.1);
+        }
+        .tile {
+            width: 42px;
+            height: 42px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            border: 2px solid transparent;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #81b29a;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .hand-area {
+            margin-top: 15px;
+            background-color: #f4f1de;
+            padding: 10px;
+            border-radius: 5px;
+            min-height: 150px;
+        }
+        .hand-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .tile.selected {
+            border-color: #e07a5f;
+            transform: scale(1.1);
+        }
+        .tile.ai-tile-hidden {
+            background-color: #3d405b !important;
+            color: #3d405b !important;
+        }
+        #score-area {
+            margin-top: 20px;
+            background-color: #f4f1de;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #message {
+            margin-top: 15px;
+            font-size: 1.2em;
+            color: #e07a5f;
+            min-height: 40px;
+            font-weight: bold;
+        }
+        .btn {
+            font-family: 'Jua', sans-serif;
+            font-size: 1.1em;
+            padding: 10px 15px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #3d405b;
+            color: white;
+        }
+        .btn:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+        }
+        .score-popup {
+            position: absolute;
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #e07a5f;
+            text-shadow: 2px 2px 3px white;
+            z-index: 20;
+            pointer-events: none;
+            opacity: 0;
+            transition: all 1s ease-out;
+        }
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 10; 
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.6);
+        }
+        .modal-content {
+            text-align: center;
+            background-color: #f4f1de;
+            margin: 15% auto;
+            padding: 30px;
+            border: 5px solid #81b29a;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 500px;
+            position: relative;
+        }
+        .close-btn {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-btn:hover {
+            color: #3d405b;
+        }
     </style>
 </head>
 <body>
@@ -188,7 +323,7 @@
         }
 
         function switchTurn() {
-            if (consecutivePasses >= 2 || (tileBag.length === 0 && playerHand.length === 0 && aiHand.length === 0)) {
+            if (consecutivePasses >= 4 || (tileBag.length === 0 && playerHand.length === 0 && aiHand.length === 0)) {
                 endGame();
                 return;
             }
@@ -288,12 +423,19 @@
                 }, 1500);
             } else {
                 consecutivePasses++;
-                messageEl.textContent = "AI가 놓을 곳이 없어 턴을 넘깁니다.";
+                let passMessage = "AI가 놓을 곳이 없어 턴을 넘깁니다.";
                 if (tileBag.length > 0) {
-                    aiHand.forEach(tile => tileBag.push(tile)); aiHand = []; shuffle(tileBag); for (let i = 0; i < handSize; i++) drawTile('ai');
+                    passMessage = "AI가 놓을 곳이 없어 타일을 교체합니다.";
+                    aiHand.forEach(tile => tileBag.push(tile)); 
+                    aiHand = []; 
+                    shuffle(tileBag); 
+                    for (let i = 0; i < handSize; i++) drawTile('ai');
                 }
+                messageEl.textContent = passMessage;
                 updateUI();
-                switchTurn();
+                setTimeout(() => {
+                    switchTurn();
+                }, 1500);
             }
         }
         
