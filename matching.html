@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧩 타일 매칭 퍼즐 (AI 대전)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Jua', sans-serif; background-color: #f4f1de; color: #3d405b; display: flex; justify-content: center; align-items: flex-start; padding: 20px; }
+        .game-container { position: relative; display: flex; gap: 30px; align-items: flex-start; }
+        #game-board { display: grid; grid-template-columns: repeat(15, 45px); grid-template-rows: repeat(15, 45px); gap: 4px; background-color: #e07a5f; padding: 10px; border-radius: 10px; border: 5px solid #81b29a; }
+        .board-cell { width: 45px; height: 45px; background-color: #f2cc8f; border-radius: 5px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: all 0.3s ease; }
+        .board-cell:hover { background-color: #d8b780; }
+        .board-cell.ai-move-highlight { box-shadow: 0 0 15px 5px #ffeb3b; border-radius: 8px; transform: scale(1.1); }
+        .tile { width: 42px; height: 42px; border-radius: 5px; display: flex; justify-content: center; align-items: center; font-size: 28px; cursor: pointer; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); border: 2px solid transparent; }
+        .sidebar { width: 250px; background-color: #81b29a; padding: 20px; border-radius: 10px; text-align: center; }
+        .hand-area { margin-top: 15px; background-color: #f4f1de; padding: 10px; border-radius: 5px; min-height: 150px; }
+        .hand-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .tile.selected { border-color: #e07a5f; transform: scale(1.1); }
+        .tile.ai-tile-hidden { background-color: #3d405b !important; color: #3d405b !important; }
+        #score-area { margin-top: 20px; background-color: #f4f1de; padding: 10px; border-radius: 5px; }
+        #message { margin-top: 15px; font-size: 1.2em; color: #e07a5f; min-height: 40px; font-weight: bold; }
+        .btn { font-family: 'Jua', sans-serif; font-size: 1.1em; padding: 10px 15px; margin-top: 10px; border: none; border-radius: 5px; cursor: pointer; background-color: #3d405b; color: white; }
+        .btn:disabled { background-color: #999; cursor: not-allowed; }
+        .score-popup { position: absolute; font-size: 2.5em; font-weight: bold; color: #e07a5f; text-shadow: 2px 2px 3px white; z-index: 20; pointer-events: none; opacity: 0; transition: all 1s ease-out; }
+        .modal { display: none; position: fixed; z-index: 10; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); }
+        .modal-content { text-align: center; background-color: #f4f1de; margin: 15% auto; padding: 30px; border: 5px solid #81b29a; border-radius: 10px; width: 80%; max-width: 500px; position: relative; }
+        .close-btn { color: #aaa; position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close-btn:hover { color: #3d405b; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div id="game-board"></div>
+        <div class="sidebar">
+            <div id="score-area">
+                <h3>플레이어: <span id="player-score">0</span></h3>
+                <h3>AI: <span id="ai-score">0</span></h3>
+            </div>
+            <h2>내 타일</h2><div id="player-hand-area" class="hand-area"><div class="hand-grid"></div></div>
+            <h2>AI 타일</h2><div id="ai-hand-area" class="hand-area"><div class="hand-grid"></div></div>
+            <p id="message">게임 시작! 타일을 선택하세요.</p>
+            <button id="rules-btn" class="btn">규칙 보기</button>
+            <button id="pass-turn-btn" class="btn">턴 넘기기</button>
+            <button id="show-ai-move-btn" class="btn">AI 위치 보기</button>
+        </div>
+    </div>
+
+    <div id="rules-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>🧩 타일 매칭 퍼즐 규칙</h2>
+            <h4>목표</h4><p>타일 주머니가 다 떨어질 때까지 가장 높은 점수를 얻는 것이 목표입니다.</p>
+            <h4>타일 놓기 규칙</h4><p><b>1. 첫 타일:</b> 보드가 비어있을 때는 원하는 타일을 아무 곳에나 놓을 수 있습니다.</p><p><b>2. 다음 타일:</b> 기존에 놓인 타일의 상하좌우 중 한 곳 이상에 반드시 닿도록 놓아야 합니다.</p>
+            <h4>라인 규칙 (가장 중요!)</h4><p>한 줄(가로 또는 세로)은 반드시 아래 두 조건 중 <b>하나만</b> 만족해야 합니다.<br>- <b>색깔 통일:</b> 라인의 모든 타일이 같은 색깔 (모양은 모두 달라야 함)<br>- <b>모양 통일:</b> 라인의 모든 타일이 같은 모양 (색깔은 모두 달라야 함)</p><p>※ 한 줄에 색깔과 모양이 모두 똑같은 타일은 2개 이상 있을 수 없습니다.</p>
+            <h4>점수 계산</h4><p>내가 놓은 타일이 포함된 라인의 타일 개수가 점수가 됩니다. (4칸짜리 줄을 만들면 4점)<br>교차점에 타일을 놓아 가로줄과 세로줄을 동시에 만들면, 두 줄의 점수를 모두 합산합니다.</p>
+        </div>
+    </div>
+
+    <div id="game-over-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="winner-title">게임 종료!</h2>
+            <p id="winner-message" style="font-size: 1.5em; margin: 20px 0;"></p>
+            <button id="play-again-btn" class="btn">다시하기</button>
+        </div>
+    </div>
+
+    <script>
+        const boardSize = 15;
+        const handSize = 6;
+        const colors = ['#E76F51', '#F4A261', '#E9C46A', '#2A9D8F', '#264653', '#8E6E53'];
+        const shapes = ['●', '■', '◆', '▲', '★', '✚'];
+        
+        const gameContainer = document.querySelector('.game-container');
+        const gameBoardEl = document.getElementById('game-board');
+        const playerScoreEl = document.getElementById('player-score');
+        const aiScoreEl = document.getElementById('ai-score');
+        const playerHandGrid = document.querySelector('#player-hand-area .hand-grid');
+        const aiHandGrid = document.querySelector('#ai-hand-area .hand-grid');
+        const messageEl = document.getElementById('message');
+        const passTurnBtn = document.getElementById('pass-turn-btn');
+        const rulesModal = document.getElementById('rules-modal');
+        const rulesBtn = document.getElementById('rules-btn');
+        const closeBtn = document.querySelector('.close-btn');
+        const showAiMoveBtn = document.getElementById('show-ai-move-btn');
+        const gameOverModal = document.getElementById('game-over-modal');
+        const winnerMessage = document.getElementById('winner-message');
+        const winnerTitle = document.getElementById('winner-title');
+        const playAgainBtn = document.getElementById('play-again-btn');
+
+        let boardState, tileBag, playerHand, aiHand, playerScore, aiScore, selectedTile, currentPlayer, lastAiMove, consecutivePasses;
+
+        function createTileElement(tile, isHidden = false) {
+            if (!tile) return null;
+            const tileDiv = document.createElement('div');
+            tileDiv.className = 'tile';
+            if (isHidden) {
+                tileDiv.classList.add('ai-tile-hidden');
+            } else {
+                tileDiv.style.backgroundColor = tile.color;
+                tileDiv.style.color = 'white';
+                tileDiv.innerHTML = tile.shape;
+            }
+            return tileDiv;
+        }
+        
+        function initializeGame() {
+            boardState = Array(boardSize).fill(null).map(() => Array(boardSize).fill(null));
+            tileBag = [];
+            playerHand = [];
+            aiHand = [];
+            playerScore = 0;
+            aiScore = 0;
+            selectedTile = null;
+            currentPlayer = 'player';
+            lastAiMove = null;
+            consecutivePasses = 0;
+
+            for (let i = 0; i < 3; i++) {
+                for (const color of colors) {
+                    for (const shape of shapes) {
+                        tileBag.push({ color, shape });
+                    }
+                }
+            }
+            shuffle(tileBag);
+            
+            for (let i = 0; i < handSize; i++) {
+                drawTile('player');
+                drawTile('ai');
+            }
+
+            gameBoardEl.innerHTML = '';
+            for (let r = 0; r < boardSize; r++) {
+                for (let c = 0; c < boardSize; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'board-cell';
+                    cell.addEventListener('click', () => onCellClick(r, c));
+                    gameBoardEl.appendChild(cell);
+                }
+            }
+            
+            gameOverModal.style.display = 'none';
+            gameBoardEl.style.pointerEvents = 'auto';
+            passTurnBtn.disabled = false;
+            showAiMoveBtn.disabled = false;
+            messageEl.textContent = "게임 시작! 타일을 선택하세요.";
+            updateUI();
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function drawTile(player) {
+            if (tileBag.length > 0) {
+                const hand = (player === 'player') ? playerHand : aiHand;
+                if (hand.length < handSize) {
+                    hand.push(tileBag.pop());
+                }
+            }
+        }
+        
+        function updateUI() {
+            playerHandGrid.innerHTML = '';
+            playerHand.forEach((tile, index) => {
+                const tileEl = createTileElement(tile);
+                if (selectedTile && selectedTile.index === index) tileEl.classList.add('selected');
+                tileEl.addEventListener('click', () => onHandTileClick(tile, index));
+                playerHandGrid.appendChild(tileEl);
+            });
+            aiHandGrid.innerHTML = '';
+            aiHand.forEach(tile => aiHandGrid.appendChild(createTileElement(tile, true)));
+            for (let r = 0; r < boardSize; r++) {
+                for (let c = 0; c < boardSize; c++) {
+                    const cell = gameBoardEl.children[r * boardSize + c];
+                    cell.innerHTML = '';
+                    if (boardState[r][c]) cell.appendChild(createTileElement(boardState[r][c]));
+                }
+            }
+            playerScoreEl.textContent = playerScore;
+            aiScoreEl.textContent = aiScore;
+        }
+
+        function switchTurn() {
+            if (consecutivePasses >= 2 || (tileBag.length === 0 && playerHand.length === 0 && aiHand.length === 0)) {
+                endGame();
+                return;
+            }
+            currentPlayer = (currentPlayer === 'player') ? 'ai' : 'player';
+            if (currentPlayer === 'ai') {
+                messageEl.textContent = "AI가 생각 중입니다...";
+                passTurnBtn.disabled = true;
+                showAiMoveBtn.disabled = true;
+                setTimeout(aiTurn, 1000);
+            } else {
+                messageEl.textContent = "내 차례! 타일을 선택하세요.";
+                passTurnBtn.disabled = false;
+                showAiMoveBtn.disabled = false;
+            }
+        }
+        
+        function endGame() {
+            let title = "", message = "";
+            if (playerScore > aiScore) {
+                title = "🎉 축하합니다! 🎉";
+                message = `플레이어 승리!<br>최종 점수 ${playerScore} : ${aiScore}`;
+            } else if (aiScore > playerScore) {
+                title = "🤖 AI 승리 🤖";
+                message = `AI가 승리했습니다!<br>최종 점수 ${playerScore} : ${aiScore}`;
+            } else {
+                title = "무승부!";
+                message = `치열한 접전 끝에 무승부입니다!<br>최종 점수 ${playerScore} : ${aiScore}`;
+            }
+            winnerTitle.innerHTML = title;
+            winnerMessage.innerHTML = message;
+            gameOverModal.style.display = 'block';
+            passTurnBtn.disabled = true;
+            showAiMoveBtn.disabled = true;
+            gameBoardEl.style.pointerEvents = 'none';
+        }
+
+        function showScorePopup(points, cellElement) {
+            const popup = document.createElement('div');
+            popup.className = 'score-popup';
+            popup.textContent = `+${points}`;
+            gameContainer.appendChild(popup);
+            const cellRect = cellElement.getBoundingClientRect();
+            const containerRect = gameContainer.getBoundingClientRect();
+            popup.style.left = `${cellRect.left - containerRect.left + cellRect.width / 2 - popup.offsetWidth / 2}px`;
+            popup.style.top = `${cellRect.top - containerRect.top + cellRect.height / 2 - popup.offsetHeight / 2}px`;
+            setTimeout(() => { popup.style.opacity = '1'; popup.style.transform = 'translateY(-50px)'; }, 10);
+            setTimeout(() => { popup.remove(); }, 1000);
+        }
+
+        function onHandTileClick(tile, index) {
+            if (currentPlayer !== 'player') return;
+            selectedTile = { tile, index };
+            messageEl.textContent = '타일을 놓을 보드를 선택하세요.';
+            updateUI();
+        }
+
+        function onCellClick(row, col) {
+            if (currentPlayer !== 'player' || !selectedTile) return;
+            const { isValid, reason, points } = checkMoveValidity(selectedTile.tile, row, col);
+            if (isValid) {
+                consecutivePasses = 0;
+                const movedCell = gameBoardEl.children[row * boardSize + col];
+                boardState[row][col] = selectedTile.tile;
+                playerScore += points;
+                playerHand.splice(selectedTile.index, 1);
+                drawTile('player');
+                selectedTile = null;
+                updateUI();
+                showScorePopup(points, movedCell);
+                if (playerHand.length === 0 && tileBag.length === 0) { endGame(); return; }
+                switchTurn();
+            } else {
+                messageEl.textContent = reason;
+            }
+        }
+
+        function aiTurn() {
+            let bestMove = { score: 0, tile: null, index: -1, row: -1, col: -1 };
+            for (let r = 0; r < boardSize; r++) { for (let c = 0; c < boardSize; c++) { if (!boardState[r][c]) { aiHand.forEach((tile, index) => { const { isValid, points } = checkMoveValidity(tile, r, c); if (isValid && points > bestMove.score) { bestMove = { score: points, tile, index, row: r, col: c }; } }); } } }
+
+            if (bestMove.tile) {
+                consecutivePasses = 0;
+                lastAiMove = { row: bestMove.row, col: bestMove.col };
+                const movedCell = gameBoardEl.children[bestMove.row * boardSize + bestMove.col];
+                boardState[bestMove.row][bestMove.col] = bestMove.tile;
+                aiScore += bestMove.score;
+                aiHand.splice(bestMove.index, 1);
+                drawTile('ai');
+                messageEl.textContent = `AI가 +${bestMove.score}점을 얻었습니다!`;
+                updateUI();
+                showScorePopup(bestMove.score, movedCell);
+                movedCell.classList.add('ai-move-highlight');
+                setTimeout(() => { 
+                    movedCell.classList.remove('ai-move-highlight');
+                    if (aiHand.length === 0 && tileBag.length === 0) { endGame(); return; }
+                    switchTurn(); 
+                }, 1500);
+            } else {
+                consecutivePasses++;
+                messageEl.textContent = "AI가 놓을 곳이 없어 턴을 넘깁니다.";
+                if (tileBag.length > 0) {
+                    aiHand.forEach(tile => tileBag.push(tile)); aiHand = []; shuffle(tileBag); for (let i = 0; i < handSize; i++) drawTile('ai');
+                }
+                updateUI();
+                switchTurn();
+            }
+        }
+        
+        function checkMoveValidity(tile, row, col) {
+            if (boardState[row][col]) return { isValid: false, reason: '이미 타일이 있는 곳입니다.', points: 0 };
+            const isBoardEmpty = boardState.every(r => r.every(c => c === null));
+            if (isBoardEmpty) return { isValid: true, points: 1 };
+            if (Object.keys(getNeighbors(row, col)).length === 0) return { isValid: false, reason: '기존 타일 옆에 붙여야 합니다.', points: 0 };
+            const horizontalLine = getLine(row, col, 'horizontal');
+            const verticalLine = getLine(row, col, 'vertical');
+            horizontalLine.push(tile);
+            verticalLine.push(tile);
+            if (!isLineValid(horizontalLine)) return { isValid: false, reason: '가로줄 규칙 위반!', points: 0 };
+            if (!isLineValid(verticalLine)) return { isValid: false, reason: '세로줄 규칙 위반!', points: 0 };
+            let points = 0;
+            if (horizontalLine.length > 1) points += horizontalLine.length;
+            if (verticalLine.length > 1) points += verticalLine.length;
+            if (points === 0) points = 1;
+            return { isValid: true, points };
+        }
+        
+        function getNeighbors(row, col) { const neighbors = {}; if (row > 0 && boardState[row - 1][col]) neighbors.up = boardState[row - 1][col]; if (row < boardSize - 1 && boardState[row + 1][col]) neighbors.down = boardState[row + 1][col]; if (col > 0 && boardState[row][col - 1]) neighbors.left = boardState[row][col - 1]; if (col < boardSize - 1 && boardState[row][col + 1]) neighbors.right = boardState[row][col + 1]; return neighbors; }
+        function getLine(row, col, direction) { const line = []; if (direction === 'horizontal') { let c = col - 1; while (c >= 0 && boardState[row][c]) { line.unshift(boardState[row][c]); c--; } c = col + 1; while (c < boardSize && boardState[row][c]) { line.push(boardState[row][c]); c++; } } else { let r = row - 1; while (r >= 0 && boardState[r][col]) { line.unshift(boardState[r][col]); r--; } r = row + 1; while (r < boardSize && boardState[r][col]) { line.push(boardState[r][col]); r++; } } return line; }
+        function isLineValid(line) { if (line.length <= 1) return true; const stringified = line.map(t => `${t.color}-${t.shape}`); if (new Set(stringified).size !== stringified.length) return false; const allSameColor = line.every(tile => tile.color === line[0].color); const allSameShape = line.every(tile => tile.shape === line[0].shape); return allSameColor !== allSameShape; }
+        
+        passTurnBtn.addEventListener('click', () => {
+             if (currentPlayer !== 'player') return;
+             consecutivePasses++;
+             messageEl.textContent = "턴을 넘깁니다.";
+             if (tileBag.length > 0) {
+                 playerHand.forEach(tile => tileBag.push(tile)); playerHand = []; shuffle(tileBag); for (let i = 0; i < handSize; i++) drawTile('player');
+             }
+             updateUI();
+             switchTurn();
+        });
+        
+        playAgainBtn.addEventListener('click', () => {
+            initializeGame();
+        });
+
+        showAiMoveBtn.addEventListener('click', () => { if(lastAiMove) { const cell = gameBoardEl.children[lastAiMove.row * boardSize + lastAiMove.col]; cell.classList.add('ai-move-highlight'); setTimeout(() => { cell.classList.remove('ai-move-highlight'); }, 1500); } });
+        rulesBtn.addEventListener('click', () => { rulesModal.style.display = 'block'; });
+        closeBtn.addEventListener('click', () => { rulesModal.style.display = 'none'; });
+        window.addEventListener('click', (event) => { if (event.target == rulesModal) { rulesModal.style.display = 'none'; } });
+
+        initializeGame();
+    </script>
+</body>
+</html>
