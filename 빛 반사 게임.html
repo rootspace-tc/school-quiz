@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>빛 반사 게임</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Jua', sans-serif;
+            touch-action: manipulation; /* 모바일에서 더블 탭 확대 방지 */
+        }
+        /* 커스텀 스타일 */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+        .btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .btn:active {
+            transform: translateY(0px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        canvas {
+            background-color: #1f2937; /* 다크 그레이 배경 */
+            border-radius: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+
+    <div id="game-container" class="w-full max-w-2xl mx-auto flex flex-col items-center space-y-4">
+        <h1 class="text-4xl md:text-5xl font-bold text-yellow-300 tracking-wider">✨ 빛 반사 게임 ✨</h1>
+        
+        <div id="info-text" class="text-lg text-gray-300 h-8">거울을 클릭해서 회전시키세요!</div>
+
+        <div class="relative w-full aspect-square">
+            <canvas id="game-canvas"></canvas>
+        </div>
+
+        <div id="game-controls" class="grid grid-cols-3 gap-3 w-full max-w-md">
+            <button id="menu-btn" class="btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg">메뉴로</button>
+            <button id="toggle-light-btn" class="btn bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-3 px-4 rounded-lg shadow-lg">빛 켜기</button>
+            <button id="restart-btn" class="btn bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg">새 문제</button>
+        </div>
+    </div>
+
+    <!-- 메뉴 모달 -->
+    <div id="menu-modal" class="fixed inset-0 modal-backdrop flex items-center justify-center">
+        <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl text-center w-11/12 max-w-sm border-2 border-yellow-400">
+            <h2 class="text-3xl font-bold mb-6 text-yellow-300">난이도를 선택하세요</h2>
+            <div class="space-y-4">
+                <button data-difficulty="쉬움" class="btn difficulty-btn w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg text-xl">쉬움</button>
+                <button data-difficulty="보통" class="btn difficulty-btn w-full bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-lg text-xl">보통</button>
+                <button data-difficulty="어려움" class="btn difficulty-btn w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-lg text-xl">어려움</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 승리 모달 -->
+    <div id="win-modal" class="fixed inset-0 modal-backdrop flex-col items-center justify-center hidden cursor-pointer">
+         <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl text-center w-11/12 max-w-sm border-2 border-green-400">
+            <h2 id="win-message" class="text-5xl font-bold mb-4 text-green-400">🎉 성공! 🎉</h2>
+            <p class="text-xl text-gray-200">화면을 클릭하면 다음 문제로 넘어갑니다.</p>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('game-canvas');
+            const ctx = canvas.getContext('2d');
+
+            // --- 상수 정의 ---
+            const GRID_SIZE = 5;
+            const CELL_TYPES = { EMPTY: 0, START: 1, GOAL: 2, OBSTACLE: 3, MIRROR_SLASH: 4, MIRROR_BACKSLASH: 5 };
+            const DIRECTION = { UP: { x: 0, y: -1 }, DOWN: { x: 0, y: 1 }, LEFT: { x: -1, y: 0 }, RIGHT: { x: 1, y: 0 } };
+            const DIR_NAME = { '0,-1': 'UP', '0,1': 'DOWN', '-1,0': 'LEFT', '1,0': 'RIGHT' };
+
+            // --- 게임 상태 변수 ---
+            let cellSize;
+            let grid = [];
+            let startPos, goalPos;
+            let gameState = 'menu'; // 'menu', 'playing', 'win'
+            let lightPath = [];
+            let lightOn = false;
+            let difficulty = '쉬움';
+
+            // --- UI 요소 ---
+            const gameContainer = document.getElementById('game-container');
+            const gameControls = document.getElementById('game-controls');
+            const infoText = document.getElementById('info-text');
+            const menuModal = document.getElementById('menu-modal');
+            const winModal = document.getElementById('win-modal');
+            const toggleLightBtn = document.getElementById('toggle-light-btn');
+
+            // --- 맵 생성 로직 (Python 코드 변환) ---
+            function generateSolvableMap(diff) {
+                while (true) {
+                    let newGrid = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(CELL_TYPES.EMPTY));
+                    let path = [];
+
+                    const startC = Math.floor(Math.random() * GRID_SIZE);
+                    const goalC = Math.floor(Math.random() * GRID_SIZE);
+                    newGrid[0][startC] = CELL_TYPES.START;
+                    newGrid[GRID_SIZE - 1][goalC] = CELL_TYPES.GOAL;
+
+                    const start = { x: startC, y: 0 };
+                    const goal = { x: goalC, y: GRID_SIZE - 1 };
+
+                    const turnProb = { "쉬움": 0.3, "보통": 0.5, "어려움": 0.7 }[diff];
+                    let currPos = { x: goal.x, y: GRID_SIZE - 2 };
+                    let currDirVec = DIRECTION.UP;
+                    path.push({x: goal.x, y: goal.y});
+                    if (GRID_SIZE > 1) path.push({x: currPos.x, y: currPos.y});
+
+                    let validPath = false;
+                    for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+                        if (currPos.y === 0) {
+                            if (currPos.x === startC) validPath = true;
+                            break;
+                        }
+
+                        if (Math.random() < turnProb) {
+                            let possibleDirs = [];
+                            if (DIR_NAME[`${currDirVec.x},${currDirVec.y}`] === 'UP' || DIR_NAME[`${currDirVec.x},${currDirVec.y}`] === 'DOWN') {
+                                possibleDirs = [DIRECTION.LEFT, DIRECTION.RIGHT];
+                            } else {
+                                possibleDirs = [DIRECTION.UP, DIRECTION.DOWN];
+                            }
+                            possibleDirs.sort(() => Math.random() - 0.5);
+
+                            let turned = false;
+                            for (const nextDirVec of possibleDirs) {
+                                const nextPos = { x: currPos.x + nextDirVec.x, y: currPos.y + nextDirVec.y };
+                                if (nextPos.x >= 0 && nextPos.x < GRID_SIZE && nextPos.y >= 0 && nextPos.y < GRID_SIZE && !path.some(p => p.x === nextPos.x && p.y === nextPos.y)) {
+                                    const prevDir = DIR_NAME[`${-currDirVec.x},${-currDirVec.y}`];
+                                    const currDir = DIR_NAME[`${nextDirVec.x},${nextDirVec.y}`];
+                                    
+                                    if ((prevDir === 'DOWN' && currDir === 'RIGHT') || (prevDir === 'LEFT' && currDir === 'UP') || (prevDir === 'UP' && currDir === 'LEFT') || (prevDir === 'RIGHT' && currDir === 'DOWN')) {
+                                        newGrid[currPos.y][currPos.x] = CELL_TYPES.MIRROR_BACKSLASH;
+                                    } else {
+                                        newGrid[currPos.y][currPos.x] = CELL_TYPES.MIRROR_SLASH;
+                                    }
+                                    currDirVec = nextDirVec;
+                                    turned = true;
+                                    break;
+                                }
+                            }
+                            if (turned) {
+                                currPos.x += currDirVec.x;
+                                currPos.y += currDirVec.y;
+                                path.push({x: currPos.x, y: currPos.y});
+                                continue;
+                            }
+                        }
+
+                        const nextPos = { x: currPos.x + currDirVec.x, y: currPos.y + currDirVec.y };
+                        if (nextPos.x >= 0 && nextPos.x < GRID_SIZE && nextPos.y >= 0 && nextPos.y < GRID_SIZE && !path.some(p => p.x === nextPos.x && p.y === nextPos.y)) {
+                            currPos = nextPos;
+                            path.push({x: currPos.x, y: currPos.y});
+                        }
+                    }
+
+                    if (!validPath) continue;
+
+                    const obstacleProb = { "쉬움": 0.3, "보통": 0.4, "어려움": 0.5 }[diff];
+                    const dummyMirrorProb = { "쉬움": 0.3, "보통": 0.4, "어려움": 0.5 }[diff];
+
+                    for (let r = 0; r < GRID_SIZE; r++) {
+                        for (let c = 0; c < GRID_SIZE; c++) {
+                            if (!path.some(p => p.x === c && p.y === r) && newGrid[r][c] === CELL_TYPES.EMPTY) {
+                                const randVal = Math.random();
+                                if (randVal < obstacleProb) {
+                                    newGrid[r][c] = CELL_TYPES.OBSTACLE;
+                                } else if (randVal < obstacleProb + dummyMirrorProb) {
+                                    newGrid[r][c] = Math.random() < 0.5 ? CELL_TYPES.MIRROR_SLASH : CELL_TYPES.MIRROR_BACKSLASH;
+                                }
+                            }
+                        }
+                    }
+                    return { grid: newGrid, startPos: start, goalPos: goal };
+                }
+            }
+            
+            // --- 빛 경로 계산 ---
+            function calculateLightPath() {
+                if (!startPos) return [];
+                let pos = { ...startPos };
+                let direction = DIRECTION.DOWN;
+                let path = [{ ...pos }];
+
+                for (let i = 0; i < GRID_SIZE * GRID_SIZE * 2; i++) {
+                    pos.x += direction.x;
+                    pos.y += direction.y;
+
+                    if (!(pos.x >= 0 && pos.x < GRID_SIZE && pos.y >= 0 && pos.y < GRID_SIZE)) break;
+
+                    path.push({ ...pos });
+                    const currentCellType = grid[pos.y][pos.x];
+
+                    if (pos.x === goalPos.x && pos.y === goalPos.y) {
+                        if (lightOn) {
+                            gameState = 'win';
+                        }
+                        break;
+                    }
+                    if (currentCellType === CELL_TYPES.OBSTACLE) break;
+
+                    const dirName = DIR_NAME[`${direction.x},${direction.y}`];
+                    if (currentCellType === CELL_TYPES.MIRROR_SLASH) { // /
+                        if (dirName === 'DOWN') direction = DIRECTION.LEFT;
+                        else if (dirName === 'UP') direction = DIRECTION.RIGHT;
+                        else if (dirName === 'RIGHT') direction = DIRECTION.UP;
+                        else if (dirName === 'LEFT') direction = DIRECTION.DOWN;
+                    } else if (currentCellType === CELL_TYPES.MIRROR_BACKSLASH) { // \
+                        if (dirName === 'DOWN') direction = DIRECTION.RIGHT;
+                        else if (dirName === 'UP') direction = DIRECTION.LEFT;
+                        else if (dirName === 'RIGHT') direction = DIRECTION.DOWN;
+                        else if (dirName === 'LEFT') direction = DIRECTION.UP;
+                    }
+                }
+                return path;
+            }
+
+            // --- 그리기 함수 ---
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (gameState !== 'playing' && gameState !== 'win') return;
+
+                // 그리드 및 셀 그리기
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        const x = c * cellSize;
+                        const y = r * cellSize;
+                        const cellType = grid[r][c];
+
+                        // 셀 배경 및 테두리
+                        ctx.strokeStyle = '#4b5563'; // 어두운 회색
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(x, y, cellSize, cellSize);
+
+                        ctx.font = `${cellSize * 0.6}px 'Jua'`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        const centerX = x + cellSize / 2;
+                        const centerY = y + cellSize / 2;
+                        
+                        switch(cellType) {
+                            case CELL_TYPES.START:
+                                ctx.fillStyle = '#2563eb'; // 파란색
+                                ctx.fillRect(x, y, cellSize, cellSize);
+                                ctx.fillStyle = 'white';
+                                ctx.fillText('S', centerX, centerY);
+                                // 시작 방향 표시
+                                if (!lightOn) {
+                                    ctx.strokeStyle = '#facc15'; // 노란색
+                                    ctx.lineWidth = 4;
+                                    ctx.beginPath();
+                                    ctx.moveTo(centerX, centerY - cellSize * 0.1);
+                                    ctx.lineTo(centerX, centerY + cellSize * 0.25);
+                                    ctx.stroke();
+                                    ctx.beginPath();
+                                    ctx.moveTo(centerX, centerY + cellSize * 0.25);
+                                    ctx.lineTo(centerX - cellSize * 0.1, centerY + cellSize * 0.15);
+                                    ctx.moveTo(centerX, centerY + cellSize * 0.25);
+                                    ctx.lineTo(centerX + cellSize * 0.1, centerY + cellSize * 0.15);
+                                    ctx.stroke();
+                                }
+                                break;
+                            case CELL_TYPES.GOAL:
+                                ctx.fillStyle = '#16a34a'; // 녹색
+                                ctx.fillRect(x, y, cellSize, cellSize);
+                                ctx.fillStyle = 'white';
+                                ctx.fillText('G', centerX, centerY);
+                                break;
+                            case CELL_TYPES.OBSTACLE:
+                                ctx.fillStyle = '#dc2626'; // 빨간색
+                                ctx.fillRect(x, y, cellSize, cellSize);
+                                ctx.fillStyle = 'white';
+                                ctx.fillText('X', centerX, centerY);
+                                break;
+                            case CELL_TYPES.MIRROR_SLASH:
+                                ctx.strokeStyle = '#e5e7eb'; // 밝은 회색
+                                ctx.lineWidth = Math.max(4, cellSize * 0.08);
+                                ctx.beginPath();
+                                ctx.moveTo(x + cellSize, y);
+                                ctx.lineTo(x, y + cellSize);
+                                ctx.stroke();
+                                break;
+                            case CELL_TYPES.MIRROR_BACKSLASH:
+                                ctx.strokeStyle = '#e5e7eb';
+                                ctx.lineWidth = Math.max(4, cellSize * 0.08);
+                                ctx.beginPath();
+                                ctx.moveTo(x, y);
+                                ctx.lineTo(x + cellSize, y + cellSize);
+                                ctx.stroke();
+                                break;
+                        }
+                    }
+                }
+
+                // 빛 경로 그리기
+                if (lightOn && lightPath.length > 1) {
+                    ctx.strokeStyle = '#fde047'; // 밝은 노란색
+                    ctx.lineWidth = Math.max(5, cellSize * 0.1);
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(
+                        lightPath[0].x * cellSize + cellSize / 2,
+                        lightPath[0].y * cellSize + cellSize / 2
+                    );
+                    for (let i = 1; i < lightPath.length; i++) {
+                        ctx.lineTo(
+                            lightPath[i].x * cellSize + cellSize / 2,
+                            lightPath[i].y * cellSize + cellSize / 2
+                        );
+                    }
+                    ctx.stroke();
+                }
+
+                if(gameState === 'win') {
+                    winModal.classList.remove('hidden');
+                    winModal.classList.add('flex');
+                }
+            }
+            
+            // --- 게임 관리 함수 ---
+            function loadLevel(diff) {
+                difficulty = diff;
+                const levelData = generateSolvableMap(difficulty);
+                grid = levelData.grid;
+                startPos = levelData.startPos;
+                goalPos = levelData.goalPos;
+                
+                lightOn = false;
+                gameState = 'playing';
+                updateUI();
+                lightPath = calculateLightPath();
+                draw();
+            }
+
+            function updateUI() {
+                if(gameState === 'playing'){
+                    menuModal.classList.add('hidden');
+                    winModal.classList.add('hidden');
+                    winModal.classList.remove('flex');
+                    gameControls.classList.remove('invisible');
+                    infoText.classList.remove('invisible');
+                } else if(gameState === 'menu'){
+                    menuModal.classList.remove('hidden');
+                    winModal.classList.add('hidden');
+                    winModal.classList.remove('flex');
+                    gameControls.classList.add('invisible');
+                    infoText.classList.add('invisible');
+                }
+                
+                toggleLightBtn.textContent = lightOn ? '빛 끄기' : '빛 켜기';
+                if (lightOn) {
+                    toggleLightBtn.classList.replace('bg-yellow-500', 'bg-gray-500');
+                    toggleLightBtn.classList.replace('hover:bg-yellow-600', 'hover:bg-gray-600');
+                } else {
+                    toggleLightBtn.classList.replace('bg-gray-500', 'bg-yellow-500');
+                    toggleLightBtn.classList.replace('hover:bg-gray-600', 'hover:bg-yellow-600');
+                }
+            }
+
+            // --- 이벤트 핸들러 ---
+            function handleCanvasClick(e) {
+                if (gameState !== 'playing') return;
+
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const mouseX = (e.clientX - rect.left) * scaleX;
+                const mouseY = (e.clientY - rect.top) * scaleY;
+
+                const gridX = Math.floor(mouseX / cellSize);
+                const gridY = Math.floor(mouseY / cellSize);
+
+                if (gridX >= 0 && gridX < GRID_SIZE && gridY >= 0 && gridY < GRID_SIZE) {
+                    const cellType = grid[gridY][gridX];
+                    if (cellType === CELL_TYPES.MIRROR_SLASH) {
+                        grid[gridY][gridX] = CELL_TYPES.MIRROR_BACKSLASH;
+                    } else if (cellType === CELL_TYPES.MIRROR_BACKSLASH) {
+                        grid[gridY][gridX] = CELL_TYPES.MIRROR_SLASH;
+                    }
+                    lightPath = calculateLightPath();
+                    draw();
+                }
+            }
+
+            document.querySelectorAll('.difficulty-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    loadLevel(e.target.dataset.difficulty);
+                });
+            });
+
+            document.getElementById('menu-btn').addEventListener('click', () => {
+                gameState = 'menu';
+                updateUI();
+            });
+
+            document.getElementById('restart-btn').addEventListener('click', () => {
+                loadLevel(difficulty);
+            });
+
+            toggleLightBtn.addEventListener('click', () => {
+                if (gameState !== 'playing') return;
+                lightOn = !lightOn;
+                lightPath = calculateLightPath(); // 경로를 다시 계산하여 승리조건 즉시 확인
+                updateUI();
+                draw();
+            });
+
+            winModal.addEventListener('click', () => {
+                if (gameState === 'win') {
+                    loadLevel(difficulty);
+                }
+            });
+            
+            canvas.addEventListener('click', handleCanvasClick);
+
+            // --- 초기화 및 리사이즈 ---
+            function resizeCanvas() {
+                const container = canvas.parentElement;
+                const size = Math.min(container.clientWidth, container.clientHeight);
+                canvas.width = size;
+                canvas.height = size;
+                cellSize = canvas.width / GRID_SIZE;
+                draw();
+            }
+
+            window.addEventListener('resize', resizeCanvas);
+            
+            // 초기 게임 상태 설정
+            resizeCanvas();
+            updateUI();
+        });
+    </script>
+</body>
+</html>
