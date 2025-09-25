@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>단어 짝 맞추기 게임</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* BM Jua 폰트와 비슷한 Google Font 'Jua'를 사용합니다 */
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #FFF9E8; /* 부드러운 크림색 배경 */
+            color: #5C3D2E; /* 따뜻한 갈색 텍스트 */
+            overscroll-behavior: none;
+        }
+
+        /* 카드 뒤집기 애니메이션을 위한 스타일 */
+        .card {
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden; /* Safari 호환성 */
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+        }
+        
+        /* 맞춘 카드 위에 O 표시 스타일 */
+        .card.matched::after {
+            content: 'O';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 8rem;
+            color: #4CAF50;
+            opacity: 0.3;
+            font-weight: bold;
+            pointer-events: none; /* O 표시가 클릭을 방해하지 않도록 설정 */
+        }
+
+        /* 힌트 기능 활성화 시 카드 보여주기 */
+        .hint-active .card:not(.matched) {
+            transform: rotateY(180deg);
+        }
+        
+        /* 버튼 스타일 */
+        .btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn:disabled, .btn[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+         .btn:disabled:hover, .btn[disabled]:hover {
+            transform: none;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen p-4">
+
+    <div id="app-container" class="w-full max-w-7xl mx-auto flex flex-col flex-grow">
+
+        <div id="setup-screen" class="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg text-center m-auto">
+            <h1 class="text-5xl font-bold mb-6 text-amber-600">단어 짝 맞추기 게임 설정</h1>
+            <div class="space-y-6">
+                <div>
+                    <label for="team-count" class="block text-2xl mb-2">참가 팀 수:</label>
+                    <input type="number" id="team-count" min="1" value="2" class="text-2xl p-3 w-full max-w-xs mx-auto text-center rounded-lg border-2 border-amber-400 focus:ring-amber-500 focus:border-amber-500">
+                </div>
+                <div>
+                    <label for="word-list" class="block text-2xl mb-2">단어 목록 (쉼표로 구분):</label>
+                    <textarea id="word-list" rows="4" class="text-xl p-3 w-full max-w-2xl mx-auto rounded-lg border-2 border-amber-400 focus:ring-amber-500 focus:border-amber-500" placeholder="예: 사랑, 우정, 행복, 희망, 용기, 믿음"></textarea>
+                </div>
+                <p id="setup-error" class="text-red-500 text-xl h-6"></p> <button id="create-game-btn" class="btn bg-amber-500 hover:bg-amber-600 text-white text-3xl font-bold py-4 px-10 rounded-full shadow-md">
+                    게임 생성하기
+                </button>
+            </div>
+        </div>
+
+        <div id="game-screen" class="hidden flex flex-col h-full">
+            <div id="scoreboard" class="flex justify-center items-center gap-4 mb-4 flex-wrap"></div>
+
+            <div class="flex flex-grow gap-2 min-h-0">
+                <div id="game-board" class="grid gap-2 flex-grow" style="perspective: 1000px;"></div>
+
+                <div class="flex flex-col justify-center items-center w-48 p-2 space-y-4">
+                     <span class="text-2xl font-bold">정답인가요?</span>
+                    <button id="correct-btn" class="btn bg-lime-500 hover:bg-lime-600 text-white text-5xl font-bold w-24 h-24 rounded-full shadow-lg" disabled>O</button>
+                    <button id="incorrect-btn" class="btn bg-red-500 hover:bg-red-600 text-white text-5xl font-bold w-24 h-24 rounded-full shadow-lg" disabled>X</button>
+                </div>
+            </div>
+
+            <div id="controls" class="mt-4 text-center space-x-4 flex-shrink-0">
+                <button id="start-game-btn" class="btn bg-green-500 hover:bg-green-600 text-white text-2xl font-bold py-3 px-8 rounded-full shadow-md">게임 시작 (카드 뒤집기)</button>
+                <button id="hint-btn" class="btn bg-sky-500 hover:bg-sky-600 text-white text-2xl font-bold py-3 px-8 rounded-full shadow-md hidden">힌트 보기</button>
+                <button id="bgm-toggle-btn" class="btn bg-gray-500 hover:bg-gray-600 text-white text-2xl font-bold py-3 px-8 rounded-full shadow-md">BGM 멈춤</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="win-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-2xl shadow-lg text-center">
+            <h2 class="text-4xl font-bold text-amber-600 mb-4">축하합니다!</h2>
+            <p class="text-2xl mb-6">모든 짝을 맞췄습니다!</p>
+            <button id="restart-btn" class="btn bg-green-500 hover:bg-green-600 text-white text-2xl font-bold py-3 px-8 rounded-full shadow-md">다시하기</button>
+        </div>
+    </div>
+
+    <audio id="bgm" src="kora-kora-loop-390911.mp3" loop></audio>
+    <audio id="flip-sound" src="card-sounds-35956.mp3"></audio>
+    <audio id="correct-sound" src="the-correct-answer-33-183620.mp3"></audio>
+    <audio id="wrong-sound" src="wrong-answer-21-199825.mp3"></audio>
+
+
+    <script>
+        // DOM 요소 가져오기
+        const setupScreen = document.getElementById('setup-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const createGameBtn = document.getElementById('create-game-btn');
+        const startGameBtn = document.getElementById('start-game-btn');
+        const hintBtn = document.getElementById('hint-btn');
+        const correctBtn = document.getElementById('correct-btn');
+        const incorrectBtn = document.getElementById('incorrect-btn');
+        const scoreboard = document.getElementById('scoreboard');
+        const gameBoard = document.getElementById('game-board');
+        const setupError = document.getElementById('setup-error');
+        const winModal = document.getElementById('win-modal');
+        const restartBtn = document.getElementById('restart-btn');
+        // 새로 추가된 BGM 버튼
+        const bgmToggleBtn = document.getElementById('bgm-toggle-btn');
+
+        // 오디오 요소 가져오기
+        const bgm = document.getElementById('bgm');
+        const flipSound = document.getElementById('flip-sound');
+        const correctSound = document.getElementById('correct-sound');
+        const wrongSound = document.getElementById('wrong-sound');
+        
+        // 게임 상태 변수
+        let teams = [];
+        let cards = [];
+        let flippedCards = [];
+        let lockBoard = false;
+        let matchedPairs = 0;
+        let totalPairs = 0;
+        let isHintActive = false;
+
+        // 게임 생성 버튼 이벤트 리스너
+        createGameBtn.addEventListener('click', () => {
+            setupError.textContent = ''; // 이전 오류 메시지 초기화
+            const teamCount = parseInt(document.getElementById('team-count').value);
+            const wordInput = document.getElementById('word-list').value;
+            const words = wordInput.split(',').map(word => word.trim()).filter(word => word.length > 0);
+
+            if (words.length < 2) {
+                setupError.textContent = '최소 2개 이상의 단어를 입력해주세요.';
+                return;
+            }
+
+            setupGame(teamCount, words);
+        });
+        
+        // 다시하기 버튼 이벤트 리스너
+        restartBtn.addEventListener('click', () => {
+            location.reload();
+        });
+        
+        // 게임 시작 버튼 이벤트 리스너
+        startGameBtn.addEventListener('click', () => {
+            document.querySelectorAll('.card').forEach(card => card.classList.remove('flipped'));
+            startGameBtn.classList.add('hidden');
+            hintBtn.classList.remove('hidden');
+        });
+
+        // 힌트 버튼 이벤트 리스너
+        hintBtn.addEventListener('click', () => {
+            playSound(flipSound);
+            isHintActive = !isHintActive;
+            gameBoard.classList.toggle('hint-active');
+            hintBtn.textContent = isHintActive ? '힌트 닫기' : '힌트 보기';
+        });
+
+        // 정답/오답 버튼 이벤트 리스너
+        correctBtn.addEventListener('click', () => handleDecision(true));
+        incorrectBtn.addEventListener('click', () => handleDecision(false));
+        
+        // BGM 토글 버튼 이벤트 리스너 (새로 추가)
+        bgmToggleBtn.addEventListener('click', () => {
+            if (bgm.paused) {
+                bgm.play();
+                bgmToggleBtn.textContent = 'BGM 멈춤';
+            } else {
+                bgm.pause();
+                bgmToggleBtn.textContent = 'BGM 재생';
+            }
+        });
+
+
+        // 소리 재생 헬퍼 함수
+        function playSound(soundElement) {
+            const isBgmPlaying = !bgm.paused;
+            if (isBgmPlaying) {
+                bgm.volume = 0.2; // 효과음 재생 시 배경음악 볼륨 줄이기
+            }
+            soundElement.currentTime = 0; // 소리를 처음부터 다시 재생
+            soundElement.play();
+
+            // 효과음이 끝나면 배경음악 볼륨을 다시 높임
+            soundElement.onended = () => {
+                if (isBgmPlaying) {
+                    bgm.volume = 0.5;
+                }
+                soundElement.onended = null; // 이벤트 리스너 정리
+            };
+        }
+
+        // 게임 설정 함수
+        function setupGame(teamCount, words) {
+            // 배경음악 재생 시작 (사용자 상호작용 후)
+            bgm.volume = 0.5;
+            bgm.play().catch(e => console.log("배경 음악 자동 재생이 브라우저에 의해 차단되었습니다."));
+
+            // 점수판 생성
+            scoreboard.innerHTML = '';
+            teams = [];
+            const teamElements = []; // 생성된 팀 DOM 요소를 임시 저장
+
+            for (let i = 1; i <= teamCount; i++) {
+                teams.push({ id: i, score: 0 });
+                const teamElement = document.createElement('div');
+                teamElement.className = 'bg-white p-2 rounded-lg shadow-md flex items-center w-48';
+                teamElement.innerHTML = `
+                    <div class="flex-grow flex justify-between items-center pr-2">
+                        <div class="text-left">
+                            <div class="text-xl font-bold">${i}팀</div>
+                            <div id="score-team-${i}" class="text-3xl -mt-1">0</div>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <button class="btn score-btn-plus bg-sky-500 hover:bg-sky-600 text-white font-bold w-7 h-7 flex items-center justify-center rounded-md text-lg" data-team="${i}">+</button>
+                            <button class="btn score-btn-minus bg-rose-500 hover:bg-rose-600 text-white font-bold w-7 h-7 flex items-center justify-center rounded-md text-lg" data-team="${i}">-</button>
+                        </div>
+                    </div>
+                `;
+                teamElements.push(teamElement);
+            }
+            
+            // 팀 수에 따라 점수판 레이아웃 균형있게 조정
+            const maxTeamsInOneRow = 6; 
+            if (teamCount > maxTeamsInOneRow) {
+                scoreboard.className = 'flex flex-col items-center gap-2 mb-4'; // 세로 정렬
+                const midPoint = Math.ceil(teamCount / 2);
+                
+                const row1 = document.createElement('div');
+                row1.className = 'flex justify-center items-center gap-4 flex-wrap';
+                const row2 = document.createElement('div');
+                row2.className = 'flex justify-center items-center gap-4 flex-wrap';
+
+                teamElements.forEach((el, index) => {
+                    if (index < midPoint) {
+                        row1.appendChild(el);
+                    } else {
+                        row2.appendChild(el);
+                    }
+                });
+                scoreboard.appendChild(row1);
+                scoreboard.appendChild(row2);
+            } else {
+                scoreboard.className = 'flex justify-center items-center gap-4 mb-4 flex-wrap'; // 기존 가로 정렬
+                teamElements.forEach(el => scoreboard.appendChild(el));
+            }
+
+            // 점수 버튼에 이벤트 리스너 추가
+            document.querySelectorAll('.score-btn-plus').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const teamId = parseInt(e.currentTarget.getAttribute('data-team'));
+                    updateScore(teamId, 1);
+                });
+            });
+            document.querySelectorAll('.score-btn-minus').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const teamId = parseInt(e.currentTarget.getAttribute('data-team'));
+                    updateScore(teamId, -1);
+                });
+            });
+
+            // 카드 생성 (사용자가 입력한 단어 그대로 사용)
+            const cardWords = words;
+            totalPairs = Math.floor(words.length / 2);
+            matchedPairs = 0;
+            cards = shuffle(cardWords).map((word, index) => ({
+                word: word,
+                id: index,
+                isFlipped: true, // 처음에는 단어가 보이도록 설정
+                isMatched: false
+            }));
+
+            // 화면 전환 먼저
+            setupScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            
+            // 게임 보드에 카드 렌더링
+            renderCards();
+        }
+
+        // 카드 렌더링 함수
+        function renderCards() {
+            gameBoard.innerHTML = '';
+            
+            // 카드 개수에 맞춰 반응형 그리드 및 폰트 크기 계산
+            const numCards = cards.length;
+            const cols = 8; // 한 줄에 8개씩 고정
+            const rows = Math.ceil(numCards / cols);
+            gameBoard.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            gameBoard.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+
+            // 글자 크기를 키웁니다.
+            let wordFontSize = 'text-5xl';
+            let numberFontSize = 'text-6xl';
+
+            cards.forEach((cardData, index) => {
+                const cardElement = document.createElement('div');
+                cardElement.dataset.id = cardData.id;
+                // 'relative' 클래스를 추가하여 카드 앞/뒷면이 카드 내부에 위치하도록 수정
+                cardElement.className = 'card relative w-full h-full rounded-lg shadow-lg cursor-pointer flipped';
+                
+                cardElement.innerHTML = `
+                    <div class="card-face card-front absolute w-full h-full flex items-center justify-center bg-amber-300 rounded-lg">
+                        <span class="${numberFontSize}">${index + 1}</span>
+                    </div>
+                    <div class="card-face card-back absolute w-full h-full flex items-center justify-center bg-white rounded-lg p-2">
+                        <span class="${wordFontSize} text-center break-all leading-tight">${cardData.word}</span>
+                    </div>
+                `;
+                cardElement.addEventListener('click', () => flipCard(cardElement));
+                gameBoard.appendChild(cardElement);
+            });
+        }
+
+        // 카드 뒤집기 함수
+        function flipCard(cardElement) {
+            if (lockBoard || isHintActive) return;
+            const cardId = parseInt(cardElement.dataset.id);
+            const cardData = cards.find(c => c.id === cardId);
+
+            if (cardData.isMatched || flippedCards.some(c => c.id === cardId)) return;
+            
+            playSound(flipSound);
+            cardElement.classList.toggle('flipped');
+            cardData.isFlipped = !cardData.isFlipped;
+            flippedCards.push(cardData);
+
+            if (flippedCards.length === 2) {
+                lockBoard = true;
+                correctBtn.disabled = false;
+                incorrectBtn.disabled = false;
+            }
+        }
+
+        // 정답/오답 처리 함수
+        function handleDecision(isCorrect) {
+            correctBtn.disabled = true;
+            incorrectBtn.disabled = true;
+
+            const [card1, card2] = flippedCards;
+            
+            if (isCorrect) {
+                // 정답 처리
+                playSound(correctSound);
+                card1.isMatched = true;
+                card2.isMatched = true;
+                document.querySelector(`[data-id='${card1.id}']`).classList.add('matched');
+                document.querySelector(`[data-id='${card2.id}']`).classList.add('matched');
+                matchedPairs++;
+                
+                if (matchedPairs === totalPairs && totalPairs > 0) {
+                    setTimeout(() => {
+                        winModal.classList.remove('hidden');
+                    }, 500);
+                }
+            } else {
+                // 오답 처리 (카드 다시 뒤집기)
+                playSound(wrongSound);
+                setTimeout(() => {
+                    const cardElement1 = document.querySelector(`[data-id='${card1.id}']`);
+                    const cardElement2 = document.querySelector(`[data-id='${card2.id}']`);
+                    cardElement1.classList.remove('flipped');
+                    cardElement2.classList.remove('flipped');
+                    card1.isFlipped = false;
+                    card2.isFlipped = false;
+                }, 800);
+            }
+            
+            resetBoard();
+        }
+
+        // 보드 리셋 함수
+        function resetBoard() {
+            setTimeout(() => {
+                flippedCards = [];
+                lockBoard = false;
+            }, 800);
+        }
+
+        // 점수 업데이트 함수
+        function updateScore(teamId, change) {
+            const team = teams.find(t => t.id === teamId);
+            if (team) {
+                team.score += change;
+                if (team.score < 0) team.score = 0; // 점수가 0점 미만으로 내려가지 않도록
+                document.getElementById(`score-team-${teamId}`).textContent = team.score;
+            }
+        }
+
+        // 배열 섞기 (Fisher-Yates shuffle)
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+    </script>
+</body>
+</html>
