@@ -29,15 +29,17 @@
             align-items: center;
             text-align: center;
         }
-        .date { font-size: 3rem; margin-bottom: 0.5rem; color: #8a6552; }
-        .time { font-size: 7rem; font-weight: bold; line-height: 1; margin-bottom: 2rem; text-shadow: 2px 2px #f0a3a3; }
-        .time .time-label { font-size: 2.5rem; font-weight: normal; }
+        /* --- 글자 크기가 clamp() 함수로 수정된 CSS --- */
+        .date { font-size: clamp(1.5rem, 4vw, 3rem); margin-bottom: 0.5rem; color: #8a6552; }
+        .time { font-size: clamp(3rem, 10vw, 7rem); font-weight: bold; line-height: 1; margin-bottom: 2rem; text-shadow: 2px 2px #f0a3a3; }
+        .time .time-label { font-size: 0.4em; font-weight: normal; }
         
         .button-row { display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; margin-top: 1rem; }
         .button {
             background-color: #f0a3a3; color: white; padding: 0.75rem 1.5rem;
             border-radius: 9999px; font-weight: bold; transition: background-color 0.3s;
             cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: none; outline: none;
+            font-size: 1rem;
         }
         .button:hover { background-color: #e57373; }
         .button.selected { background-color: #b76c6c; }
@@ -49,9 +51,9 @@
         }
 
         .goal-label { font-size: 1.5rem; margin-bottom: 1rem; color: #8a6552; }
-        .goal-display { font-size: 7rem; font-weight: bold; line-height: 1; margin-bottom: 1rem; color: #4CAF50; text-shadow: 2px 2px #FFEB3B; }
-        .goal-display .time-label { font-size: 2.5rem; font-weight: normal; }
-        .remaining-time-display { font-size: 7rem; font-weight: bold; color: #E53935; text-shadow: 2px 2px #f0a3a3; }
+        .goal-display { font-size: clamp(2.5rem, 9vw, 7rem); font-weight: bold; line-height: 1; margin-bottom: 1rem; color: #4CAF50; text-shadow: 2px 2px #FFEB3B; }
+        .goal-display .time-label { font-size: 0.4em; font-weight: normal; }
+        .remaining-time-display { font-size: clamp(3rem, 10vw, 7rem); font-weight: bold; color: #E53935; text-shadow: 2px 2px #f0a3a3; }
         .goal-input {
             width: 100%; padding: 0.75rem; border-radius: 1rem; border: 2px solid #f0a3a3;
             background-color: white; font-family: 'Jua', sans-serif; text-align: center;
@@ -150,7 +152,7 @@
         const countdownBeep = document.getElementById('countdown-beep');
         const goalSetSound = document.getElementById('goal-set-sound');
         const alarmMusic = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
-        let isAudioUnlocked = false; // ✨ 오디오 잠금 해제 상태 변수
+        let isAudioUnlocked = false;
         let isTtsEnabled = true;
         let ttsIntervalMinutes = 1;
         let lastTtsSpeakMinute = -1;
@@ -158,12 +160,12 @@
         // --- 상태 변수 ---
         let goalInterval;
         let goalTime = null;
+        // --- 원래대로 복원된 초기값 ---
         let memoFontSize = 2.5;
 
-        // --- ✨ 오디오 잠금 해제 함수 ---
+        // --- 오디오 잠금 해제 함수 ---
         function unlockAudio() {
             if (isAudioUnlocked) return;
-            // 모든 오디오 요소를 로드하고, 소리 없이 재생 시도하여 활성화
             const allAudio = [alarmMusic, countdownBeep, goalSetSound];
             allAudio.forEach(audio => {
                 audio.play().catch(() => {});
@@ -189,7 +191,7 @@
         }
         
         function speakText(text) {
-            unlockAudio(); // TTS 사용 전에도 오디오 잠금 해제
+            unlockAudio();
             if (!isTtsEnabled) return;
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'ko-KR';
@@ -235,14 +237,14 @@
         setInterval(updateClock, 1000);
         
         showGoalButton.addEventListener('click', () => {
-            unlockAudio(); // ✨ 버튼 첫 클릭 시 오디오 잠금 해제
+            unlockAudio();
             memoSection.classList.add('hidden');
             goalSection.classList.toggle('hidden');
             ttsIntervalContainer.style.display = goalSection.classList.contains('hidden') ? 'none' : 'flex';
         });
         
         showMemoButton.addEventListener('click', () => {
-            unlockAudio(); // ✨ 버튼 첫 클릭 시 오디오 잠금 해제
+            unlockAudio();
             goalSection.classList.add('hidden');
             ttsIntervalContainer.style.display = 'none';
             memoSection.classList.toggle('hidden');
