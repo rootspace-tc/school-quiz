@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 실시간 참여 퀴즈 플랫폼 V12.0 (최종)</title>
+    <title>🚀 실시간 참여 퀴즈 플랫폼 V13.0 (최종)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,7 +33,7 @@
 <body>
 
 <div class="container">
-    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V12.0</h1>
+    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V13.0</h1>
     
     <div id="mode-selection" class="flex justify-center space-x-6 mb-8">
         <button id="teacher-mode-btn" class="mode-button bg-red-500 text-white p-4 rounded-lg shadow-md font-semibold text-xl">
@@ -230,7 +230,7 @@
     const QUESTION_PATH = 'quiz/currentQuestion';
     const RESPONSES_PATH = 'quiz/responses';
     const HISTORY_PATH = 'quiz/history'; 
-    const PRESENCE_PATH = 'quiz/presence'; // 💡 접속 상태 기록용 경로
+    const PRESENCE_PATH = 'quiz/presence'; 
 
     // ----------------------------------------------------
     // 2. 변수 및 UI 요소 정의
@@ -341,7 +341,7 @@
             teacherPanel.classList.remove('hidden');
             studentPanel.classList.add('hidden');
             modeSelection.classList.add('hidden');
-            // 💡 [수정] History 리스너 등록
+            // 💡 [안정화] History 리스너 등록
             onValue(ref(db, HISTORY_PATH), (snapshot) => renderHistoryList(snapshot.val()));
             listenForResponses();
             listenForActiveUsers(); // 💡 접속자 리스너 활성화
@@ -417,9 +417,9 @@
                 date: new Date().toLocaleString('ko-KR')
             };
             push(ref(db, HISTORY_PATH), historyEntry);
-            return true; // 저장 성공
+            return true;
         }
-        return false; // 저장할 내용 없음
+        return false;
     }
     
     async function postQuestion() {
@@ -705,7 +705,7 @@
         
         // 2. Firebase Presence 기록 삭제 (접속 상태 제거)
         remove(ref(db, `${PRESENCE_PATH}/${studentId}`));
-        
+
         alert(`${studentName} 학생의 접속이 초기화되었습니다. 해당 학생에게 이름/번호를 재입력하도록 안내해주세요.`);
     }
 
@@ -835,7 +835,10 @@
         historyEntries.forEach(([key, entry], index) => {
             const questionText = entry.question.text || '이미지 문제';
             const responsesCount = Object.keys(entry.responses).length;
-            const entryNumber = historyEntries.length - index;
+            
+            // 💡 [수정] 문제 번호는 히스토리 순서대로 부여
+            const historyArray = Object.values(historyData);
+            const entryNumber = historyArray.length - index;
 
             const div = document.createElement('div');
             div.className = 'p-4 border border-blue-400 rounded-lg bg-blue-50 cursor-pointer hover:bg-blue-100';
@@ -849,9 +852,9 @@
     }
 
     function showHistoryDetail(number, entry) {
-        questionControlArea.classList.add('hidden');
+        document.getElementById('question-control-area').classList.add('hidden');
         document.querySelector('.container h1').textContent = `📂 과거 기록: ${number}번 문제 상세`;
-        historyDetailModal.classList.remove('hidden');
+        document.getElementById('history-detail-modal').classList.remove('hidden');
         
         const q = entry.question;
         const r = entry.responses;
@@ -860,14 +863,13 @@
         document.getElementById('modal-question-title').textContent = q.text || '이미지 문제';
         document.getElementById('modal-results-display').innerHTML = ''; // 초기화
 
-        // 💡 과거 기록 렌더링 함수 호출
         renderPastResults(q, r, totalCount, document.getElementById('modal-results-display'));
 
         // 💡 엑셀 다운로드 버튼 이벤트 핸들러 임시 변경 (단일 기록 다운로드)
         document.getElementById('export-excel-btn').onclick = () => exportToCSV(q, r, `${number}번_문제_기록`);
     }
 
-    // 💡 [추가] 접속자 목록 렌더링 함수
+    // 💡 [수정] 접속자 목록 렌더링 함수
     function renderActiveUsers(presenceData) {
         activeUsersContent.innerHTML = '';
         let userCount = 0;
@@ -898,7 +900,7 @@
 
 
     // ----------------------------------------------------
-    // 8. 엑셀 다운로드 (CSV)
+    // 8. 엑셀 다운로드 (CSV) - 전체 기록 안정화
     // ----------------------------------------------------
 
     document.getElementById('export-excel-btn').addEventListener('click', exportAllHistoryToCSV); 
@@ -917,9 +919,11 @@
         const allStudents = new Set();
         const processedHistory = [];
         
-        let questionCounter = 0;
-        Object.values(historyData).forEach(entry => {
-            questionCounter++;
+        // 1. 모든 학생 이름(ID)과 모든 문제의 정답을 수집 및 문제 순서 정리
+        // 💡 [수정] History Data를 배열로 변환하여 순서 보장 및 번호 부여
+        const historyEntries = Object.values(historyData);
+        
+        historyEntries.forEach((entry, index) => {
             const questionText = (entry.question.text || '이미지 문제').substring(0, 30);
             
             const correctAnswer = (entry.question.correctAnswer || '').trim().toLowerCase();
@@ -927,7 +931,7 @@
             Object.values(entry.responses).forEach(r => allStudents.add(r.name));
 
             processedHistory.push({
-                number: questionCounter,
+                number: index + 1, // 1번부터 순서대로 번호 부여
                 text: questionText,
                 correctAnswer: correctAnswer,
                 responses: entry.responses
@@ -936,6 +940,7 @@
 
         const sortedStudents = Array.from(allStudents).sort();
         
+        // 2. CSV 헤더 생성
         let csvHeader = "참여자 이름";
         processedHistory.forEach(q => {
             csvHeader += `,"${q.number}번 문제 답변: ${q.text}..."`;
@@ -943,6 +948,7 @@
         });
         let csv = csvHeader + "\n";
 
+        // 3. CSV 본문 생성 (학생별로 데이터 배열)
         sortedStudents.forEach(studentName => {
             let studentRow = `"${studentName}"`;
             
@@ -965,6 +971,7 @@
             csv += studentRow + "\n";
         });
 
+        // 4. 파일 다운로드
         const filename = `전체_퀴즈_기록_${new Date().toLocaleDateString('ko-KR')}`;
         const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
@@ -974,8 +981,8 @@
             link.setAttribute("href", url);
             link.setAttribute("download", filename + ".csv");
             document.body.appendChild(link);
-            document.body.removeChild(link);
             link.click();
+            document.body.removeChild(link);
         }
     }
 
@@ -1011,8 +1018,8 @@
             link.setAttribute("href", url);
             link.setAttribute("download", filename + ".csv");
             document.body.appendChild(link);
-            document.body.removeChild(link);
             link.click();
+            document.body.removeChild(link);
         }
     }
 </script>
