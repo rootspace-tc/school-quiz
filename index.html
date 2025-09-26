@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 실시간 참여 퀴즈 플랫폼 V5.0 (최종)</title>
+    <title>🚀 실시간 참여 퀴즈 플랫폼 V6.0 (최종)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -59,7 +59,7 @@
 <body>
 
 <div class="container">
-    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V5.0</h1>
+    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V6.0</h1>
     
     <div id="mode-selection" class="flex justify-center space-x-6 mb-8">
         <button id="teacher-mode-btn" class="mode-button bg-red-500 text-white p-4 rounded-lg shadow-md font-semibold text-xl">
@@ -168,9 +168,9 @@
 </div>
 
 <script type="module">
-    // 💡 해결책 1 적용: Firebase 모듈 경로 수정 및 안정화
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app"; 
-    import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database";
+    // 💡 최종 안정화된 Firebase 모듈 경로 사용
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"; 
+    import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
     // ----------------------------------------------------
     // 1. Firebase 설정 (선생님의 실제 키 적용)
@@ -188,8 +188,6 @@
 
     // Firebase 앱 및 데이터베이스 초기화
     const app = initializeApp(firebaseConfig);
-    
-    // 💡 해결책 3 적용: 초기화 시 db 변수가 먼저 정의되도록 재정렬
     const db = getDatabase(app); 
 
     // 데이터베이스 경로 정의
@@ -199,11 +197,12 @@
     // ----------------------------------------------------
     // 2. 변수 및 UI 요소 정의
     // ----------------------------------------------------
-    const TEACHER_PASSWORD = "1234"; 
+    const TEACHER_PASSWORD = "2948"; 
     let currentStudentId = null; 
     let currentQuestionType = 'MCQ';
     let currentImageBase64 = null; 
 
+    // 모든 UI 요소 정의 (이전 V5.0과 동일)
     const teacherPanel = document.getElementById('teacher-panel');
     const studentPanel = document.getElementById('student-panel');
     const modeSelection = document.getElementById('mode-selection');
@@ -230,7 +229,6 @@
     const removeImageBtn = document.getElementById('remove-image-btn');
     const studentQuestionImageContainer = document.getElementById('student-question-image-container');
     const studentQuestionImage = document.getElementById('student-question-image');
-    // 💡 '문제 숨기기' 버튼 요소 정의 추가
     const hideQuestionBtn = document.getElementById('hide-question-btn'); 
 
 
@@ -364,17 +362,14 @@
         });
     }
     
-    // 💡 '문제 숨기기' 로직 추가
     hideQuestionBtn.addEventListener('click', hideQuestion);
 
     function hideQuestion() {
         if (!confirm("현재 출제된 문제를 학생 화면에서 숨기시겠습니까?")) return;
         
-        // QUESTION_PATH의 데이터를 null로 설정하여 완전히 삭제합니다.
         set(ref(db, QUESTION_PATH), null)
         .then(() => {
             alert('문제가 학생 화면에서 숨겨졌습니다.');
-            // 문제 숨김과 동시에 응답 기록도 같이 지웁니다.
             remove(ref(db, RESPONSES_PATH)); 
         })
         .catch(error => {
@@ -400,16 +395,13 @@
     // 6. 학생 로직 
     // ----------------------------------------------------
 
-    // 💡 '답변 제출하기' 버튼 클릭 이벤트 리스너 재정의
     submitAnswerBtn.addEventListener('click', () => {
         let answer = null;
         
-        // ShortAnswer
         if (currentQuestionType === 'ShortAnswer') {
             const input = document.getElementById('short-answer-input');
             answer = input ? input.value.trim() : null;
         } 
-        // MCQ
         else {
             const selected = document.querySelector('input[name="student-answer"]:checked');
             answer = selected ? selected.value : null;
