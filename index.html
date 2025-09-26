@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 실시간 참여 퀴즈 플랫폼 V15.0 (최종)</title>
+    <title>🚀 실시간 참여 퀴즈 플랫폼 V16.0 (최종)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,7 +33,7 @@
 <body>
 
 <div class="container">
-    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V15.0</h1>
+    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V16.0</h1>
     
     <div id="mode-selection" class="flex justify-center space-x-6 mb-8">
         <button id="teacher-mode-btn" class="mode-button bg-red-500 text-white p-4 rounded-lg shadow-md font-semibold text-xl">
@@ -327,7 +327,7 @@
         }
     });
     
-    // 💡 [추가] 접속자 목록 리스너 등록
+    // 💡 접속자 목록 리스너 등록
     function listenForActiveUsers() {
         onValue(ref(db, PRESENCE_PATH), (snapshot) => {
             renderActiveUsers(snapshot.val());
@@ -341,7 +341,6 @@
             teacherPanel.classList.remove('hidden');
             studentPanel.classList.add('hidden');
             modeSelection.classList.add('hidden');
-            // 💡 [안정화] History 리스너 등록
             onValue(ref(db, HISTORY_PATH), (snapshot) => renderHistoryList(snapshot.val()));
             listenForResponses();
             listenForActiveUsers(); // 💡 접속자 리스너 활성화
@@ -357,7 +356,7 @@
         modeSelection.classList.add('hidden');
     });
 
-    // 💡 학생 로그인 로직 (Presence 등록)
+    // 💡 학생 로그인 로직 (Presence 등록 및 0번 문제 답변)
     document.getElementById('student-login-btn').addEventListener('click', () => {
         const name = studentNameInput.value.trim();
         if (name) {
@@ -372,6 +371,13 @@
             set(ref(db, `${PRESENCE_PATH}/${currentStudentId}`), { 
                 name: name,
                 lastSeen: Date.now()
+            });
+
+            // 💡 [수정] 0번 문제 답변 제출 (접속자 명단에 표시되도록)
+            set(ref(db, `${RESPONSES_PATH}/Q0_${currentStudentId}`), { 
+                name: name,
+                answer: '접속 완료',
+                timestamp: Date.now()
             });
         } else {
             alert('이름 또는 번호를 입력해주세요.');
@@ -414,7 +420,7 @@
         // 💡 [수정] 현재 문제가 있고, 그 문제가 이전에 저장된 적이 없는 경우에만 저장
         if (questionData && (questionData.text || questionData.image)) {
             
-            // isSaved 플래그가 없으면 저장 (이 플래그는 문제 출제 시 초기화됨)
+            // isSavedToHistory 플래그가 false인 경우에만 저장
             if (!questionData.isSavedToHistory) {
                  const historyEntry = {
                     question: questionData,
@@ -520,7 +526,7 @@
         });
     }
 
-    // 💣 [핵심 수정] 전체 기록 초기화 버튼 로직
+    // 💣 전체 기록 초기화 버튼 로직
     clearHistoryBtn.addEventListener('click', clearAllHistory);
 
     function clearAllHistory() {
@@ -528,11 +534,13 @@
         
         remove(ref(db, HISTORY_PATH))
         .then(() => {
-            // 💡 [수정] 현재 문제 기록도 완전히 삭제하여 다음 문제 출제 시 1번부터 시작하도록 보장
+            // 💡 [수정] 현재 문제 기록, 응답, 접속자 기록까지 모두 삭제
             remove(ref(db, QUESTION_PATH));
+            remove(ref(db, RESPONSES_PATH));
+            remove(ref(db, PRESENCE_PATH));
             
             alert('모든 과거 기록이 삭제되었습니다. 다음 출제 문제는 1번부터 시작됩니다.');
-            renderHistoryList(null); 
+            renderHistoryList(null); // 화면 즉시 업데이트
         })
         .catch(error => {
             console.error('전체 기록 삭제 실패:', error);
@@ -579,6 +587,7 @@
                 return;
             }
             
+            // 💡 [수정] 0번 문제가 아닌, 현재 문제의 응답으로 저장
             set(ref(db, `${RESPONSES_PATH}/${currentStudentId}`), {
                 name: studentNameInput.value.trim(),
                 answer: answer,
@@ -714,8 +723,9 @@
     window.kickUser = function(studentName, studentId) {
         if (!confirm(`${studentName} 학생을 퇴장시키고 아이디를 초기화하시겠습니까?`)) return;
 
-        remove(ref(db, `${RESPONSES_PATH}/${studentId}`));
-        remove(ref(db, `${PRESENCE_PATH}/${studentId}`));
+        remove(ref(db, `${RESPONSES_PATH}/Q0_${studentId}`)); // 💡 0번 문제 응답 기록 삭제
+        remove(ref(db, `${RESPONSES_PATH}/${studentId}`)); // 현재 문제 응답 기록 삭제
+        remove(ref(db, `${PRESENCE_PATH}/${studentId}`)); // 접속 상태 제거
 
         alert(`${studentName} 학생의 접속이 초기화되었습니다. 해당 학생에게 이름/번호를 재입력하도록 안내해주세요.`);
     }
@@ -732,18 +742,27 @@
             fullListContent.textContent = '답변이 없습니다.';
             return;
         }
+        
+        // 💡 [핵심 수정] 0번 문제 응답(접속 기록)을 제외하고 응답자 명단 및 카운트 계산
+        const filteredResponses = {};
+        for (const key in responses) {
+            // 'Q0_'로 시작하는 키는 접속 기록이므로 건너뜁니다.
+            if (!key.startsWith('Q0_')) {
+                filteredResponses[key] = responses[key];
+            }
+        }
 
-        const responseList = Object.values(responses);
+        const responseList = Object.values(filteredResponses);
         const totalCount = responseList.length;
         totalResponsesEl.textContent = totalCount;
 
         get(ref(db, QUESTION_PATH)).then((qSnapshot) => {
             const question = qSnapshot.val();
             if (!question) {
-                renderPastResults({text: '문제 없음'}, responses, totalCount, resultsDisplay);
+                renderPastResults({text: '문제 없음'}, filteredResponses, totalCount, resultsDisplay);
                 return;
             }
-            renderPastResults(question, responses, totalCount, resultsDisplay);
+            renderPastResults(question, filteredResponses, totalCount, resultsDisplay);
         });
     }
     
@@ -841,14 +860,14 @@
             return;
         }
 
-        const historyEntries = Object.entries(historyData); 
+        const historyEntries = Object.entries(historyData).reverse(); 
         const historyArray = Object.values(historyData); 
         
-        historyEntries.reverse().forEach(([key, entry], index) => { // 역순으로 화면에 표시 (최신 순)
+        historyEntries.forEach(([key, entry], index) => {
             const questionText = entry.question.text || '이미지 문제';
             const responsesCount = Object.keys(entry.responses).length;
             
-            // 💡 [수정] 문제 번호는 히스토리 배열 순서대로 부여
+            // 💡 [수정] 문제 번호는 히스토리 배열 순서대로 부여 (문제당 1번씩)
             const entryNumber = historyArray.length - index;
 
             const div = document.createElement('div');
