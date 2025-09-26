@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 실시간 참여 퀴즈 플랫폼 V14.0 (최종)</title>
+    <title>🚀 실시간 참여 퀴즈 플랫폼 V15.0 (최종)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,7 +33,7 @@
 <body>
 
 <div class="container">
-    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V14.0</h1>
+    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V15.0</h1>
     
     <div id="mode-selection" class="flex justify-center space-x-6 mb-8">
         <button id="teacher-mode-btn" class="mode-button bg-red-500 text-white p-4 rounded-lg shadow-md font-semibold text-xl">
@@ -231,8 +231,6 @@
     const RESPONSES_PATH = 'quiz/responses';
     const HISTORY_PATH = 'quiz/history'; 
     const PRESENCE_PATH = 'quiz/presence'; 
-    // 💡 [추가] History 카운터 경로 (초기화 후 1번부터 시작 보장)
-    const HISTORY_COUNT_PATH = 'quiz/history_count'; 
 
     // ----------------------------------------------------
     // 2. 변수 및 UI 요소 정의
@@ -395,7 +393,7 @@
     modalCloseBtn.addEventListener('click', () => {
         historyDetailModal.classList.add('hidden');
         questionControlArea.classList.remove('hidden');
-        document.querySelector('.container h1').textContent = '🚀 실시간 수업 참여 플랫폼 V14.0';
+        document.querySelector('.container h1').textContent = '🚀 실시간 수업 참여 플랫폼 V15.0';
     });
 
 
@@ -405,7 +403,7 @@
 
     document.getElementById('post-question-btn').addEventListener('click', postQuestion);
 
-    // 💡 [핵심 수정] 기록 저장 함수 (현재 응답만 가져와 푸시)
+    // 💡 [핵심 수정] 기록 저장 함수 (문제당 1회 저장 보장)
     async function saveCurrentQuestionToHistory() {
         const questionSnapshot = await get(ref(db, QUESTION_PATH));
         const responsesSnapshot = await get(ref(db, RESPONSES_PATH));
@@ -413,17 +411,25 @@
         const questionData = questionSnapshot.val();
         const responsesData = responsesSnapshot.val();
         
+        // 💡 [수정] 현재 문제가 있고, 그 문제가 이전에 저장된 적이 없는 경우에만 저장
         if (questionData && (questionData.text || questionData.image)) {
-            const historyEntry = {
-                question: questionData,
-                responses: responsesData || {},
-                date: new Date().toLocaleString('ko-KR')
-            };
-            // 💡 [수정] History 경로에 새로운 고유 키로 푸시 (이전 데이터 덮어쓰기 방지)
-            push(ref(db, HISTORY_PATH), historyEntry);
-            return true;
+            
+            // isSaved 플래그가 없으면 저장 (이 플래그는 문제 출제 시 초기화됨)
+            if (!questionData.isSavedToHistory) {
+                 const historyEntry = {
+                    question: questionData,
+                    responses: responsesData || {},
+                    date: new Date().toLocaleString('ko-KR')
+                };
+                push(ref(db, HISTORY_PATH), historyEntry);
+                
+                // 💡 [수정] 저장 후 플래그를 true로 업데이트 (중복 저장 방지)
+                update(ref(db, QUESTION_PATH), { isSavedToHistory: true });
+
+                return true; // 저장 성공
+            }
         }
-        return false;
+        return false; // 저장할 내용 없음 또는 이미 저장됨
     }
     
     async function postQuestion() {
@@ -447,6 +453,7 @@
             image: currentImageBase64,
             correctAnswer: correctAnswer || null, 
             isClosed: false, 
+            isSavedToHistory: false, // 💡 [추가] 새 문제는 저장되지 않은 상태로 시작
             timestamp: Date.now()
         };
 
@@ -513,7 +520,7 @@
         });
     }
 
-    // 💣 전체 기록 초기화 버튼 로직
+    // 💣 [핵심 수정] 전체 기록 초기화 버튼 로직
     clearHistoryBtn.addEventListener('click', clearAllHistory);
 
     function clearAllHistory() {
@@ -521,8 +528,11 @@
         
         remove(ref(db, HISTORY_PATH))
         .then(() => {
-            alert('모든 과거 기록이 삭제되었습니다.');
-            renderHistoryList(null); // 화면 즉시 업데이트
+            // 💡 [수정] 현재 문제 기록도 완전히 삭제하여 다음 문제 출제 시 1번부터 시작하도록 보장
+            remove(ref(db, QUESTION_PATH));
+            
+            alert('모든 과거 기록이 삭제되었습니다. 다음 출제 문제는 1번부터 시작됩니다.');
+            renderHistoryList(null); 
         })
         .catch(error => {
             console.error('전체 기록 삭제 실패:', error);
@@ -616,7 +626,6 @@
             studentQuestionTextEl.textContent = questionData.text || '';
             currentQuestionType = questionData.type;
             
-            // 💡 [핵심 수정] 새 문제 출제 시 강제로 문제 영역을 활성화하고 대기 화면 숨김
             studentSubmittedArea.classList.add('hidden'); 
             studentQuizArea.classList.remove('hidden'); 
 
@@ -705,10 +714,7 @@
     window.kickUser = function(studentName, studentId) {
         if (!confirm(`${studentName} 학생을 퇴장시키고 아이디를 초기화하시겠습니까?`)) return;
 
-        // 1. Firebase 응답 기록 삭제 (답변 초기화)
         remove(ref(db, `${RESPONSES_PATH}/${studentId}`));
-        
-        // 2. Firebase Presence 기록 삭제 (접속 상태 제거)
         remove(ref(db, `${PRESENCE_PATH}/${studentId}`));
 
         alert(`${studentName} 학생의 접속이 초기화되었습니다. 해당 학생에게 이름/번호를 재입력하도록 안내해주세요.`);
@@ -835,10 +841,10 @@
             return;
         }
 
-        const historyEntries = Object.entries(historyData).reverse(); 
-        const historyArray = Object.values(historyData); // 배열로 변환하여 순서 보장
+        const historyEntries = Object.entries(historyData); 
+        const historyArray = Object.values(historyData); 
         
-        historyEntries.forEach(([key, entry], index) => {
+        historyEntries.reverse().forEach(([key, entry], index) => { // 역순으로 화면에 표시 (최신 순)
             const questionText = entry.question.text || '이미지 문제';
             const responsesCount = Object.keys(entry.responses).length;
             
@@ -880,7 +886,6 @@
         let userCount = 0;
         
         if (presenceData) {
-            // 💡 [안정화] 존재하지 않는 데이터 처리 방지
             const sortedUsers = Object.values(presenceData).filter(user => user && user.lastSeen).sort((a, b) => b.lastSeen - a.lastSeen); 
             
             sortedUsers.forEach(user => {
@@ -986,8 +991,8 @@
             link.setAttribute("href", url);
             link.setAttribute("download", filename + ".csv");
             document.body.appendChild(link);
-            document.body.removeChild(link);
             link.click();
+            document.body.removeChild(link);
         }
     }
 
