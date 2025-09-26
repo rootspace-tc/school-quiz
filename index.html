@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 실시간 참여 퀴즈 플랫폼 V8.0 (최종 안정화)</title>
+    <title>🚀 실시간 참여 퀴즈 플랫폼 V9.0 (최종)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
@@ -28,7 +29,7 @@
 <body>
 
 <div class="container">
-    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V8.0</h1>
+    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V9.0</h1>
     
     <div id="mode-selection" class="flex justify-center space-x-6 mb-8">
         <button id="teacher-mode-btn" class="mode-button bg-red-500 text-white p-4 rounded-lg shadow-md font-semibold text-xl">
@@ -99,7 +100,7 @@
             <h3 class="text-xl font-bold mb-5 flex justify-between">
                 <span>📊 실시간 응답 현황 (<span id="total-responses">0</span>명 참여)</span>
                 <button id="export-excel-btn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-base">
-                    ⬇️ 응답 EXCEL 다운로드
+                    ⬇️ 전체 기록 EXCEL 다운로드
                 </button>
             </h3>
             
@@ -172,11 +173,25 @@
                 </p>
             </div>
         </div>
+        
+        <div id="student-submitted-area" class="hidden text-center p-12 border border-green-300 rounded-lg bg-green-50">
+            <h3 class="text-3xl font-bold mb-4 text-green-700">✅ 답변 제출이 완료되었습니다!</h3>
+            <p class="text-xl text-gray-700 mb-6">
+                선생님의 다음 문제 출제를 기다려주세요.<br>
+                (화면을 닫거나 새로고침해도 다음 문제가 보입니다.)
+            </p>
+            <button id="modify-answer-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white p-3 rounded-lg font-semibold text-xl">
+                ✏️ 답변 수정하기
+            </button>
+            <p class="text-sm mt-4 text-gray-500">
+                **[설명]** 답변 수정하기 버튼을 누르면 잠시 응답 화면으로 돌아가서<br>
+                답을 수정할 수 있습니다. (단, 선생님이 마감하기 전까지만 가능)
+            </p>
+        </div>
     </div>
 </div>
 
 <script type="module">
-    // Firebase 모듈 불러오기
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"; 
     import { getDatabase, ref, set, onValue, remove, push, get, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
@@ -204,14 +219,14 @@
     const HISTORY_PATH = 'quiz/history'; 
 
     // ----------------------------------------------------
-    // 2. 변수 및 UI 요소 정의 (모든 요소 정의)
+    // 2. 변수 및 UI 요소 정의
     // ----------------------------------------------------
-    const TEACHER_PASSWORD = "2948"; 
+    const TEACHER_PASSWORD = "2948"; // 🔑 교사 비밀번호 변경 완료
     let currentStudentId = null; 
     let currentQuestionType = 'MCQ';
     let currentImageBase64 = null; 
 
-    // UI 요소 (V7.0의 모든 요소를 재정의하여 정의 누락 오류 방지)
+    // UI 요소 (모든 요소 정의)
     const teacherPanel = document.getElementById('teacher-panel');
     const studentPanel = document.getElementById('student-panel');
     const modeSelection = document.getElementById('mode-selection');
@@ -249,6 +264,8 @@
     const modalQuestionTitle = document.getElementById('modal-question-title');
     const modalResultsDisplay = document.getElementById('modal-results-display');
     const questionControlArea = document.getElementById('question-control-area');
+    const studentSubmittedArea = document.getElementById('student-submitted-area'); // 🔒 대기 화면
+    const modifyAnswerBtn = document.getElementById('modify-answer-btn'); // 🔒 수정 버튼
 
 
     // ----------------------------------------------------
@@ -307,10 +324,9 @@
             teacherPanel.classList.remove('hidden');
             studentPanel.classList.add('hidden');
             modeSelection.classList.add('hidden');
-            // 교사 모드 진입 시 History 리스너 등록
             onValue(ref(db, HISTORY_PATH), (snapshot) => renderHistoryList(snapshot.val()));
             listenForResponses();
-            questionControlArea.classList.remove('hidden'); // 문제 출제 영역 보이기
+            questionControlArea.classList.remove('hidden');
         } else {
             alert("비밀번호가 틀렸습니다.");
         }
@@ -330,10 +346,21 @@
             studentQuizArea.classList.remove('hidden');
             listenForQuestion();
             localStorage.setItem('quiz_student_name', name); 
+            // 💡 로그인 후 즉시 답변 대기 화면으로 이동
+            studentQuizArea.classList.add('hidden');
+            studentSubmittedArea.classList.remove('hidden');
         } else {
             alert('이름 또는 번호를 입력해주세요.');
         }
     });
+
+    // 💡 답변 수정 버튼 로직
+    modifyAnswerBtn.addEventListener('click', () => {
+        // 퀴즈 화면을 다시 보이게 하고 대기 화면을 숨김
+        studentQuizArea.classList.remove('hidden');
+        studentSubmittedArea.classList.add('hidden');
+    });
+
 
     document.addEventListener('DOMContentLoaded', () => {
         const savedName = localStorage.getItem('quiz_student_name');
@@ -342,12 +369,10 @@
         }
     });
     
-    // 모달 닫기
     modalCloseBtn.addEventListener('click', () => {
         historyDetailModal.classList.add('hidden');
-        // 모달 닫을 때 현재 문제 제어 영역 다시 보이게 함
         questionControlArea.classList.remove('hidden');
-        document.querySelector('.container h1').textContent = '🚀 실시간 수업 참여 플랫폼 V8.0';
+        document.querySelector('.container h1').textContent = '🚀 실시간 수업 참여 플랫폼 V9.0';
     });
 
 
@@ -375,7 +400,6 @@
     }
     
     async function postQuestion() {
-        // 이전 문제 기록 저장 후 삭제
         await saveCurrentQuestionToHistory();
         
         const text = questionTextarea.value.trim();
@@ -414,7 +438,6 @@
         });
     }
 
-    // 답변 수정 마감 기능
     closeSubmissionBtn.addEventListener('click', closeSubmission);
 
     function closeSubmission() {
@@ -430,7 +453,6 @@
         });
     }
 
-    // 문제 숨기기 기능 (기록 저장 후 삭제)
     hideQuestionBtn.addEventListener('click', async () => {
         if (!confirm("현재 출제된 문제를 학생 화면에서 숨기고 기록에 저장하시겠습니까?")) return;
         
@@ -463,7 +485,7 @@
 
 
     // ----------------------------------------------------
-    // 6. 학생 로직 (수정 허용 및 마감 상태 반영)
+    // 6. 학생 로직 (수정 및 보안 강화)
     // ----------------------------------------------------
 
     submitAnswerBtn.addEventListener('click', () => {
@@ -485,37 +507,32 @@
         }
     });
     
-    // 답변 제출 (수정 가능)
+    // 답변 제출 (수정 가능 및 화면 전환)
     function submitAnswer(answer) {
         if (!currentStudentId) {
             alert('먼저 이름을 입력하고 참여를 시작해주세요.');
             return;
         }
         
-        // 마감 상태 확인
         get(ref(db, STATUS_PATH)).then(snapshot => {
             const status = snapshot.val();
             if (status && status.isClosed) {
                 alert('⛔ 답변 수정이 마감되어 제출할 수 없습니다.');
+                // 🔒 마감 시 제출 완료 화면에서 퀴즈 화면으로 전환되는 것을 방지
+                studentQuizArea.classList.add('hidden');
+                studentSubmittedArea.classList.remove('hidden');
                 return;
             }
             
-            // Firebase에 답변 저장 (덮어쓰기 허용 = 수정 가능)
             set(ref(db, `${RESPONSES_PATH}/${currentStudentId}`), {
                 name: studentNameInput.value.trim(),
                 answer: answer,
                 timestamp: Date.now()
             })
             .then(() => {
-                submissionStatusMsg.classList.remove('hidden'); 
-                submitAnswerBtn.textContent = '답변 수정 완료!'; 
-                
-                // O/X 버튼도 텍스트 변경
-                if (currentQuestionType !== 'ShortAnswer' && currentQuestionType !== 'MCQ') {
-                    // O/X 버튼은 즉시 제출이므로 제출 후 텍스트만 변경
-                    const submittedBtn = document.querySelector(`button[onclick="submitAnswer('${answer}')"]`);
-                    if(submittedBtn) submittedBtn.textContent = `✅ ${answer} (수정됨)`;
-                }
+                // 💡 제출 후 퀴즈 영역을 숨기고 대기 영역 표시 (보안 강화)
+                studentQuizArea.classList.add('hidden');
+                studentSubmittedArea.classList.remove('hidden');
             })
             .catch(error => {
                 console.error('답변 제출 실패:', error);
@@ -524,19 +541,42 @@
         });
     }
 
+    // 학생 상태 변화 리스너 (답변 마감 상태 반영)
+    onValue(ref(db, STATUS_PATH), (snapshot) => {
+        const status = snapshot.val();
+        const isClosed = status ? status.isClosed : false;
+
+        const inputs = studentAnswerButtonsEl.querySelectorAll('input, textarea, button');
+        const submitButton = submitAnswerBtn;
+        
+        if (isClosed) {
+            inputs.forEach(el => el.disabled = true);
+            submitButton.disabled = true;
+            submitButton.textContent = '⛔ 마감됨';
+            submissionStatusStudent.classList.remove('hidden');
+            modifyAnswerBtn.disabled = true; // 🔒 수정 버튼도 비활성화
+        } else {
+            inputs.forEach(el => el.disabled = false);
+            submitButton.disabled = false;
+            submitButton.textContent = '🚀 답변 제출하기';
+            submissionStatusStudent.classList.add('hidden');
+            modifyAnswerBtn.disabled = false; // 🔒 수정 버튼 활성화
+        }
+    });
+
     function listenForQuestion() {
         onValue(ref(db, QUESTION_PATH), (snapshot) => {
             const questionData = snapshot.val();
             
+            // 새 문제가 출제되면 학생을 대기 화면으로 돌립니다.
             if (questionData && (questionData.text || questionData.image)) {
                 studentQuestionTextEl.textContent = questionData.text || '';
                 currentQuestionType = questionData.type;
                 
-                // 답변 수정 가능하므로 로컬 스토리지 플래그는 제거
-                localStorage.removeItem('quiz_responded'); 
-                submissionStatusMsg.classList.add('hidden'); // 새 문제 시 메시지 숨김
-                submitAnswerBtn.textContent = '🚀 답변 제출하기'; // 버튼 텍스트 초기화
-                
+                // 새 문제 출제 시 항상 대기 화면으로 전환 (답변 제출 상태 초기화)
+                studentQuizArea.classList.add('hidden');
+                studentSubmittedArea.classList.remove('hidden'); 
+
                 renderStudentInputs(questionData);
 
                 if (questionData.image) {
@@ -550,7 +590,7 @@
                 studentAnswerButtonsEl.innerHTML = '';
                 submitAnswerBtn.classList.add('hidden');
                 studentQuestionImageContainer.classList.add('hidden');
-                submissionStatusMsg.classList.add('hidden');
+                // 문제가 없으면 대기 화면은 유지 (다음 문제 대기)
             }
         });
     }
@@ -558,17 +598,13 @@
     function renderStudentInputs(question) {
         studentAnswerButtonsEl.innerHTML = ''; 
         submitAnswerBtn.classList.remove('hidden');
-        submissionStatusMsg.classList.add('hidden'); // 기존 제출 메시지 숨김
-
-        // 마감 상태에 따라 입력 비활성화는 상태 리스너가 담당
-
+        
         if (question.type === 'OX') {
             const options = ['O', 'X'];
             options.forEach(option => {
                 const btn = document.createElement('button');
                 btn.className = `p-5 text-2xl font-bold rounded-lg ${option === 'O' ? 'bg-green-100 hover:bg-green-200 text-green-700' : 'bg-red-100 hover:bg-red-200 text-red-700'}`;
                 btn.textContent = option;
-                // O/X는 즉시 제출을 위해 인라인 이벤트 핸들러 사용
                 btn.setAttribute('onclick', `(function(){ submitAnswer('${option}'); })();`); 
                 studentAnswerButtonsEl.appendChild(btn);
             });
@@ -577,7 +613,6 @@
         } else if (question.type === 'MCQ' && question.options && question.options.length > 0) {
             question.options.forEach((option, index) => {
                 const radioId = `mcq-option-${index}`;
-                
                 const div = document.createElement('div');
                 div.className = 'flex items-center p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 cursor-pointer';
 
@@ -615,7 +650,7 @@
 
 
     // ----------------------------------------------------
-    // 7. 교사 로직 (실시간 결과 및 기록)
+    // 7. 교사 로직 (실시간 결과 표시 및 기록)
     // ----------------------------------------------------
 
     function listenForResponses() {
@@ -623,51 +658,6 @@
             const responses = snapshot.val();
             renderResults(responses);
         });
-    }
-    
-    // History Renderer
-    function renderHistoryList(historyData) {
-        historyList.innerHTML = '';
-        if (!historyData) {
-            historyList.textContent = '기록된 과거 문제가 없습니다.';
-            return;
-        }
-
-        const historyEntries = Object.entries(historyData).reverse(); 
-        
-        historyEntries.forEach(([key, entry], index) => {
-            const questionText = entry.question.text || '이미지 문제';
-            const responsesCount = Object.keys(entry.responses).length;
-            const entryNumber = historyEntries.length - index;
-
-            const div = document.createElement('div');
-            div.className = 'p-4 border border-blue-400 rounded-lg bg-blue-50 cursor-pointer hover:bg-blue-100';
-            div.innerHTML = `
-                <div class="font-bold text-blue-800">${entryNumber}번 문제: ${questionText.substring(0, 30)}...</div>
-                <div class="text-sm text-gray-600">출제일: ${entry.date} | 응답: ${responsesCount}명</div>
-            `;
-            div.onclick = () => showHistoryDetail(entryNumber, entry); // key 대신 index+1 번호 전달
-            historyList.appendChild(div);
-        });
-    }
-
-    function showHistoryDetail(number, entry) {
-        // 교사 패널에 현재 응답 영역 보이지 않게 하고 모달 띄우기
-        questionControlArea.classList.add('hidden');
-        document.querySelector('.container h1').textContent = `📂 과거 기록: ${number}번 문제 상세`;
-        historyDetailModal.classList.remove('hidden');
-        
-        const q = entry.question;
-        const r = entry.responses;
-        const totalCount = Object.keys(r).length;
-
-        modalQuestionTitle.textContent = q.text || '이미지 문제';
-
-        // 과거 기록 렌더링 함수 호출
-        renderPastResults(q, r, totalCount, modalResultsDisplay);
-
-        // 엑셀 다운로드 버튼 이벤트 핸들러 변경
-        exportExcelBtn.onclick = () => exportToCSV(q, r, `${number}번_문제_기록`);
     }
 
     function renderResults(responses) {
@@ -694,12 +684,12 @@
                 return;
             }
             renderPastResults(question, responses, totalCount, resultsDisplay);
-        }, { onlyOnce: true }); 
+        }, { once: true }); // Use once to avoid excessive rendering
     }
     
     // 과거/현재 응답 결과를 렌더링하는 통합 함수
     function renderPastResults(question, responses, totalCount, displayElement) {
-        displayElement.innerHTML = ''; // 초기화
+        displayElement.innerHTML = ''; 
         const responseList = Object.values(responses);
         const correctAnswer = (question.correctAnswer || '').trim().toLowerCase(); 
         const correctNames = []; 
@@ -758,12 +748,10 @@
             if (isCorrect && displayElement !== resultsDisplay) correctNames.push(r.name || '익명');
         });
 
-        // 현재 응답 목록만 업데이트
         if (displayElement === resultsDisplay) {
             fullListContent.innerHTML = '';
             fullListContent.appendChild(ul);
         } else {
-            // 과거 기록 모달에 전체 답변 목록 추가
             displayElement.appendChild(document.createElement('h4')).textContent = '답변 목록:';
             displayElement.appendChild(ul);
         }
@@ -783,29 +771,139 @@
             }
         }
     }
+    
+    // History Renderer
+    function renderHistoryList(historyData) {
+        historyList.innerHTML = '';
+        if (!historyData) {
+            historyList.textContent = '기록된 과거 문제가 없습니다.';
+            return;
+        }
 
+        const historyEntries = Object.entries(historyData).reverse(); 
+        
+        historyEntries.forEach(([key, entry], index) => {
+            const questionText = entry.question.text || '이미지 문제';
+            const responsesCount = Object.keys(entry.responses).length;
+            const entryNumber = historyEntries.length - index;
 
-    // ----------------------------------------------------
-    // 8. 엑셀 다운로드 (CSV)
-    // ----------------------------------------------------
-
-    exportExcelBtn.addEventListener('click', exportCurrentToCSV); 
-
-    function exportCurrentToCSV() {
-        // 현재 문제 데이터와 응답을 가져와 CSV 생성
-        get(ref(db, QUESTION_PATH)).then(qSnapshot => {
-            get(ref(db, RESPONSES_PATH)).then(rSnapshot => {
-                const question = qSnapshot.val();
-                const responses = rSnapshot.val();
-                if (!question) {
-                    alert('출제된 문제가 없습니다.');
-                    return;
-                }
-                exportToCSV(question, responses, `현재_응답현황_${new Date().toLocaleDateString('ko-KR')}`);
-            });
+            const div = document.createElement('div');
+            div.className = 'p-4 border border-blue-400 rounded-lg bg-blue-50 cursor-pointer hover:bg-blue-100';
+            div.innerHTML = `
+                <div class="font-bold text-blue-800">${entryNumber}번 문제: ${questionText.substring(0, 30)}...</div>
+                <div class="text-sm text-gray-600">출제일: ${entry.date} | 응답: ${responsesCount}명</div>
+            `;
+            div.onclick = () => showHistoryDetail(entryNumber, entry); 
+            historyList.appendChild(div);
         });
     }
-    
+
+    function showHistoryDetail(number, entry) {
+        questionControlArea.classList.add('hidden');
+        document.querySelector('.container h1').textContent = `📂 과거 기록: ${number}번 문제 상세`;
+        historyDetailModal.classList.remove('hidden');
+        
+        const q = entry.question;
+        const r = entry.responses;
+        const totalCount = Object.keys(r).length;
+
+        modalQuestionTitle.textContent = q.text || '이미지 문제';
+
+        // 💡 과거 기록 렌더링 함수 호출
+        renderPastResults(q, r, totalCount, modalResultsDisplay);
+
+        // 💡 엑셀 다운로드 버튼 이벤트 핸들러 임시 변경
+        exportExcelBtn.onclick = () => exportToCSV(q, r, `${number}번_문제_기록`);
+    }
+
+
+    // ----------------------------------------------------
+    // 8. 엑셀 다운로드 (CSV) - 전체 기록 포맷 변경
+    // ----------------------------------------------------
+
+    exportExcelBtn.addEventListener('click', exportAllHistoryToCSV); 
+
+    async function exportAllHistoryToCSV() {
+        if (!confirm("누적된 모든 퀴즈의 전체 응답 기록을 다운로드하시겠습니까? (학생별, 문제별 정답 여부 포함)")) return;
+
+        const snapshot = await get(ref(db, HISTORY_PATH));
+        const historyData = snapshot.val();
+
+        if (!historyData) {
+            alert('다운로드할 기록된 문제가 없습니다.');
+            return;
+        }
+
+        const allStudents = new Set();
+        const processedHistory = [];
+        
+        // 1. 모든 학생 이름(ID)과 모든 문제의 정답을 수집 및 문제 순서 정리
+        let questionCounter = 0;
+        Object.values(historyData).forEach(entry => {
+            questionCounter++;
+            const questionText = (entry.question.text || '이미지 문제').substring(0, 30);
+            
+            const correctAnswer = (entry.question.correctAnswer || '').trim().toLowerCase();
+            
+            Object.values(entry.responses).forEach(r => allStudents.add(r.name));
+
+            processedHistory.push({
+                number: questionCounter,
+                text: questionText,
+                correctAnswer: correctAnswer,
+                responses: entry.responses
+            });
+        });
+
+        const sortedStudents = Array.from(allStudents).sort();
+        
+        // 2. CSV 헤더 생성
+        let csvHeader = "참여자 이름";
+        processedHistory.forEach(q => {
+            csvHeader += `,"${q.number}번 문제 답변: ${q.text}..."`;
+            csvHeader += `,"${q.number}번 정답 여부"`;
+        });
+        let csv = csvHeader + "\n";
+
+        // 3. CSV 본문 생성 (학생별로 데이터 배열)
+        sortedStudents.forEach(studentName => {
+            let studentRow = `"${studentName}"`;
+            
+            processedHistory.forEach(q => {
+                const response = Object.values(q.responses).find(r => (r.name || '익명') === studentName);
+                
+                if (response) {
+                    const answer = (response.answer || '').replace(/"/g, '""'); 
+                    const isCorrect = (response.answer && q.correctAnswer) ? (response.answer.trim().toLowerCase() === q.correctAnswer) : false;
+                    const correctness = isCorrect ? 'O' : 'X';
+                    
+                    studentRow += `,"${answer}"`; 
+                    studentRow += `,"${correctness}"`; 
+
+                } else {
+                    studentRow += `,"-"`; 
+                    studentRow += `,"-"`; 
+                }
+            });
+            csv += studentRow + "\n";
+        });
+
+        // 4. 파일 다운로드
+        const filename = `전체_퀴즈_기록_${new Date().toLocaleDateString('ko-KR')}`;
+        const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename + ".csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    }
+
+    // (과거 기록 상세 보기용 CSV 함수 - 다운로드 버튼 클릭 시 사용)
     function exportToCSV(question, responses, filename) {
         if (!responses || Object.keys(responses).length === 0) {
             alert('다운로드할 응답 데이터가 없습니다.');
@@ -836,7 +934,6 @@
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
             link.setAttribute("download", filename + ".csv");
-            link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
