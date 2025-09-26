@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 실시간 참여 퀴즈 플랫폼 V13.0 (최종)</title>
+    <title>🚀 실시간 참여 퀴즈 플랫폼 V14.0 (최종)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,7 +33,7 @@
 <body>
 
 <div class="container">
-    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V13.0</h1>
+    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V14.0</h1>
     
     <div id="mode-selection" class="flex justify-center space-x-6 mb-8">
         <button id="teacher-mode-btn" class="mode-button bg-red-500 text-white p-4 rounded-lg shadow-md font-semibold text-xl">
@@ -231,16 +231,18 @@
     const RESPONSES_PATH = 'quiz/responses';
     const HISTORY_PATH = 'quiz/history'; 
     const PRESENCE_PATH = 'quiz/presence'; 
+    // 💡 [추가] History 카운터 경로 (초기화 후 1번부터 시작 보장)
+    const HISTORY_COUNT_PATH = 'quiz/history_count'; 
 
     // ----------------------------------------------------
     // 2. 변수 및 UI 요소 정의
     // ----------------------------------------------------
-    const TEACHER_PASSWORD = "2948"; // 🔑 교사 비밀번호
+    const TEACHER_PASSWORD = "2948"; 
     let currentStudentId = null; 
     let currentQuestionType = 'MCQ';
     let currentImageBase64 = null; 
 
-    // UI 요소
+    // UI 요소 (V13.0과 동일)
     const teacherPanel = document.getElementById('teacher-panel');
     const studentPanel = document.getElementById('student-panel');
     const modeSelection = document.getElementById('mode-selection');
@@ -393,7 +395,7 @@
     modalCloseBtn.addEventListener('click', () => {
         historyDetailModal.classList.add('hidden');
         questionControlArea.classList.remove('hidden');
-        document.querySelector('.container h1').textContent = '🚀 실시간 수업 참여 플랫폼 V12.0';
+        document.querySelector('.container h1').textContent = '🚀 실시간 수업 참여 플랫폼 V14.0';
     });
 
 
@@ -403,6 +405,7 @@
 
     document.getElementById('post-question-btn').addEventListener('click', postQuestion);
 
+    // 💡 [핵심 수정] 기록 저장 함수 (현재 응답만 가져와 푸시)
     async function saveCurrentQuestionToHistory() {
         const questionSnapshot = await get(ref(db, QUESTION_PATH));
         const responsesSnapshot = await get(ref(db, RESPONSES_PATH));
@@ -416,6 +419,7 @@
                 responses: responsesData || {},
                 date: new Date().toLocaleString('ko-KR')
             };
+            // 💡 [수정] History 경로에 새로운 고유 키로 푸시 (이전 데이터 덮어쓰기 방지)
             push(ref(db, HISTORY_PATH), historyEntry);
             return true;
         }
@@ -423,6 +427,7 @@
     }
     
     async function postQuestion() {
+        // 💡 [수정] 문제 출제 전 이전 문제 기록 저장
         await saveCurrentQuestionToHistory();
         
         const text = questionTextarea.value.trim();
@@ -831,13 +836,13 @@
         }
 
         const historyEntries = Object.entries(historyData).reverse(); 
+        const historyArray = Object.values(historyData); // 배열로 변환하여 순서 보장
         
         historyEntries.forEach(([key, entry], index) => {
             const questionText = entry.question.text || '이미지 문제';
             const responsesCount = Object.keys(entry.responses).length;
             
-            // 💡 [수정] 문제 번호는 히스토리 순서대로 부여
-            const historyArray = Object.values(historyData);
+            // 💡 [수정] 문제 번호는 히스토리 배열 순서대로 부여
             const entryNumber = historyArray.length - index;
 
             const div = document.createElement('div');
@@ -875,7 +880,8 @@
         let userCount = 0;
         
         if (presenceData) {
-            const sortedUsers = Object.values(presenceData).sort((a, b) => b.lastSeen - a.lastSeen); 
+            // 💡 [안정화] 존재하지 않는 데이터 처리 방지
+            const sortedUsers = Object.values(presenceData).filter(user => user && user.lastSeen).sort((a, b) => b.lastSeen - a.lastSeen); 
             
             sortedUsers.forEach(user => {
                 const name = user.name || '익명';
@@ -919,7 +925,6 @@
         const allStudents = new Set();
         const processedHistory = [];
         
-        // 1. 모든 학생 이름(ID)과 모든 문제의 정답을 수집 및 문제 순서 정리
         // 💡 [수정] History Data를 배열로 변환하여 순서 보장 및 번호 부여
         const historyEntries = Object.values(historyData);
         
@@ -981,8 +986,8 @@
             link.setAttribute("href", url);
             link.setAttribute("download", filename + ".csv");
             document.body.appendChild(link);
-            link.click();
             document.body.removeChild(link);
+            link.click();
         }
     }
 
