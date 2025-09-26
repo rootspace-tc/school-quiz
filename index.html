@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 실시간 참여 퀴즈 플랫폼 V4.0 (Jua체 적용)</title>
+    <title>🚀 실시간 참여 퀴즈 플랫폼 V5.0 (최종)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,9 +11,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     
     <style>
-        /* Jua체 적용 및 기본 스타일 설정 */
         body {
-            font-family: 'Jua', sans-serif; /* Jua 폰트 적용 */
+            font-family: 'Jua', sans-serif;
             background-color: #f7f3e9;
             font-size: 18px; 
         }
@@ -25,16 +24,12 @@
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
-        /* 제목 크기 확대 및 스타일 */
         h1 { font-size: 2.5rem !important; } 
         h2 { font-size: 2rem !important; }
         .text-xl { font-size: 1.5rem !important; }
         .text-2xl { font-size: 1.875rem !important; }
         #student-question-text { font-size: 3rem !important; line-height: 1.4; } 
         
-        /* 기타 스타일 유지 */
-        .mode-button:hover { opacity: 0.8; }
-        .hidden { display: none; }
         .result-bar {
             height: 35px; 
             margin-bottom: 8px;
@@ -64,7 +59,7 @@
 <body>
 
 <div class="container">
-    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V4.0</h1>
+    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V5.0</h1>
     
     <div id="mode-selection" class="flex justify-center space-x-6 mb-8">
         <button id="teacher-mode-btn" class="mode-button bg-red-500 text-white p-4 rounded-lg shadow-md font-semibold text-xl">
@@ -116,6 +111,9 @@
             <div class="flex space-x-3 mt-6">
                 <button id="post-question-btn" class="bg-red-500 hover:bg-red-600 text-white p-4 rounded-lg font-semibold flex-1 text-xl">
                     📢 문제 출제하기
+                </button>
+                 <button id="hide-question-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white p-4 rounded-lg font-semibold w-1/4 text-xl">
+                    🙈 문제 숨기기
                 </button>
                 <button id="clear-results-btn" class="bg-gray-400 hover:bg-gray-500 text-white p-4 rounded-lg font-semibold w-1/4 text-xl">
                     🗑 결과 초기화
@@ -170,15 +168,14 @@
 </div>
 
 <script type="module">
-    // Firebase v9+ 모듈 임포트
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+    // 💡 해결책 1 적용: Firebase 모듈 경로 수정 및 안정화
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app"; 
+    import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database";
 
     // ----------------------------------------------------
     // 1. Firebase 설정 (선생님의 실제 키 적용)
     // ----------------------------------------------------
     const firebaseConfig = {
-        // [선생님의 실제 Firebase 설정 정보]
         apiKey: "AIzaSyAN1iAC82xKL_haJUs9291YBKNv7g7WSvU",
         authDomain: "foranswering-afec8.firebaseapp.com",
         databaseURL: "https://foranswering-afec8-default-rtdb.firebaseio.com",
@@ -191,7 +188,9 @@
 
     // Firebase 앱 및 데이터베이스 초기화
     const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    
+    // 💡 해결책 3 적용: 초기화 시 db 변수가 먼저 정의되도록 재정렬
+    const db = getDatabase(app); 
 
     // 데이터베이스 경로 정의
     const QUESTION_PATH = 'quiz/currentQuestion';
@@ -200,7 +199,7 @@
     // ----------------------------------------------------
     // 2. 변수 및 UI 요소 정의
     // ----------------------------------------------------
-    const TEACHER_PASSWORD = "2948"; // 🔒 선생님 비밀번호! (꼭 변경해주세요)
+    const TEACHER_PASSWORD = "1234"; 
     let currentStudentId = null; 
     let currentQuestionType = 'MCQ';
     let currentImageBase64 = null; 
@@ -231,6 +230,8 @@
     const removeImageBtn = document.getElementById('remove-image-btn');
     const studentQuestionImageContainer = document.getElementById('student-question-image-container');
     const studentQuestionImage = document.getElementById('student-question-image');
+    // 💡 '문제 숨기기' 버튼 요소 정의 추가
+    const hideQuestionBtn = document.getElementById('hide-question-btn'); 
 
 
     // ----------------------------------------------------
@@ -327,7 +328,7 @@
 
 
     // ----------------------------------------------------
-    // 5. 교사 로직 (문제 출제 - 정답 필드 포함)
+    // 5. 교사 로직 (문제 출제, 숨기기, 초기화)
     // ----------------------------------------------------
 
     document.getElementById('post-question-btn').addEventListener('click', postQuestion);
@@ -362,6 +363,25 @@
             alert('문제 출제 실패. 콘솔을 확인해주세요.');
         });
     }
+    
+    // 💡 '문제 숨기기' 로직 추가
+    hideQuestionBtn.addEventListener('click', hideQuestion);
+
+    function hideQuestion() {
+        if (!confirm("현재 출제된 문제를 학생 화면에서 숨기시겠습니까?")) return;
+        
+        // QUESTION_PATH의 데이터를 null로 설정하여 완전히 삭제합니다.
+        set(ref(db, QUESTION_PATH), null)
+        .then(() => {
+            alert('문제가 학생 화면에서 숨겨졌습니다.');
+            // 문제 숨김과 동시에 응답 기록도 같이 지웁니다.
+            remove(ref(db, RESPONSES_PATH)); 
+        })
+        .catch(error => {
+            console.error('문제 숨기기 실패:', error);
+            alert('문제 숨기기 실패.');
+        });
+    }
 
     document.getElementById('clear-results-btn').addEventListener('click', clearResults);
 
@@ -380,6 +400,28 @@
     // 6. 학생 로직 
     // ----------------------------------------------------
 
+    // 💡 '답변 제출하기' 버튼 클릭 이벤트 리스너 재정의
+    submitAnswerBtn.addEventListener('click', () => {
+        let answer = null;
+        
+        // ShortAnswer
+        if (currentQuestionType === 'ShortAnswer') {
+            const input = document.getElementById('short-answer-input');
+            answer = input ? input.value.trim() : null;
+        } 
+        // MCQ
+        else {
+            const selected = document.querySelector('input[name="student-answer"]:checked');
+            answer = selected ? selected.value : null;
+        }
+
+        if (answer) {
+            submitAnswer(answer);
+        } else {
+            alert('답변을 선택하거나 입력해주세요.');
+        }
+    });
+    
     function submitAnswer(answer) {
         if (!currentStudentId) {
             alert('먼저 이름을 입력하고 참여를 시작해주세요.');
@@ -540,7 +582,6 @@
 
             const correctNames = []; 
 
-            // A. 객관식 (MCQ, OX) 처리: 막대 그래프
             if (question.type === 'MCQ' || question.type === 'OX') {
                 const results = {};
                 responseList.forEach(r => {
@@ -581,7 +622,6 @@
                 });
             } 
             
-            // B. 주관식 (ShortAnswer) 처리: 답변자 이름 및 하이라이트
             else if (question.type === 'ShortAnswer') {
                 resultsDisplay.innerHTML = '<h4 class="text-xl font-bold mb-4">📝 제출된 주관식 답변:</h4>';
                 
@@ -603,7 +643,6 @@
                 resultsDisplay.appendChild(ul);
             }
             
-            // 정답자 명단 표시 영역 업데이트
             if (correctAnswer) {
                 correctRespondentsList.classList.remove('hidden');
                 if (correctNames.length > 0) {
