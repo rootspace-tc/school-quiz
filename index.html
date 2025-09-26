@@ -3,43 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 실시간 참여 퀴즈 플랫폼 V2.0</title>
+    <title>🚀 실시간 참여 퀴즈 플랫폼 V4.0 (Jua체 적용)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    
     <style>
-        /* BMJUA 폰트 스타일 */
-        @font-face {
-            font-family: 'BMJUA';
-            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_one@1.0/BMJUA.woff') format('woff');
-            font-weight: normal;
-            font-style: normal;
-        }
+        /* Jua체 적용 및 기본 스타일 설정 */
         body {
-            font-family: 'BMJUA', sans-serif;
+            font-family: 'Jua', sans-serif; /* Jua 폰트 적용 */
             background-color: #f7f3e9;
-            font-size: 18px; /* 기본 글자 크기 확대 */
+            font-size: 18px; 
         }
         .container {
-            max-width: 1100px; /* 컨테이너 폭 확대 */
+            max-width: 1100px; 
             margin: 2rem auto;
             padding: 30px;
             background: #fff;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
-        /* 제목 크기 확대 */
+        /* 제목 크기 확대 및 스타일 */
         h1 { font-size: 2.5rem !important; } 
         h2 { font-size: 2rem !important; }
         .text-xl { font-size: 1.5rem !important; }
         .text-2xl { font-size: 1.875rem !important; }
-        
-        /* 학생 질문 텍스트 크기 강조 */
         #student-question-text { font-size: 3rem !important; line-height: 1.4; } 
         
-        /* 버튼 및 기타 스타일 유지/개선 */
+        /* 기타 스타일 유지 */
         .mode-button:hover { opacity: 0.8; }
         .hidden { display: none; }
         .result-bar {
-            height: 35px; /* 막대 그래프 높이 확대 */
+            height: 35px; 
             margin-bottom: 8px;
             color: white;
             display: flex;
@@ -48,16 +45,26 @@
             border-radius: 4px;
             transition: width 0.5s ease-out;
         }
+        .correct-answer-highlight {
+            background-color: #d1f7d1; 
+            font-weight: bold;
+            border-left: 5px solid #4CAF50; 
+            padding: 5px;
+            margin: 3px 0;
+            border-radius: 4px;
+        }
         #student-answer-buttons button {
             transition: all 0.2s;
-            font-size: 1.3rem; /* 학생 버튼 글자 크기 확대 */
+            font-size: 1.3rem;
         }
+        .text-lg { font-size: 1.125rem !important; }
+        .text-base { font-size: 1rem !important; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V2.0</h1>
+    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V4.0</h1>
     
     <div id="mode-selection" class="flex justify-center space-x-6 mb-8">
         <button id="teacher-mode-btn" class="mode-button bg-red-500 text-white p-4 rounded-lg shadow-md font-semibold text-xl">
@@ -102,6 +109,10 @@
                 <input type="text" id="mcq-options" class="w-full border rounded p-3 text-lg" value="1. 네, 2. 아니오, 3. 아마도, 4. 글쎄요">
             </div>
 
+            <label for="correct-answer-input" class="block font-semibold mb-3 mt-5">🔑 정답 입력 (선택 사항):</label>
+            <input type="text" id="correct-answer-input" class="w-full border rounded p-3 text-lg" placeholder="예: 3번 또는 정답 텍스트 (입력하지 않으면 정답자 표시 안됨)">
+
+
             <div class="flex space-x-3 mt-6">
                 <button id="post-question-btn" class="bg-red-500 hover:bg-red-600 text-white p-4 rounded-lg font-semibold flex-1 text-xl">
                     📢 문제 출제하기
@@ -116,6 +127,11 @@
             <h3 class="text-xl font-bold mb-5">📊 실시간 응답 현황 (<span id="total-responses">0</span>명 참여)</h3>
             <div id="results-display" class="space-y-4">
                 <p class="text-gray-500 text-lg">문제가 출제되면 여기에 결과가 표시됩니다.</p>
+            </div>
+            
+            <div id="correct-respondents-list" class="mt-8 border-t pt-5 hidden">
+                 <h4 class="text-xl font-bold mb-4 text-green-600">✅ 정답자 명단</h4>
+                 <div id="correct-list-content" class="text-lg">정답이 설정되지 않았거나, 정답자가 없습니다.</div>
             </div>
         </div>
     </div>
@@ -135,14 +151,14 @@
             <div class="p-8 border border-gray-300 rounded-lg bg-white mb-8">
                 <h3 class="text-xl font-bold mb-4 text-gray-700">현재 질문:</h3>
                 <div id="student-question-image-container" class="mb-6 hidden">
-                    <img id="student-question-image" class="max-w-full h-auto mx-auto border border-gray-200 rounded max-h-80">
+                    <img src="" id="student-question-image" class="max-w-full h-auto mx-auto border border-gray-200 rounded max-h-80">
                 </div>
                 <p id="student-question-text" class="font-extrabold text-gray-800 mb-6 text-center">
                     [선생님이 문제를 출제할 때까지 기다려주세요.]
                 </p>
 
                 <div id="student-answer-buttons" class="grid grid-cols-2 gap-4 mb-4">
-                    </div>
+                </div>
                 
                 <button id="submit-answer-btn" class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg font-semibold w-full text-xl hidden">
                     🚀 답변 제출하기
@@ -162,6 +178,7 @@
     // 1. Firebase 설정 (선생님의 실제 키 적용)
     // ----------------------------------------------------
     const firebaseConfig = {
+        // [선생님의 실제 Firebase 설정 정보]
         apiKey: "AIzaSyAN1iAC82xKL_haJUs9291YBKNv7g7WSvU",
         authDomain: "foranswering-afec8.firebaseapp.com",
         databaseURL: "https://foranswering-afec8-default-rtdb.firebaseio.com",
@@ -186,7 +203,7 @@
     const TEACHER_PASSWORD = "2948"; // 🔒 선생님 비밀번호! (꼭 변경해주세요)
     let currentStudentId = null; 
     let currentQuestionType = 'MCQ';
-    let currentImageBase64 = null; // 현재 첨부된 이미지 Base64 데이터
+    let currentImageBase64 = null; 
 
     const teacherPanel = document.getElementById('teacher-panel');
     const studentPanel = document.getElementById('student-panel');
@@ -195,8 +212,11 @@
     const questionTypeSelect = document.getElementById('question-type');
     const mcqOptionsContainer = document.getElementById('mcq-options-container');
     const mcqOptionsInput = document.getElementById('mcq-options');
+    const correctAnswerInput = document.getElementById('correct-answer-input'); 
     const totalResponsesEl = document.getElementById('total-responses');
     const resultsDisplay = document.getElementById('results-display');
+    const correctRespondentsList = document.getElementById('correct-respondents-list'); 
+    const correctListContent = document.getElementById('correct-list-content');
     const studentQuestionTextEl = document.getElementById('student-question-text');
     const studentAnswerButtonsEl = document.getElementById('student-answer-buttons');
     const studentNameInput = document.getElementById('student-name');
@@ -204,7 +224,6 @@
     const studentLoginArea = document.getElementById('student-login-area');
     const submitAnswerBtn = document.getElementById('submit-answer-btn');
     const submissionStatusEl = document.getElementById('submission-status');
-    // 이미지 관련 요소
     const imageFileInput = document.getElementById('image-file-input');
     const imageUploadArea = document.getElementById('image-upload-area');
     const imagePreviewContainer = document.getElementById('image-preview');
@@ -215,17 +234,14 @@
 
 
     // ----------------------------------------------------
-    // 3. 이미지 업로드 및 붙여넣기 로직 (추가된 핵심 기능)
+    // 3. 이미지 업로드 및 붙여넣기 로직
     // ----------------------------------------------------
-
-    // Base64 문자열을 저장하고 미리보기를 업데이트하는 함수
     function setImage(base64Data) {
         currentImageBase64 = base64Data;
         currentImagePreview.src = base64Data;
         imagePreviewContainer.classList.remove('hidden');
     }
 
-    // 파일 입력 이벤트 핸들러
     imageFileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -235,9 +251,8 @@
         }
     });
 
-    // 붙여넣기 이벤트 핸들러 (클립보드 이미지 처리)
     imageUploadArea.addEventListener('paste', (e) => {
-        e.preventDefault(); // 기본 붙여넣기 동작 방지
+        e.preventDefault();
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         
         for (let i = 0; i < items.length; i++) {
@@ -246,15 +261,14 @@
                 const reader = new FileReader();
                 reader.onload = (event) => setImage(event.target.result);
                 reader.readAsDataURL(blob);
-                break; // 첫 번째 이미지만 처리
+                break;
             }
         }
     });
 
-    // 이미지 제거 버튼 핸들러
     removeImageBtn.addEventListener('click', () => {
         currentImageBase64 = null;
-        imageFileInput.value = ''; // 파일 입력 필드 초기화
+        imageFileInput.value = '';
         imagePreviewContainer.classList.add('hidden');
     });
 
@@ -263,7 +277,6 @@
     // 4. 모드 전환 및 초기화 로직
     // ----------------------------------------------------
     
-    // 질문 유형에 따라 객관식 보기 입력창 표시/숨김
     questionTypeSelect.addEventListener('change', (e) => {
         currentQuestionType = e.target.value;
         if (currentQuestionType === 'MCQ') {
@@ -273,7 +286,6 @@
         }
     });
 
-    // 교사 모드 보기 (비밀번호 확인)
     document.getElementById('teacher-mode-btn').addEventListener('click', () => {
         const password = prompt("교사 모드에 접속하시려면 비밀번호를 입력해주세요.");
         
@@ -287,14 +299,12 @@
         }
     });
 
-    // 학생 모드 보기 버튼 클릭 시 초기 화면 표시
     document.getElementById('student-mode-btn').addEventListener('click', () => {
         teacherPanel.classList.add('hidden');
         studentPanel.classList.remove('hidden');
         modeSelection.classList.add('hidden');
     });
 
-    // 학생 로그인 버튼 클릭
     document.getElementById('student-login-btn').addEventListener('click', () => {
         const name = studentNameInput.value.trim();
         if (name) {
@@ -308,7 +318,6 @@
         }
     });
 
-    // 자동 로그인/이름 복원
     document.addEventListener('DOMContentLoaded', () => {
         const savedName = localStorage.getItem('quiz_student_name');
         if (savedName) {
@@ -318,7 +327,7 @@
 
 
     // ----------------------------------------------------
-    // 5. 교사 로직 (문제 출제 및 결과 초기화)
+    // 5. 교사 로직 (문제 출제 - 정답 필드 포함)
     // ----------------------------------------------------
 
     document.getElementById('post-question-btn').addEventListener('click', postQuestion);
@@ -327,27 +336,26 @@
         const text = questionTextarea.value.trim();
         const type = questionTypeSelect.value;
         const options = type === 'MCQ' ? mcqOptionsInput.value.split(',').map(s => s.trim()).filter(s => s.length > 0) : [];
+        const correctAnswer = correctAnswerInput.value.trim(); 
 
         if (!text && !currentImageBase64) {
             alert('질문 내용 또는 이미지를 입력/첨부해주세요.');
             return;
         }
 
-        // DB에 새 질문 설정
         set(ref(db, QUESTION_PATH), {
             text: text,
             type: type,
             options: options,
-            image: currentImageBase64, // 이미지 Base64 데이터 추가
+            image: currentImageBase64,
+            correctAnswer: correctAnswer || null, 
             timestamp: Date.now()
         })
         .then(() => {
             alert('문제가 성공적으로 출제되었습니다!');
-            // 새 문제가 출제되면 응답 데이터를 비워줍니다.
             remove(ref(db, RESPONSES_PATH)); 
-            
-            // 문제 출제 후 교사 화면에서 이미지 데이터 초기화 (다음 문제를 위해)
-            removeImageBtn.click(); 
+            removeImageBtn.click();
+            correctAnswerInput.value = ''; 
         })
         .catch(error => {
             console.error('문제 출제 실패:', error);
@@ -369,27 +377,8 @@
     }
 
     // ----------------------------------------------------
-    // 6. 학생 로직 (질문 수신 및 답변 제출)
+    // 6. 학생 로직 
     // ----------------------------------------------------
-
-    // 답변 제출 버튼 클릭 (객관식/주관식용)
-    submitAnswerBtn.addEventListener('click', () => {
-        let answer = null;
-        
-        if (currentQuestionType === 'ShortAnswer') {
-            const input = document.getElementById('short-answer-input');
-            answer = input ? input.value.trim() : null;
-        } else { // MCQ
-            const selected = document.querySelector('input[name="student-answer"]:checked');
-            answer = selected ? selected.value : null;
-        }
-
-        if (answer) {
-            submitAnswer(answer);
-        } else {
-            alert('답변을 선택하거나 입력해주세요.');
-        }
-    });
 
     function submitAnswer(answer) {
         if (!currentStudentId) {
@@ -425,7 +414,6 @@
         });
     }
 
-    // 실시간으로 질문 수신 대기 (학생 모드)
     function listenForQuestion() {
         onValue(ref(db, QUESTION_PATH), (snapshot) => {
             const questionData = snapshot.val();
@@ -436,7 +424,6 @@
                 localStorage.removeItem('quiz_responded');
                 renderStudentInputs(questionData);
 
-                // 이미지 표시 처리
                 if (questionData.image) {
                     studentQuestionImage.src = questionData.image;
                     studentQuestionImageContainer.classList.remove('hidden');
@@ -452,7 +439,6 @@
         });
     }
 
-    // 질문 유형에 따라 학생 입력 필드를 동적으로 렌더링 (로직은 V1.0과 동일)
     function renderStudentInputs(question) {
         studentAnswerButtonsEl.innerHTML = ''; 
         submitAnswerBtn.classList.remove('hidden');
@@ -517,7 +503,7 @@
 
 
     // ----------------------------------------------------
-    // 7. 교사 로직 (실시간 결과 표시)
+    // 7. 교사 로직 (실시간 결과 표시 - 정답자 하이라이트)
     // ----------------------------------------------------
 
     function listenForResponses() {
@@ -529,9 +515,12 @@
 
     function renderResults(responses) {
         resultsDisplay.innerHTML = '';
+        correctListContent.innerHTML = '';
+        
         if (!responses) {
             totalResponsesEl.textContent = 0;
             resultsDisplay.innerHTML = '<p class="text-gray-500 text-lg">아직 응답이 없습니다.</p>';
+            correctRespondentsList.classList.add('hidden');
             return;
         }
 
@@ -541,17 +530,26 @@
 
         onValue(ref(db, QUESTION_PATH), (qSnapshot) => {
             const question = qSnapshot.val();
-
+            const correctAnswer = (question && question.correctAnswer) ? question.correctAnswer.trim() : null; 
+            
             if (!question || !question.type) {
                 resultsDisplay.innerHTML = '<p class="text-gray-500 text-lg">문제가 출제되지 않았습니다.</p>';
+                correctRespondentsList.classList.add('hidden');
                 return;
             }
 
+            const correctNames = []; 
+
+            // A. 객관식 (MCQ, OX) 처리: 막대 그래프
             if (question.type === 'MCQ' || question.type === 'OX') {
                 const results = {};
                 responseList.forEach(r => {
                     const answer = r.answer || '미응답';
                     results[answer] = (results[answer] || 0) + 1;
+                    
+                    if (correctAnswer && r.answer && r.answer.trim().toLowerCase() === correctAnswer.toLowerCase()) {
+                        correctNames.push(r.name || '익명');
+                    }
                 });
                 
                 const options = question.type === 'OX' ? ['O', 'X'] : question.options;
@@ -564,14 +562,17 @@
                     const percentage = totalCount > 0 ? (item.count / totalCount) * 100 : 0;
                     const color = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500'][index % 4];
                     
+                    const isCorrect = correctAnswer && item.answer.trim().toLowerCase() === correctAnswer.toLowerCase();
+                    const barClass = isCorrect ? 'bg-green-700' : color;
+                    
                     resultsDisplay.innerHTML += `
                         <div class="mb-5">
                             <div class="flex justify-between mb-1 font-medium text-lg">
-                                <span>${item.answer}</span>
+                                <span>${item.answer} ${isCorrect ? ' (🔑 정답)' : ''}</span>
                                 <span>${item.count}명 (${percentage.toFixed(1)}%)</span>
                             </div>
                             <div class="w-full bg-gray-200 rounded-full">
-                                <div class="result-bar ${color}" style="width: ${percentage}%;">
+                                <div class="result-bar ${barClass}" style="width: ${percentage}%;">
                                     
                                 </div>
                             </div>
@@ -580,22 +581,42 @@
                 });
             } 
             
+            // B. 주관식 (ShortAnswer) 처리: 답변자 이름 및 하이라이트
             else if (question.type === 'ShortAnswer') {
                 resultsDisplay.innerHTML = '<h4 class="text-xl font-bold mb-4">📝 제출된 주관식 답변:</h4>';
                 
                 const ul = document.createElement('ul');
-                ul.className = 'list-disc pl-6 space-y-3 text-lg';
+                ul.className = 'pl-1 space-y-3 text-lg';
                 
                 responseList.forEach(r => {
+                    const isCorrect = correctAnswer && r.answer && r.answer.trim().toLowerCase() === correctAnswer.toLowerCase();
+                    
                     const li = document.createElement('li');
+                    li.className = isCorrect ? 'correct-answer-highlight' : ''; 
                     li.innerHTML = `<strong>${r.name || '익명'}</strong>: <span class="text-gray-700">${r.answer}</span>`;
                     ul.appendChild(li);
+
+                    if (isCorrect) {
+                        correctNames.push(r.name || '익명');
+                    }
                 });
                 resultsDisplay.appendChild(ul);
             }
+            
+            // 정답자 명단 표시 영역 업데이트
+            if (correctAnswer) {
+                correctRespondentsList.classList.remove('hidden');
+                if (correctNames.length > 0) {
+                    correctListContent.innerHTML = correctNames.map(name => `<span class="inline-block bg-green-200 text-green-800 px-3 py-1 rounded-full m-1">${name}</span>`).join('');
+                } else {
+                    correctListContent.textContent = '아직 정답자가 없습니다. (정답: ' + correctAnswer + ')';
+                }
+            } else {
+                correctRespondentsList.classList.add('hidden');
+            }
+
         }, { onlyOnce: true }); 
     }
-
 </script>
 
 </body>
