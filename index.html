@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 실시간 참여 퀴즈 플랫폼 V16.0 (최종)</title>
+    <title>🚀 실시간 참여 퀴즈 플랫폼 V17.0 (최종 보안)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,7 +33,7 @@
 <body>
 
 <div class="container">
-    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V16.0</h1>
+    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V17.0</h1>
     
     <div id="mode-selection" class="flex justify-center space-x-6 mb-8">
         <button id="teacher-mode-btn" class="mode-button bg-red-500 text-white p-4 rounded-lg shadow-md font-semibold text-xl">
@@ -50,6 +50,10 @@
         <h2 class="font-bold mb-5 text-red-600">교사 제어판</h2>
         
         <div id="question-control-area" class="p-8 border border-red-300 rounded-lg bg-red-50 mb-8">
+            <label for="student-password-input" class="block font-semibold mb-3">🔒 학생 접속 비밀번호 설정 (미입력시 비활성화):</label>
+            <input type="text" id="student-password-input" class="w-full border rounded p-3 mb-5 text-lg" placeholder="예: 우리반화이팅">
+
+
             <label for="question-text" class="block font-semibold mb-3">📝 질문 내용:</label>
             <textarea id="question-text" rows="3" class="w-full border rounded p-3 mb-5 text-lg"></textarea>
 
@@ -156,6 +160,9 @@
         <div id="student-login-area" class="p-8 border border-blue-300 rounded-lg bg-blue-50 mb-8">
             <label for="student-name" class="block font-semibold mb-3 text-lg">이름 또는 번호 입력:</label>
             <input type="text" id="student-name" class="w-full border rounded p-3 mb-5 text-xl" placeholder="예: 1번 김철수">
+            <label for="student-access-password" class="block font-semibold mb-3 text-lg">🔒 접속 비밀번호 (교사 설정):</label>
+            <input type="text" id="student-access-password" class="w-full border rounded p-3 mb-5 text-xl" placeholder="비밀번호를 입력하세요">
+
             <button id="student-login-btn" class="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg font-semibold w-full text-xl">
                 ✅ 참여 시작
             </button>
@@ -231,7 +238,6 @@
     const RESPONSES_PATH = 'quiz/responses';
     const HISTORY_PATH = 'quiz/history'; 
     const PRESENCE_PATH = 'quiz/presence'; 
-    const ZERO_Q_ID = 'Q0'; // 💡 [추가] 0번 문제 식별자
 
     // ----------------------------------------------------
     // 2. 변수 및 UI 요소 정의
@@ -241,7 +247,7 @@
     let currentQuestionType = 'MCQ';
     let currentImageBase64 = null; 
 
-    // UI 요소 (V13.0과 동일)
+    // UI 요소
     const teacherPanel = document.getElementById('teacher-panel');
     const studentPanel = document.getElementById('student-panel');
     const modeSelection = document.getElementById('mode-selection');
@@ -277,6 +283,10 @@
     const clearHistoryBtn = document.getElementById('clear-history-btn');
     const activeUsersContent = document.getElementById('active-users-content'); 
     const activeCount = document.getElementById('active-count'); 
+    
+    // 🔑 [추가] 학생 접속 비밀번호 UI 요소
+    const studentPasswordInput = document.getElementById('student-password-input');
+    const studentAccessPassword = document.getElementById('student-access-password');
 
 
     // ----------------------------------------------------
@@ -328,10 +338,9 @@
         }
     });
     
-    // 💡 접속자 목록 리스너 등록
+    // 💡 [수정] 접속자 목록 리스너 등록 (PRESENCE_PATH 사용)
     function listenForActiveUsers() {
-        // 💡 [수정] 현재 응답 경로 전체를 리스닝하여 0번 문제 응답자를 확인
-        onValue(ref(db, RESPONSES_PATH), (snapshot) => {
+        onValue(ref(db, PRESENCE_PATH), (snapshot) => {
             renderActiveUsers(snapshot.val());
         });
     }
@@ -358,32 +367,34 @@
         modeSelection.classList.add('hidden');
     });
 
-    // 💡 학생 로그인 로직 (Presence 등록 및 0번 문제 답변)
+    // 💡 [핵심 수정] 학생 로그인 로직 (보안 및 Presence 기록)
     document.getElementById('student-login-btn').addEventListener('click', () => {
         const name = studentNameInput.value.trim();
-        if (name) {
-            currentStudentId = name.replace(/[.#$/[\]]/g, "_"); 
-            studentLoginArea.classList.add('hidden');
-            studentQuizArea.classList.add('hidden');
-            studentSubmittedArea.classList.remove('hidden'); 
-            listenForQuestion();
-            localStorage.setItem('quiz_student_name', name); 
-            
-            // Presence 등록: 접속한 학생 이름과 시간을 기록 (참고용)
-            set(ref(db, `${PRESENCE_PATH}/${currentStudentId}`), { 
-                name: name,
-                lastSeen: Date.now()
-            });
-
-            // 💡 [핵심] 0번 문제 답변 제출 (접속자 명단에 표시)
-            set(ref(db, `${RESPONSES_PATH}/${ZERO_Q_ID}_${currentStudentId}`), { 
-                name: name,
-                answer: '접속 완료',
-                timestamp: Date.now()
-            });
-        } else {
+        const accessPassword = studentAccessPassword.value.trim();
+        
+        if (!name) {
             alert('이름 또는 번호를 입력해주세요.');
+            return;
         }
+
+        // 🔑 [수정] 교사 설정 비밀번호 확인
+        if (studentPasswordInput.value.trim() && studentPasswordInput.value.trim() !== accessPassword) {
+            alert('🔒 접속 비밀번호가 틀렸습니다. 다시 확인해주세요.');
+            return;
+        }
+        
+        currentStudentId = name.replace(/[.#$/[\]]/g, "_"); 
+        studentLoginArea.classList.add('hidden');
+        studentQuizArea.classList.add('hidden');
+        studentSubmittedArea.classList.remove('hidden'); 
+        listenForQuestion();
+        localStorage.setItem('quiz_student_name', name); 
+        
+        // 💡 Presence 등록: 접속한 학생 이름과 시간을 기록 (접속자 목록에 사용)
+        set(ref(db, `${PRESENCE_PATH}/${currentStudentId}`), { 
+            name: name,
+            lastSeen: Date.now()
+        });
     });
 
     modifyAnswerBtn.addEventListener('click', () => {
@@ -422,12 +433,14 @@
         if (questionData && (questionData.text || questionData.image)) {
             
             if (!questionData.isSavedToHistory) {
-                 // 0번 문제 응답 기록을 제외하고 저장
+                 // 💡 [수정] 0번 문제 응답 기록을 제외하고 저장
                  const filteredResponses = {};
                  for (const key in responsesData) {
-                    if (!key.startsWith(`${ZERO_Q_ID}_`)) {
-                        filteredResponses[key] = responsesData[key];
+                    if (key.startsWith(`${currentStudentId}_`)) {
+                        // 💡 현재 접속 기록 제외 (실제 퀴즈 응답만)
+                        continue;
                     }
+                    filteredResponses[key] = responsesData[key];
                  }
 
                  const historyEntry = {
@@ -446,7 +459,6 @@
     }
     
     async function postQuestion() {
-        // 💡 [수정] 문제 출제 전 이전 문제 기록 저장
         await saveCurrentQuestionToHistory();
         
         const text = questionTextarea.value.trim();
@@ -474,17 +486,8 @@
         .then(() => {
             alert('문제가 성공적으로 출제되었습니다! 답변이 시작됩니다.');
             
-            // 💡 [수정] 0번 문제 기록은 유지하고 현재 문제 응답만 삭제
-            get(ref(db, RESPONSES_PATH)).then(snapshot => {
-                 const responses = snapshot.val();
-                 const updates = {};
-                 for (const key in responses) {
-                     if (!key.startsWith(`${ZERO_Q_ID}_`)) {
-                         updates[key] = null; // 0번 문제 응답 외 모든 응답 삭제
-                     }
-                 }
-                 update(ref(db, RESPONSES_PATH), updates);
-            });
+            // 💡 [수정] 현재 응답 전체 삭제
+            remove(ref(db, RESPONSES_PATH)); 
             
             removeImageBtn.click();
             correctAnswerInput.value = ''; 
@@ -502,7 +505,7 @@
     closeSubmissionBtn.addEventListener('click', async () => {
         if (!confirm("현재 문제에 대한 학생들의 답변 수정 및 제출을 마감하고 기록에 저장하시겠습니까?")) return;
         
-        await saveCurrentQuestionToHistory(); // 💡 마감 시 현재 문제 기록 저장
+        await saveCurrentQuestionToHistory(); 
         
         update(ref(db, STATUS_PATH), { isClosed: true })
         .then(() => {
@@ -523,19 +526,7 @@
         set(ref(db, QUESTION_PATH), null)
         .then(() => {
             alert('문제가 학생 화면에서 숨겨졌습니다. 기록에 저장되었습니다.');
-            
-            // 💡 [수정] 0번 문제 기록은 유지하고 현재 응답만 삭제
-            get(ref(db, RESPONSES_PATH)).then(snapshot => {
-                 const responses = snapshot.val();
-                 const updates = {};
-                 for (const key in responses) {
-                     if (!key.startsWith(`${ZERO_Q_ID}_`)) {
-                         updates[key] = null; 
-                     }
-                 }
-                 update(ref(db, RESPONSES_PATH), updates);
-            });
-            
+            remove(ref(db, RESPONSES_PATH)); 
             update(ref(db, STATUS_PATH), { isClosed: true });
         })
         .catch(error => {
@@ -548,21 +539,12 @@
 
     function clearResults() {
         if (!confirm("모든 응답 결과를 초기화하시겠습니까?")) return;
-        
-        // 💡 [수정] 0번 문제 기록은 유지하고 현재 응답만 삭제
-        get(ref(db, RESPONSES_PATH)).then(snapshot => {
-             const responses = snapshot.val();
-             const updates = {};
-             for (const key in responses) {
-                 if (!key.startsWith(`${ZERO_Q_ID}_`)) {
-                     updates[key] = null; 
-                 }
-             }
-             update(ref(db, RESPONSES_PATH), updates);
-             alert('응답 결과가 초기화되었습니다.');
-        }).catch(error => {
+        remove(ref(db, RESPONSES_PATH))
+        .then(() => {
+            alert('응답 결과가 초기화되었습니다.');
+        })
+        .catch(error => {
             console.error('결과 초기화 실패:', error);
-            alert('결과 초기화 실패.');
         });
     }
 
@@ -574,13 +556,12 @@
         
         remove(ref(db, HISTORY_PATH))
         .then(() => {
-            // 💡 [수정] 현재 문제 기록, 응답, 접속자 기록까지 모두 삭제
             remove(ref(db, QUESTION_PATH));
             remove(ref(db, RESPONSES_PATH));
             remove(ref(db, PRESENCE_PATH));
             
             alert('모든 과거 기록이 삭제되었습니다. 다음 출제 문제는 1번부터 시작됩니다.');
-            renderHistoryList(null); // 화면 즉시 업데이트
+            renderHistoryList(null); 
         })
         .catch(error => {
             console.error('전체 기록 삭제 실패:', error);
@@ -762,8 +743,6 @@
     window.kickUser = function(studentName, studentId) {
         if (!confirm(`${studentName} 학생을 퇴장시키고 아이디를 초기화하시겠습니까?`)) return;
 
-        remove(ref(db, `${RESPONSES_PATH}/${ZERO_Q_ID}_${studentId}`)); // 💡 0번 문제 응답 기록 삭제
-        remove(ref(db, `${RESPONSES_PATH}/${studentId}`)); // 현재 문제 응답 기록 삭제
         remove(ref(db, `${PRESENCE_PATH}/${studentId}`)); // 접속 상태 제거
 
         alert(`${studentName} 학생의 접속이 초기화되었습니다. 해당 학생에게 이름/번호를 재입력하도록 안내해주세요.`);
@@ -777,8 +756,8 @@
         // 💡 [수정] 0번 문제 응답(접속 기록)을 제외하고 응답자 명단 및 카운트 계산
         const filteredResponses = {};
         for (const key in responses) {
-            // 'Q0_'로 시작하는 키는 접속 기록이므로 건너뜁니다.
-            if (!key.startsWith(`${ZERO_Q_ID}_`)) {
+            // 'Q0_'로 시작하는 키는 접속 기록이므로 건너뛰고, 순수 응답만 사용
+            if (!key.startsWith('Q0_')) {
                 filteredResponses[key] = responses[key];
             }
         }
@@ -906,7 +885,6 @@
             const questionText = entry.question.text || '이미지 문제';
             const responsesCount = Object.keys(entry.responses).length;
             
-            // 💡 [수정] 문제 번호는 히스토리 배열 순서대로 부여 (문제당 1번씩)
             const entryNumber = historyArray.length - index;
 
             const div = document.createElement('div');
@@ -938,23 +916,13 @@
         document.getElementById('export-excel-btn').onclick = () => exportToCSV(q, r, `${number}번_문제_기록`);
     }
 
-    // 💡 [핵심 수정] 접속자 목록 렌더링 함수 (0번 문제 응답 기반)
-    function renderActiveUsers(responsesData) {
+    // 💡 [핵심 수정] 접속자 목록 렌더링 함수 (PRESENCE_PATH 기반)
+    function renderActiveUsers(presenceData) {
         activeUsersContent.innerHTML = '';
         let userCount = 0;
         
-        if (responsesData) {
-            const activeUsers = [];
-            
-            // 💡 [수정] 0번 문제 응답만 필터링
-            for (const key in responsesData) {
-                if (key.startsWith(`${ZERO_Q_ID}_`)) {
-                    activeUsers.push(responsesData[key]);
-                }
-            }
-            
-            // 접속 시간 기준으로 정렬 (최근 접속 순)
-            const sortedUsers = activeUsers.filter(user => user && user.timestamp).sort((a, b) => b.timestamp - a.timestamp); 
+        if (presenceData) {
+            const sortedUsers = Object.values(presenceData).filter(user => user && user.lastSeen).sort((a, b) => b.lastSeen - a.lastSeen); 
             
             sortedUsers.forEach(user => {
                 const name = user.name || '익명';
