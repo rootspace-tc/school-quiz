@@ -23,6 +23,8 @@
         .kick-btn { background-color: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin-left: 10px; }
         .kick-btn:hover { background-color: #dc2626; }
         .submission-closed { background-color: #fca5a5; color: #7f1d1d; font-weight: bold; }
+        /* 💡 [추가] 마감 버튼 색상 */
+        .closed-button { background-color: #ef4444; color: white !important; }
     </style>
 </head>
 <body>
@@ -759,6 +761,7 @@
         if (question.type === 'MCQ' || question.type === 'MultipleChoice' || question.type === 'OX') {
             const results = {};
             responseList.forEach(r => {
+                // 💡 중복 선택의 경우, 콤마로 분리하여 각 항목의 응답 수를 계산
                 const answers = r.answer.split(',').map(a => a.trim());
                 answers.forEach(answer => {
                     if (answer) {
