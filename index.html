@@ -28,7 +28,7 @@
 <body>
 
 <div class="container">
-    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 퀴즈 플랫폼 V25.0</h1>
+    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 퀴즈 플랫폼 V26.0</h1>
     
     <div id="mode-selection" class="flex justify-center space-x-6 mb-8">
         <button id="teacher-mode-btn" class="mode-button bg-red-500 text-white p-4 rounded-lg shadow-md text-xl">
@@ -554,14 +554,14 @@
     // 💡 [핵심 수정] submitAnswer 함수 (답변 값 가져오는 로직 수정)
     document.getElementById('submit-answer-btn').addEventListener('click', () => {
         
-        const currentQuestionType = document.getElementById('question-type').value; 
+        const questionType = questionTypeSelect.value; 
         let answer;
 
-        if (currentQuestionType === 'ShortAnswer') {
+        if (questionType === 'ShortAnswer') {
             const input = document.getElementById('short-answer-input');
-            // 💡 [수정] trim() 후 값이 있을 때만 answer에 할당 (빈 문자열도 유효한 답변으로 처리)
+            // 💡 [핵심 수정] trim() 후 값이 있을 때만 answer에 할당 (빈 문자열도 유효한 답변으로 처리)
             answer = input && input.value ? input.value.trim() : null; 
-        } else if (currentQuestionType === 'MultipleChoice') {
+        } else if (questionType === 'MultipleChoice') {
             const checkedBoxes = document.querySelectorAll('input[name="student-answer"]:checked');
             answer = Array.from(checkedBoxes).map(cb => cb.value.trim()).join(', ');
             if (answer.trim() === '') answer = null; 
@@ -761,7 +761,6 @@
         if (question.type === 'MCQ' || question.type === 'MultipleChoice' || question.type === 'OX') {
             const results = {};
             responseList.forEach(r => {
-                // 💡 중복 선택의 경우, 콤마로 분리하여 각 항목의 응답 수를 계산
                 const answers = r.answer.split(',').map(a => a.trim());
                 answers.forEach(answer => {
                     if (answer) {
