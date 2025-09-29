@@ -19,7 +19,8 @@
         .incorrect { background-color: #fee2e2 !important; }
         .modal { display: none; }
         .modal.active { display: flex; }
-        .order-btn { background: none; border: none; cursor: pointer; font-size: 1.2rem; line-height: 1; padding: 0 4px; }
+        .order-btn { background: none; border: none; cursor: pointer; font-size: 1.2rem; line-height: 1; padding: 0 4px; color: #64748b; }
+        .order-btn:hover { color: #1e293b; }
     </style>
 </head>
 <body>
@@ -49,8 +50,8 @@
                         <select id="quiz-slot-select" class="w-full border rounded p-2 bg-white">
                             <option value="slot1">슬롯 1</option><option value="slot2">슬롯 2</option><option value="slot3">슬롯 3</option><option value="slot4">슬롯 4</option><option value="slot5">슬롯 5</option>
                         </select>
-                        <button id="save-slot-btn" class="bg-sky-500 text-white px-4 py-2 rounded">저장</button>
-                        <button id="load-slot-btn" class="bg-emerald-500 text-white px-4 py-2 rounded">불러오기</button>
+                        <button id="save-slot-btn" class="bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded">저장</button>
+                        <button id="load-slot-btn" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded">불러오기</button>
                     </div>
                 </div>
             </div>
@@ -96,53 +97,14 @@
 
     <div id="student-panel" class="hidden">
         <h2 class="font-bold mb-5 text-2xl text-blue-600">학생 시험 응시</h2>
-        
-        <div id="student-login-area">
-            <div class="p-8 border border-blue-200 rounded-lg bg-blue-50 mb-8 max-w-lg mx-auto">
-                <label for="student-name" class="block font-semibold mb-2 text-lg">이름 또는 번호 입력:</label>
-                <input type="text" id="student-name" class="w-full border rounded p-3 mb-4 text-xl" placeholder="예: 1번 김철수">
-                <label for="student-access-password" class="block font-semibold mb-2 text-lg">🔒 접속 비밀번호:</label>
-                <input type="password" id="student-access-password" class="w-full border rounded p-3 mb-4 text-xl" placeholder="선생님이 알려준 비밀번호 입력">
-                <button id="student-login-btn" class="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg font-semibold w-full text-xl">✅ 시험 참여</button>
-            </div>
-        </div>
-
-        <div id="student-quiz-area" class="hidden">
-            <div class="p-8 border border-gray-300 rounded-lg bg-white mb-6">
-                <h3 id="student-question-title" class="text-2xl font-bold mb-4 text-gray-700"></h3>
-                <div id="student-question-image-container" class="mb-6 text-center hidden"><img src="" id="student-question-image" class="max-w-full h-auto mx-auto border rounded max-h-80"></div>
-                <p id="student-question-text" class="text-3xl font-bold text-gray-800 mb-6 min-h-[100px]"></p>
-                <div id="student-answer-options" class="space-y-3"></div>
-            </div>
-            <div class="flex justify-between items-center">
-                <button id="prev-question-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 p-3 rounded-lg font-semibold w-1/4 text-xl">← 이전 문제</button>
-                <span id="question-progress" class="text-lg font-semibold text-gray-600"></span>
-                <button id="next-question-btn" class="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg font-semibold w-1/4 text-xl">다음 문제 →</button>
-            </div>
-             <div id="submission-status-student" class="text-center p-3 rounded mt-4 text-xl bg-red-200 text-red-800 hidden">⛔ 시험이 종료되어 더 이상 답안을 수정할 수 없습니다.</div>
-        </div>
-
-        <div id="student-waiting-area" class="hidden text-center p-12 border border-gray-300 rounded-lg bg-gray-50">
-            <h3 class="text-3xl font-bold mb-4 text-gray-700">⏳ 시험 대기중...</h3>
-            <p class="text-xl text-gray-600">선생님이 시험을 시작할 때까지 잠시 기다려주세요.</p>
-        </div>
-        
-        <div id="student-finished-area" class="hidden text-center p-12 border border-green-300 rounded-lg bg-green-50">
-            <h3 class="text-3xl font-bold mb-4 text-green-700">🎉 수고하셨습니다!</h3>
-            <p class="text-xl text-gray-600">답안 제출이 완료되었습니다. 선생님의 안내를 기다려주세요.</p>
-        </div>
+        <div id="student-login-area"><div class="p-8 border border-blue-200 rounded-lg bg-blue-50 mb-8 max-w-lg mx-auto"><label for="student-name" class="block font-semibold mb-2 text-lg">이름 또는 번호 입력:</label><input type="text" id="student-name" class="w-full border rounded p-3 mb-4 text-xl" placeholder="예: 1번 김철수"><label for="student-access-password" class="block font-semibold mb-2 text-lg">🔒 접속 비밀번호:</label><input type="password" id="student-access-password" class="w-full border rounded p-3 mb-4 text-xl" placeholder="선생님이 알려준 비밀번호 입력"><button id="student-login-btn" class="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg font-semibold w-full text-xl">✅ 시험 참여</button></div></div>
+        <div id="student-quiz-area" class="hidden"><div class="p-8 border border-gray-300 rounded-lg bg-white mb-6"><h3 id="student-question-title" class="text-2xl font-bold mb-4 text-gray-700"></h3><div id="student-question-image-container" class="mb-6 text-center hidden"><img src="" id="student-question-image" class="max-w-full h-auto mx-auto border rounded max-h-80"></div><p id="student-question-text" class="text-3xl font-bold text-gray-800 mb-6 min-h-[100px]"></p><div id="student-answer-options" class="space-y-3"></div></div><div class="flex justify-between items-center"><button id="prev-question-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 p-3 rounded-lg font-semibold w-1/4 text-xl">← 이전 문제</button><span id="question-progress" class="text-lg font-semibold text-gray-600"></span><button id="next-question-btn" class="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg font-semibold w-1/4 text-xl">다음 문제 →</button></div><div id="submission-status-student" class="text-center p-3 rounded mt-4 text-xl bg-red-200 text-red-800 hidden">⛔ 시험이 종료되어 더 이상 답안을 수정할 수 없습니다.</div></div>
+        <div id="student-waiting-area" class="hidden text-center p-12 border border-gray-300 rounded-lg bg-gray-50"><h3 class="text-3xl font-bold mb-4 text-gray-700">⏳ 시험 대기중...</h3><p class="text-xl text-gray-600">선생님이 시험을 시작할 때까지 잠시 기다려주세요.</p></div>
+        <div id="student-finished-area" class="hidden text-center p-12 border border-green-300 rounded-lg bg-green-50"><h3 class="text-3xl font-bold mb-4 text-green-700">🎉 수고하셨습니다!</h3><p class="text-xl text-gray-600">답안 제출이 완료되었습니다. 선생님의 안내를 기다려주세요.</p></div>
     </div>
 
     <div id="results-modal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 items-center justify-center p-4 z-50">
-        <div class="bg-white p-6 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">📈 시험 결과 분석</h2><button id="close-results-modal-btn" class="text-2xl font-bold">&times;</button></div>
-            <div class="flex space-x-2 border-b mb-4">
-                <button class="tab-btn p-2 border-b-4 border-blue-500" data-tab="overall">전체 결과</button>
-                <button class="tab-btn p-2 border-b-4 border-transparent" data-tab="by-student">학생별 결과</button>
-                <button class="tab-btn p-2 border-b-4 border-transparent" data-tab="by-question">문제별 결과</button>
-            </div>
-            <div id="results-content"></div>
-        </div>
+        <div class="bg-white p-6 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">📈 시험 결과 분석</h2><button id="close-results-modal-btn" class="text-2xl font-bold">&times;</button></div><div class="flex space-x-2 border-b mb-4"><button class="tab-btn p-2 border-b-4 border-blue-500" data-tab="overall">전체 결과</button><button class="tab-btn p-2 border-b-4 border-transparent" data-tab="by-student">학생별 결과</button><button class="tab-btn p-2 border-b-4 border-transparent" data-tab="by-question">문제별 결과</button></div><div id="results-content"></div></div>
     </div>
 </div>
 
@@ -192,47 +154,38 @@
         questionType.addEventListener('change', () => { mcqOptionsContainer.style.display = (questionType.value === 'MCQ' || questionType.value === 'MultipleChoice') ? 'block' : 'none'; });
         document.getElementById('add-question-btn').addEventListener('click', () => { if (localQuestionSet.length >= 50) return alert("문제는 최대 50개까지 추가할 수 있습니다."); const newQuestion = { text: questionText.value.trim(), image: currentImageBase64, type: questionType.value, options: (questionType.value === 'MCQ' || questionType.value === 'MultipleChoice') ? mcqOptions.value.split(',').map(o => o.trim()) : [], correctAnswer: correctAnswer.value.trim() || null }; if (!newQuestion.text && !newQuestion.image) return alert("질문 내용이나 이미지를 입력해주세요."); localQuestionSet.push(newQuestion); renderQuestionSetList(); questionText.value = ''; mcqOptions.value = ''; correctAnswer.value = ''; removeImageBtn.click(); });
         
-        // [순서] 문제 순서 변경 기능 추가
         function renderQuestionSetList() {
             const listEl = document.getElementById('question-set-list'); listEl.innerHTML = ''; document.getElementById('question-count').textContent = localQuestionSet.length; if (localQuestionSet.length === 0) { listEl.innerHTML = '<p class="text-gray-500">아직 추가된 문제가 없습니다.</p>'; return; }
             localQuestionSet.forEach((q, index) => {
                 const item = document.createElement('div'); item.className = 'flex justify-between items-center p-2 border rounded bg-gray-50'; const displayText = q.text ? `${q.text.substring(0, 30)}...` : '[이미지 문제]'; const imageIcon = q.image ? '🖼️' : '';
-                item.innerHTML = `
-                    <span class="font-semibold">${index + 1}. ${imageIcon} ${displayText}</span>
-                    <div class="flex items-center">
-                        <button class="order-btn up-btn" data-index="${index}" style="visibility: ${index === 0 ? 'hidden' : 'visible'}">▲</button>
-                        <button class="order-btn down-btn" data-index="${index}" style="visibility: ${index === localQuestionSet.length - 1 ? 'hidden' : 'visible'}">▼</button>
-                        <button class="edit-btn text-sm bg-yellow-400 text-white px-2 py-1 rounded ml-2" data-index="${index}">수정</button>
-                        <button class="delete-btn text-sm bg-red-500 text-white px-2 py-1 rounded" data-index="${index}">삭제</button>
-                    </div>`;
-                listEl.appendChild(item);
+                item.innerHTML = `<span class="font-semibold">${index + 1}. ${imageIcon} ${displayText}</span><div class="flex items-center"><button class="order-btn up-btn" data-index="${index}" style="visibility: ${index === 0 ? 'hidden' : 'visible'}">▲</button><button class="order-btn down-btn" data-index="${index}" style="visibility: ${index === localQuestionSet.length - 1 ? 'hidden' : 'visible'}">▼</button><button class="edit-btn text-sm bg-yellow-400 text-white px-2 py-1 rounded ml-2" data-index="${index}">수정</button><button class="delete-btn text-sm bg-red-500 text-white px-2 py-1 rounded" data-index="${index}">삭제</button></div>`; listEl.appendChild(item);
             });
             listEl.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', (e) => { const index = parseInt(e.target.dataset.index); localQuestionSet.splice(index, 1); renderQuestionSetList(); }));
             listEl.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', (e) => { const index = parseInt(e.target.dataset.index); const q = localQuestionSet[index]; questionText.value = q.text; questionType.value = q.type; mcqOptions.value = q.options.join(','); correctAnswer.value = q.correctAnswer || ''; if (q.image) { setImage(q.image); } else { removeImageBtn.click(); } localQuestionSet.splice(index, 1); renderQuestionSetList(); }));
-            listEl.querySelectorAll('.up-btn').forEach(btn => btn.addEventListener('click', e => { const i = parseInt(e.target.dataset.index); if (i > 0) { [localQuestionSet[i-1], localQuestionSet[i]] = [localQuestionSet[i], localQuestionSet[i-1]]; renderQuestionSetList(); } }));
-            listEl.querySelectorAll('.down-btn').forEach(btn => btn.addEventListener('click', e => { const i = parseInt(e.target.dataset.index); if (i < localQuestionSet.length - 1) { [localQuestionSet[i+1], localQuestionSet[i]] = [localQuestionSet[i], localQuestionSet[i+1]]; renderQuestionSetList(); } }));
+            listEl.querySelectorAll('.up-btn').forEach(btn => btn.addEventListener('click', e => { const i = parseInt(e.currentTarget.dataset.index); if (i > 0) { [localQuestionSet[i-1], localQuestionSet[i]] = [localQuestionSet[i], localQuestionSet[i-1]]; renderQuestionSetList(); } }));
+            listEl.querySelectorAll('.down-btn').forEach(btn => btn.addEventListener('click', e => { const i = parseInt(e.currentTarget.dataset.index); if (i < localQuestionSet.length - 1) { [localQuestionSet[i+1], localQuestionSet[i]] = [localQuestionSet[i], localQuestionSet[i+1]]; renderQuestionSetList(); } }));
         }
 
         document.getElementById('publish-quiz-btn').addEventListener('click', () => { if (localQuestionSet.length === 0) return alert("하나 이상의 문제를 추가한 후 시험을 시작할 수 있습니다."); if (!confirm(`${localQuestionSet.length}개의 문제로 시험을 시작하시겠습니까?`)) return; set(ref(db, QUIZ_SET_PATH), localQuestionSet); set(ref(db, STATUS_PATH), { isPublished: true, isClosed: false }); set(ref(db, RESPONSES_PATH), {}); alert("시험이 시작되었습니다."); });
         document.getElementById('close-quiz-btn').addEventListener('click', () => { if (!confirm("시험을 종료하시겠습니까?")) return; update(ref(db, STATUS_PATH), { isClosed: true }); });
-        document.getElementById('reset-quiz-btn').addEventListener('click', () => { if (!confirm("경고: 현재 시험의 모든 것을 초기화하시겠습니까?")) return; remove(ref(db, QUIZ_SET_PATH)); remove(ref(db, RESPONSES_PATH)); remove(ref(db, STATUS_PATH)); localQuestionSet = []; renderQuestionSetList(); document.getElementById('dashboard-header').innerHTML = '<th>학생 이름</th>'; document.getElementById('dashboard-body').innerHTML = '<tr><td class="text-gray-500 p-4" colspan="2">시험 대기중</td></tr>'; alert("시험이 초기화되었습니다."); });
+        document.getElementById('reset-quiz-btn').addEventListener('click', () => { if (!confirm("경고: 현재 시험의 모든 것을 초기화하시겠습니까?")) return; remove(ref(db, QUIZ_SET_PATH)); remove(ref(db, RESPONSES_PATH)); remove(ref(db, STATUS_PATH)); localQuestionSet = []; allResponses = {}; renderQuestionSetList(); updateDashboardHeader(); updateDashboardBody(); alert("시험이 초기화되었습니다."); });
 
-        // [수정] 데이터 리스너 로직 수정
         function setupTeacherListeners() {
             onValue(ref(db, CONFIG_PATH), (snapshot) => { studentPasswordInput.value = snapshot.val()?.studentPassword || ''; });
-            onValue(ref(db, QUIZ_SET_PATH), (snapshot) => { localQuestionSet = snapshot.val() || []; renderQuestionSetList(); updateDashboardHeader(); updateDashboardBody(); });
+            onValue(ref(db, QUIZ_SET_PATH), (snapshot) => { localQuestionSet = snapshot.val() || []; renderQuestionSetList(); updateDashboardBody(); });
             onValue(ref(db, RESPONSES_PATH), (snapshot) => { allResponses = snapshot.val() || {}; updateDashboardBody(); });
             onValue(ref(db, STATUS_PATH), (snapshot) => { document.getElementById('submission-status-teacher').style.display = (snapshot.val()?.isClosed) ? 'block' : 'none'; });
         }
         
+        // [수정] 현황판 업데이트 로직 강화
         function updateDashboardHeader() { const header = document.getElementById('dashboard-header'); header.innerHTML = '<th>학생 이름</th>'; localQuestionSet.forEach((q, index) => { header.innerHTML += `<th>${index + 1}번</th>`; }); }
         
-        // [수정] 현황판 업데이트 함수 수정
         function updateDashboardBody() {
+            updateDashboardHeader(); // 헤더를 항상 최신 상태로 유지
             const body = document.getElementById('dashboard-body'); body.innerHTML = '';
             if (localQuestionSet.length === 0) { body.innerHTML = '<tr><td class="text-gray-500 p-4" colspan="99">시험 시작 대기중...</td></tr>'; return; }
             const studentIds = Object.keys(allResponses);
-            if (studentIds.length === 0) { body.innerHTML = '<tr><td class="text-gray-500 p-4" colspan="99">답변 제출 학생 없음</td></tr>'; return; }
+            if (studentIds.length === 0) { body.innerHTML = `<tr><td class="text-gray-500 p-4" colspan="${localQuestionSet.length + 1}">답변 제출 학생 없음</td></tr>`; return; }
             studentIds.forEach(studentId => {
                 const studentData = allResponses[studentId]; const studentAnswers = studentData.answers || {}; const studentName = studentData.name || '익명';
                 let rowHtml = `<td>${studentName}</td>`;
@@ -262,14 +215,13 @@
         document.getElementById('analyze-results-btn').addEventListener('click', () => { showResultsModal('overall'); });
         document.getElementById('close-results-modal-btn').addEventListener('click', () => document.getElementById('results-modal').classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', e => showResultsModal(e.target.dataset.tab)));
-        
         function showResultsModal(tab) {
             document.getElementById('results-modal').classList.add('active');
             document.querySelectorAll('.tab-btn').forEach(btn => { btn.classList.replace('border-blue-500', 'border-transparent'); });
             document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.replace('border-transparent', 'border-blue-500');
             const content = document.getElementById('results-content');
             const results = calculateResults();
-            if (Object.keys(results).length === 0) { content.innerHTML = '<p>아직 분석할 데이터가 없습니다.</p>'; return; }
+            if (Object.keys(results).length === 0) { content.innerHTML = '<p>아직 분석할 데이터가 없습니다. 시험이 시작되고 학생들이 답변을 제출했는지 확인해주세요.</p>'; return; }
             if (tab === 'overall') { content.innerHTML = `<h3 class="text-xl font-bold mb-4">전체 결과 요약</h3><p><strong>총 참여 인원:</strong> ${results.totalStudents}명</p><p><strong>전체 평균 점수:</strong> ${results.averageScore.toFixed(1)}점 (만점: ${localQuestionSet.length}점)</p><h4 class="text-lg font-bold mt-4">점수 분포</h4><div class="border p-4 mt-2">${Object.entries(results.scoreDistribution).map(([range, count]) => `<p>${range}점: ${count}명</p>`).join('')}</div>`; }
             else if (tab === 'by-student') { content.innerHTML = `<h3 class="text-xl font-bold mb-4">학생별 결과</h3><table class="w-full text-left"><thead><tr><th class="p-2 border">이름</th><th class="p-2 border">점수</th><th class="p-2 border">정답률</th></tr></thead><tbody>${results.studentScores.map(s => `<tr><td class="p-2 border">${s.name}</td><td class="p-2 border">${s.score}/${localQuestionSet.length}</td><td class="p-2 border">${s.percentage.toFixed(1)}%</td></tr>`).join('')}</tbody></table>`; }
             else if (tab === 'by-question') { content.innerHTML = `<h3 class="text-xl font-bold mb-4">문제별 결과</h3><table class="w-full text-left"><thead><tr><th class="p-2 border">문제 번호</th><th class="p-2 border">정답률</th><th class="p-2 border">정답자 수</th></tr></thead><tbody>${results.questionStats.map((q, i) => `<tr><td class="p-2 border">${i+1}번</td><td class="p-2 border">${q.percentage.toFixed(1)}%</td><td class="p-2 border">${q.correctCount}/${results.totalStudents}</td></tr>`).join('')}</tbody></table>`; }
