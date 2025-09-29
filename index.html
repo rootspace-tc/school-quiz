@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 실시간 문제 관리형 퀴즈 플랫폼 V18.0 (최종)</title>
+    <title>🚀 실시간 문제 관리형 퀴즈 플랫폼 V19.0 (최종)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,10 +20,6 @@
         #student-question-text { font-size: 3rem !important; line-height: 1.4; } 
         .result-bar { height: 35px; margin-bottom: 8px; color: white; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; transition: width 0.5s ease-out; }
         .correct-answer-highlight { background-color: #d1f7d1; font-weight: bold; border-left: 5px solid #4CAF50; padding: 5px; margin: 3px 0; border-radius: 4px; }
-        #student-answer-buttons button { transition: all 0.2s; font-size: 1.3rem; }
-        .text-lg { font-size: 1.125rem !important; }
-        .text-base { font-size: 1rem !important; }
-        .submission-closed { background-color: #fca5a5; color: #7f1d1d; font-weight: bold; }
         .question-item { cursor: pointer; border-left: 5px solid transparent; transition: all 0.2s; }
         .question-item:hover { background-color: #f3f4f6; border-left-color: #3b82f6; }
         .question-item.selected { background-color: #bfdbfe; border-left-color: #1d4ed8; font-weight: bold; }
@@ -34,13 +30,13 @@
 <body>
 
 <div class="container">
-    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 문제 관리형 퀴즈 플랫폼 V18.0</h1>
+    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 문제 관리형 퀴즈 플랫폼 V19.0</h1>
     
     <div id="mode-selection" class="flex justify-center space-x-6 mb-8">
-        <button id="teacher-mode-btn" class="mode-button bg-red-500 text-white p-4 rounded-lg shadow-md font-semibold text-xl">
+        <button id="teacher-mode-btn" class="mode-button bg-red-500 text-white p-4 rounded-lg shadow-md text-xl">
             👩‍🏫 교사 모드 (비밀번호 필요)
         </button>
-        <button id="student-mode-btn" class="mode-button bg-blue-500 text-white p-4 rounded-lg shadow-md font-semibold text-xl">
+        <button id="student-mode-btn" class="mode-button bg-blue-500 text-white p-4 rounded-lg shadow-md text-xl">
             🧑‍🎓 학생 모드
         </button>
     </div>
@@ -273,7 +269,7 @@
     let currentImageBase64 = null; 
     let selectedManagedQuestionKey = null; 
 
-    // UI 요소
+    // UI 요소 정의 (V17.0과 동일)
     const teacherPanel = document.getElementById('teacher-panel');
     const studentPanel = document.getElementById('student-panel');
     const modeSelection = document.getElementById('mode-selection');
@@ -295,7 +291,6 @@
     const studentQuizArea = document.getElementById('student-quiz-area');
     const studentSubmittedArea = document.getElementById('student-submitted-area');
     const submitAnswerBtn = document.getElementById('submit-answer-btn');
-
     const saveQuestionBtn = document.getElementById('save-question-btn'); 
     const managedQuestionList = document.getElementById('managed-question-list'); 
     const loadQuestionBtn = document.getElementById('load-question-btn'); 
@@ -342,14 +337,29 @@
 
 
     // ----------------------------------------------------
-    // 4. 모드 전환 및 초기화 로직
+    // 4. 모드 전환 및 초기화 로직 (V18.0 안정화)
     // ----------------------------------------------------
     
+    document.getElementById('question-type').addEventListener('change', (e) => {
+        document.getElementById('currentQuestionType') = e.target.value;
+        if (e.target.value === 'MCQ') {
+            document.getElementById('mcq-options-container').classList.remove('hidden');
+        } else {
+            document.getElementById('mcq-options-container').classList.add('hidden');
+        }
+    });
+    
+    function listenForActiveUsers() {
+        onValue(ref(db, PRESENCE_PATH), (snapshot) => {
+            renderActiveUsers(snapshot.val());
+        });
+    }
+
+    // 💡 [핵심 수정] 모드 버튼 이벤트 리스너 재정의
     document.getElementById('teacher-mode-btn').addEventListener('click', async () => {
         const password = prompt("교사 모드에 접속하시려면 비밀번호를 입력해주세요.");
         
         if (password === TEACHER_PASSWORD) {
-            // 💡 [안정화] 설정 로드
             const configSnapshot = await get(ref(db, CONFIG_PATH));
             const config = configSnapshot.val();
             if (config && config.studentPassword) {
@@ -377,7 +387,6 @@
         modeSelection.classList.add('hidden');
     });
 
-    // 💡 [수정] 학생 로그인 로직 (보안 및 Presence 기록)
     document.getElementById('student-login-btn').addEventListener('click', async () => {
         const name = studentNameInput.value.trim();
         const accessPassword = studentAccessPassword.value.trim();
@@ -402,7 +411,6 @@
         listenForQuestion();
         localStorage.setItem('quiz_student_name', name); 
         
-        // Presence 등록: 접속한 학생 이름과 시간을 기록 (접속자 목록에 사용)
         set(ref(db, `${PRESENCE_PATH}/${currentStudentId}`), { 
             name: name,
             lastSeen: Date.now()
@@ -410,11 +418,10 @@
     });
 
     document.getElementById('modify-answer-btn').addEventListener('click', () => {
-        studentQuizArea.classList.remove('hidden');
-        studentSubmittedArea.classList.add('hidden');
+        document.getElementById('student-quiz-area').classList.remove('hidden');
+        document.getElementById('student-submitted-area').classList.add('hidden');
     });
 
-    // 💡 [추가] 교사 모드에서 학생 접속 비밀번호 변경 시 저장
     studentPasswordInput.addEventListener('change', () => {
         const password = studentPasswordInput.value.trim();
         set(ref(db, CONFIG_PATH), { studentPassword: password });
@@ -425,7 +432,7 @@
     // 5. 교사 로직 (문제 관리 및 출제)
     // ----------------------------------------------------
 
-    // 💡 [추가] 문제 목록에 저장 버튼 로직
+    // 💡 [수정] 문제 목록에 저장 버튼 로직
     saveQuestionBtn.addEventListener('click', () => {
         const text = questionTextarea.value.trim();
         if (!text) {
@@ -453,6 +460,7 @@
             mcqOptionsInput.value = '1. 네, 2. 아니오, 3. 아마도, 4. 글쎄요';
             correctAnswerInput.value = '';
             removeImageBtn.click();
+            // 💡 [수정] 저장이 완료된 후 목록을 다시 불러오지 않아도 자동으로 업데이트됩니다 (onValue 리스너 덕분).
         })
         .catch(error => {
             console.error('문제 목록 저장 실패:', error);
@@ -460,7 +468,7 @@
         });
     });
 
-    // 💡 [추가] 관리 문제 목록 렌더링
+    // 💡 [수정] 관리 문제 목록 렌더링
     function renderManagedQuestions(managedQuestionsData) {
         managedQuestionList.innerHTML = '';
         if (!managedQuestionsData) {
@@ -511,7 +519,6 @@
              return;
         }
 
-        // 기존의 postQuestion 로직을 재사용하여 출제
         questionData.isClosed = false;
         questionData.isSavedToHistory = false;
         questionData.timestamp = Date.now();
@@ -579,7 +586,7 @@
         return false; 
     }
     
-    // ⛔ 답변 마감 버튼: 기록 저장 후 상태 변경
+    // ⛔ 답변 마감 버튼: 기록 저장 후 상태 변경 (V16.0 유지)
     document.getElementById('close-submission-btn').addEventListener('click', async () => {
         if (!confirm("현재 문제에 대한 학생들의 답변 수정 및 제출을 마감하고 기록에 저장하시겠습니까?")) return;
         
@@ -592,7 +599,7 @@
         });
     });
 
-    // 문제 숨기기 기능
+    // 문제 숨기기 기능 (V16.0 유지)
     document.getElementById('hide-question-btn').addEventListener('click', async () => {
         if (!confirm("현재 출제된 문제를 학생 화면에서 숨기고 기록에 저장하시겠습니까?")) return;
         
@@ -606,7 +613,7 @@
         });
     });
 
-    // 현재 응답 초기화
+    // 현재 응답 초기화 (V16.0 유지)
     document.getElementById('clear-results-btn').addEventListener('click', () => {
         if (!confirm("모든 응답 결과를 초기화하시겠습니까?")) return;
         remove(ref(db, RESPONSES_PATH))
@@ -616,7 +623,7 @@
     });
 
     // 💣 전체 기록 초기화 버튼 로직
-    clearHistoryBtn.addEventListener('click', () => {
+    document.getElementById('clear-history-btn').addEventListener('click', () => {
         if (!confirm("경고: 누적된 모든 과거 퀴즈 기록을 영구히 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) return;
         
         remove(ref(db, HISTORY_PATH))
@@ -634,13 +641,13 @@
 
 
     // ----------------------------------------------------
-    // 8. 학생 로직 (V16.0 유지)
+    // 7. 학생 로직 (V16.0 유지)
     // ----------------------------------------------------
     
     document.getElementById('submit-answer-btn').addEventListener('click', () => {
         let answer = null;
         
-        if (currentQuestionType === 'ShortAnswer') {
+        if (document.getElementById('currentQuestionType') === 'ShortAnswer') {
             const input = document.getElementById('short-answer-input');
             answer = input ? input.value.trim() : null;
         } 
@@ -791,21 +798,18 @@
 
 
     // ----------------------------------------------------
-    // 9. 최종 결과 표시 및 엑셀 로직 (V16.0 유지)
+    // 9. 최종 결과 표시 및 엑셀 로직
     // ----------------------------------------------------
-    
-    // ... (renderResults, renderPastResults, renderHistoryList, exportAllHistoryToCSV, exportToCSV 등 V16.0 로직 유지)
     function listenForResponses() {
         onValue(ref(db, RESPONSES_PATH), (snapshot) => {
             renderResults(snapshot.val());
         });
     }
 
-    // 💡 [수정] 강제 퇴장(Kick) 함수
     window.kickUser = function(studentName, studentId) {
         if (!confirm(`${studentName} 학생을 퇴장시키고 아이디를 초기화하시겠습니까?`)) return;
 
-        remove(ref(db, `${PRESENCE_PATH}/${studentId}`)); // 접속 상태 제거
+        remove(ref(db, `${PRESENCE_PATH}/${studentId}`)); 
 
         alert(`${studentName} 학생의 접속이 초기화되었습니다. 해당 학생에게 이름/번호를 재입력하도록 안내해주세요.`);
     }
@@ -815,12 +819,7 @@
         document.getElementById('correct-list-content').innerHTML = '';
         document.getElementById('full-list-content').innerHTML = '';
         
-        const filteredResponses = {};
-        for (const key in responses) {
-            if (!key.startsWith('Q0_')) {
-                filteredResponses[key] = responses[key];
-            }
-        }
+        const filteredResponses = responses || {};
         
         if (Object.keys(filteredResponses).length === 0) {
             document.getElementById('total-responses').textContent = 0;
@@ -999,7 +998,7 @@
 
 
     // ----------------------------------------------------
-    // 10. 엑셀 다운로드 (CSV) - 전체 기록 안정화
+    // 10. 엑셀 다운로드 (CSV)
     // ----------------------------------------------------
 
     document.getElementById('export-excel-btn').addEventListener('click', exportAllHistoryToCSV); 
