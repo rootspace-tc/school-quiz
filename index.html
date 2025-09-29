@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 실시간 퀴즈 플랫폼 V26.0 (최종)</title>
+    <title>🚀 실시간 퀴즈 플랫폼 V26.0 (최종 수정본)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -256,6 +256,7 @@
     const TEACHER_PASSWORD = "2948"; 
     let currentStudentId = null; 
     let currentImageBase64 = null; 
+    let currentQuestion = null; // ✅ [수정] 학생의 현재 문제 정보를 담을 변수
 
     // UI 요소
     const teacherPanel = document.getElementById('teacher-panel');
@@ -334,7 +335,6 @@
         }
     });
     
-    // 💡 [수정] 접속자 목록 리스너 (V16.0 로직)
     function listenForActiveUsers() {
         onValue(ref(db, PRESENCE_PATH), (snapshot) => {
             renderActiveUsers(snapshot.val());
@@ -358,7 +358,7 @@
             modeSelection.classList.add('hidden');
             onValue(ref(db, HISTORY_PATH), (snapshot) => renderHistoryList(snapshot.val()));
             listenForResponses();
-            listenForActiveUsers(); // 💡 접속자 리스너 활성화
+            listenForActiveUsers();
         } else {
             alert("비밀번호가 틀렸습니다.");
         }
@@ -370,7 +370,6 @@
         modeSelection.classList.add('hidden');
     });
 
-    // 💡 [수정] 학생 로그인 로직 (단일 퀴즈 구조에 맞게 복원)
     document.getElementById('student-login-btn').addEventListener('click', async () => {
         const name = studentNameInput.value.trim();
         const accessPassword = studentAccessPassword.value.trim();
@@ -395,14 +394,14 @@
         
         localStorage.setItem('quiz_student_name', name); 
         
-        // Presence 등록: 접속한 학생 이름과 시간을 기록 (접속자 목록에 사용)
         set(ref(db, `${PRESENCE_PATH}/${currentStudentId}`), { 
             name: name,
             lastSeen: Date.now()
         });
 
-        // 💡 [핵심] 학생 접속 시 단일 문제 리스너 등록
+        // ✅ [수정] 학생 접속 시 문제와 '마감' 상태를 모두 감지하도록 리스너 등록
         listenForQuestion();
+        listenForStatusChanges(); // 마감 상태 리스너 호출
     });
 
     document.getElementById('modify-answer-btn').addEventListener('click', () => {
@@ -420,10 +419,8 @@
     // 5. 교사 로직 (단일 문제 출제 및 기록)
     // ----------------------------------------------------
 
-    // 💡 [복원] 문제 출제 버튼 로직 (단일 퀴즈 출제)
     document.getElementById('post-question-btn').addEventListener('click', async () => {
         
-        // 이전 문제 기록 저장
         const prevQuestionSnapshot = await get(ref(db, QUESTION_PATH));
         const prevQuestionData = prevQuestionSnapshot.val();
         if (prevQuestionData && prevQuestionData.isSavedToHistory === false) {
@@ -447,7 +444,7 @@
             image: currentImageBase64,
             correctAnswer: correctAnswer || null, 
             isClosed: false, 
-            isSavedToHistory: false, // 💡 새 문제는 저장되지 않은 상태로 시작
+            isSavedToHistory: false, 
             timestamp: Date.now()
         };
 
@@ -467,7 +464,6 @@
         });
     });
 
-    // 💡 [핵심 수정] 기록 저장 함수 (문제당 1회 저장 보장)
     async function saveCurrentQuestionToHistory() {
         const questionSnapshot = await get(ref(db, QUESTION_PATH));
         const responsesSnapshot = await get(ref(db, RESPONSES_PATH));
@@ -482,11 +478,10 @@
                     question: questionData,
                     responses: responsesData || {},
                     date: new Date().toLocaleString('ko-KR'),
-                    type: 'SINGLE' // 단일 문제 타입
+                    type: 'SINGLE'
                 };
                 push(ref(db, HISTORY_PATH), historyEntry);
                 
-                // 저장 후 플래그를 true로 업데이트 (중복 저장 방지)
                 update(ref(db, QUESTION_PATH), { isSavedToHistory: true });
 
                 return true; 
@@ -495,7 +490,6 @@
         return false; 
     }
     
-    // ⛔ 답변 마감 버튼: 기록 저장 후 상태 변경
     document.getElementById('close-submission-btn').addEventListener('click', async () => {
         if (!confirm("현재 문제에 대한 학생들의 답변 수정 및 제출을 마감하고 기록에 저장하시겠습니까?")) return;
         
@@ -508,7 +502,6 @@
         });
     });
 
-    // 문제 숨기기 기능
     document.getElementById('hide-question-btn').addEventListener('click', async () => {
         if (!confirm("현재 출제된 문제를 학생 화면에서 숨기고 기록에 저장하시겠습니까?")) return;
         
@@ -522,7 +515,6 @@
         });
     });
 
-    // 현재 응답 초기화
     document.getElementById('clear-results-btn').addEventListener('click', () => {
         if (!confirm("모든 응답 결과를 초기화하시겠습니까?")) return;
         remove(ref(db, RESPONSES_PATH))
@@ -531,7 +523,6 @@
         });
     });
 
-    // 💣 전체 기록 초기화 버튼 로직
     document.getElementById('clear-history-btn').addEventListener('click', () => {
         if (!confirm("경고: 누적된 모든 과거 퀴즈 기록을 영구히 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) return;
         
@@ -551,28 +542,31 @@
     // 6. 학생 로직 (답변 저장 안정화)
     // ----------------------------------------------------
     
-    // 💡 [핵심 수정] submitAnswer 함수 (답변 값 가져오는 로직 수정)
+    // ✅ [수정] 답변 제출 로직: 현재 문제 유형(currentQuestion.type)을 정확히 참조하도록 수정
     document.getElementById('submit-answer-btn').addEventListener('click', () => {
-        
-        const questionType = questionTypeSelect.value; 
-        let answer;
+        // currentQuestion 변수가 없거나, type이 없으면 실행 중단
+        const questionType = currentQuestion ? currentQuestion.type : null;
+        if (!questionType) return;
+
+        let answer = null;
 
         if (questionType === 'ShortAnswer') {
             const input = document.getElementById('short-answer-input');
-            // 💡 [핵심 수정] trim() 후 값이 있을 때만 answer에 할당 (빈 문자열도 유효한 답변으로 처리)
-            answer = input && input.value ? input.value.trim() : null; 
+            answer = input ? input.value : null; 
         } else if (questionType === 'MultipleChoice') {
             const checkedBoxes = document.querySelectorAll('input[name="student-answer"]:checked');
             answer = Array.from(checkedBoxes).map(cb => cb.value.trim()).join(', ');
-            if (answer.trim() === '') answer = null; 
-        } else { // MCQ or OX (단일 선택)
+        } else { // MCQ (단일 선택)
             const selected = document.querySelector('input[name="student-answer"]:checked');
             answer = selected ? selected.value : null;
         }
 
-        if (answer !== null && answer !== undefined) {
+        if (answer !== null && answer.trim() !== '') {
              submitAnswer(answer);
-        } else {
+        } else if (questionType === 'ShortAnswer' && answer !== null) {
+             submitAnswer(answer); // 주관식은 빈 문자열도 제출 허용
+        }
+        else {
             alert('답변을 선택하거나 입력해주세요.');
         }
     });
@@ -587,9 +581,7 @@
             const status = snapshot.val();
             if (status && status.isClosed) {
                 alert('⛔ 답변 수정이 마감되어 제출할 수 없습니다.');
-                document.getElementById('student-quiz-area').classList.add('hidden');
-                document.getElementById('student-submitted-area').classList.remove('hidden');
-                return;
+                return; // UI 변경 없이 alert만 띄우고 종료
             }
             
             set(ref(db, `${RESPONSES_PATH}/${currentStudentId}`), {
@@ -604,10 +596,11 @@
         });
     }
 
-    // 💡 문제 출제 시 자동 전환 로직 (핵심)
+    // ✅ [수정] 문제 리스너: 현재 문제 데이터를 전역 변수에 저장
     function listenForQuestion() {
         onValue(ref(db, QUESTION_PATH), (snapshot) => {
-            const questionData = snapshot.val();
+            currentQuestion = snapshot.val(); // 현재 문제 정보 저장
+            const questionData = currentQuestion;
             
             if (questionData && (questionData.text || questionData.image)) {
                 document.getElementById('student-question-text').textContent = questionData.text || '';
@@ -632,15 +625,53 @@
         });
     }
 
-    // 💡 [핵심 수정] renderStudentInputs: 중복 보기 버그 해결 및 기존 답변 로드
+    // ✅ [추가] 마감 상태를 실시간으로 감지하여 UI를 변경하는 함수
+    function listenForStatusChanges() {
+        onValue(ref(db, STATUS_PATH), (snapshot) => {
+            const isClosed = snapshot.val() && snapshot.val().isClosed;
+            
+            const submitBtn = document.getElementById('submit-answer-btn');
+            const answerButtonsContainer = document.getElementById('student-answer-buttons');
+            const allInputs = answerButtonsContainer.querySelectorAll('input, textarea, button');
+
+            if (isClosed) {
+                submissionStatusStudent.classList.remove('hidden');
+                if (submitBtn) {
+                    submitBtn.textContent = '⛔ 마감됨';
+                    submitBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                    submitBtn.classList.add('bg-red-500', 'cursor-not-allowed', 'opacity-75');
+                    submitBtn.disabled = true;
+                }
+                allInputs.forEach(input => {
+                    input.disabled = true;
+                    if (!input.classList.contains('cursor-not-allowed')) {
+                       input.classList.add('cursor-not-allowed', 'opacity-75');
+                    }
+                });
+            } else {
+                submissionStatusStudent.classList.add('hidden');
+                if (submitBtn) {
+                    submitBtn.textContent = '🚀 답변 저장';
+                    submitBtn.classList.add('bg-green-500', 'hover:bg-green-600');
+                    submitBtn.classList.remove('bg-red-500', 'cursor-not-allowed', 'opacity-75');
+                    submitBtn.disabled = false;
+                }
+                allInputs.forEach(input => {
+                    input.disabled = false;
+                    input.classList.remove('cursor-not-allowed', 'opacity-75');
+                });
+            }
+        });
+    }
+
+    // ✅ [수정] OX 문제 답변 방식 수정: setAttribute 대신 addEventListener 사용
     function renderStudentInputs(question) {
-        document.getElementById('student-answer-buttons').innerHTML = ''; // 💡 [핵심] 영역 초기화
+        document.getElementById('student-answer-buttons').innerHTML = '';
         document.getElementById('submit-answer-btn').classList.remove('hidden');
         
         const isMultipleChoice = question.type === 'MultipleChoice';
         const inputType = isMultipleChoice ? 'checkbox' : 'radio';
 
-        // 이전 답변 미리 로드
         get(ref(db, `${RESPONSES_PATH}/${currentStudentId}`)).then(snapshot => {
             const existingAnswer = snapshot.val() ? snapshot.val().answer : null;
             
@@ -649,8 +680,9 @@
                 options.forEach(option => {
                     const btn = document.createElement('button');
                     btn.className = `p-5 text-2xl font-bold rounded-lg ${option === 'O' ? 'bg-green-100 hover:bg-green-200 text-green-700' : 'bg-red-100 hover:bg-red-200 text-red-700'}`;
-                    btn.textContent = existingAnswer === option ? `✅ ${option}` : option;
-                    btn.setAttribute('onclick', `(function(){ submitAnswer('${option}'); })();`); 
+                    btn.textContent = option;
+                    // 올바른 이벤트 리스너 방식으로 변경
+                    btn.addEventListener('click', () => submitAnswer(option)); 
                     document.getElementById('student-answer-buttons').appendChild(btn);
                 });
                 document.getElementById('submit-answer-btn').classList.add('hidden'); 
@@ -677,10 +709,16 @@
                     const label = document.createElement('label');
                     label.htmlFor = inputId;
                     label.textContent = option;
-                    label.className = 'text-xl font-medium text-gray-700 flex-1';
+                    label.className = 'text-xl font-medium text-gray-700 flex-1 cursor-pointer';
 
                     div.appendChild(input);
                     div.appendChild(label);
+                    // div 전체를 클릭해도 체크되도록
+                    div.addEventListener('click', (e) => {
+                        if (e.target.nodeName !== 'INPUT') {
+                            input.click();
+                        }
+                    });
                     document.getElementById('student-answer-buttons').appendChild(div);
                 });
                 document.getElementById('submit-answer-btn').classList.remove('hidden'); 
@@ -691,13 +729,19 @@
                 input.rows = 4;
                 input.className = 'w-full border rounded p-4 text-xl';
                 input.placeholder = '답변을 여기에 입력하세요.';
-                input.value = existingAnswer || ''; // 기존 답변 채우기
+                input.value = existingAnswer || '';
                 document.getElementById('student-answer-buttons').appendChild(input);
                 document.getElementById('submit-answer-btn').classList.remove('hidden');
             } else {
                  document.getElementById('student-question-text').textContent = '[선생님이 문제 유형 또는 보기를 확인해야 합니다.]';
                  document.getElementById('submit-answer-btn').classList.add('hidden');
             }
+            // 마감 상태를 다시 한 번 확인하여 UI에 즉시 반영
+            get(ref(db, STATUS_PATH)).then(statusSnapshot => {
+                if(statusSnapshot.val() && statusSnapshot.val().isClosed) {
+                    listenForStatusChanges();
+                }
+            });
         });
     }
 
@@ -750,14 +794,12 @@
         });
     }
     
-    // 과거/현재 응답 결과를 렌더링하는 통합 함수
     function renderPastResults(question, responses, totalCount, displayElement) {
         displayElement.innerHTML = ''; 
         const responseList = Object.values(responses);
         const correctAnswer = (question.correctAnswer || '').trim().toLowerCase(); 
         const correctNames = []; 
 
-        // 1. 막대 그래프/통계 표시
         if (question.type === 'MCQ' || question.type === 'MultipleChoice' || question.type === 'OX') {
             const results = {};
             responseList.forEach(r => {
@@ -768,9 +810,8 @@
                     }
                 });
                 
-                // 정답자 판별
                 if (correctAnswer) {
-                     const isCorrect = answers.sort().join(',') === correctAnswer.split(',').map(a => a.trim()).sort().join(',');
+                     const isCorrect = answers.sort().join(',').toLowerCase() === correctAnswer.split(',').map(a => a.trim()).sort().join(',').toLowerCase();
                     if (isCorrect) {
                         correctNames.push(r.name || '익명');
                     }
@@ -804,13 +845,12 @@
             if (displayElement === document.getElementById('results-display')) document.getElementById('results-display').innerHTML = graphHTML;
         } 
         
-        // 2. 전체 답변자 목록 렌더링
         const ul = document.createElement('ul');
         ul.className = 'pl-1 space-y-2';
-        responseList.sort((a, b) => a.timestamp - b.timestamp); 
+        responseList.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         
         responseList.forEach(r => {
-            const isCorrect = correctAnswer && r.answer && r.answer.trim().toLowerCase() === correctAnswer;
+             const isCorrect = correctAnswer && r.answer && (r.answer.split(',').map(a=>a.trim()).sort().join(',').toLowerCase() === correctAnswer.split(',').map(a=>a.trim()).sort().join(',').toLowerCase());
             const li = document.createElement('li');
             li.className = isCorrect ? 'correct-answer-highlight' : 'border-b pb-1';
             
@@ -830,14 +870,13 @@
             displayElement.appendChild(ul);
         }
 
-        // 3. 정답자 명단 업데이트 (현재 문제만)
         if (displayElement === document.getElementById('results-display')) {
             if (correctAnswer) {
                 document.getElementById('correct-respondents-list').classList.remove('hidden');
                 if (correctNames.length > 0) {
                     document.getElementById('correct-list-content').innerHTML = correctNames.map(name => `<span class="inline-block bg-green-200 text-green-800 px-3 py-1 rounded-full m-1">${name}</span>`).join('');
                 } else {
-                    document.getElementById('correct-list-content').textContent = '아직 정답자가 없습니다. (정답: ' + correctAnswer + ')';
+                    document.getElementById('correct-list-content').textContent = '아직 정답자가 없습니다. (정답: ' + question.correctAnswer + ')';
                 }
             } else {
                 document.getElementById('correct-respondents-list').classList.add('hidden');
@@ -858,7 +897,7 @@
         
         historyEntries.forEach(([key, entry], index) => {
             const questionText = entry.question.text || '이미지 문제';
-            const responsesCount = Object.keys(entry.responses).length;
+            const responsesCount = Object.keys(entry.responses || {}).length;
             
             const entryNumber = historyArray.length - index;
 
@@ -874,21 +913,28 @@
     }
 
     function showHistoryDetail(number, entry) {
-        document.getElementById('question-control-area').classList.add('hidden');
-        document.querySelector('.container h1').textContent = `📂 과거 기록: ${number}번 문제 상세`;
-        document.getElementById('history-detail-modal').classList.remove('hidden');
+        document.getElementById('modal-question-title').textContent = `${number}번 문제: ${entry.question.text || '이미지 문제'}`;
         
-        const q = entry.question;
-        const r = entry.responses;
-        const totalCount = Object.keys(r).length;
-
-        document.getElementById('modal-question-title').textContent = q.text || '이미지 문제';
-        document.getElementById('modal-results-display').innerHTML = ''; // 초기화
-
-        renderPastResults(q, r, totalCount, document.getElementById('modal-results-display'));
-
-        document.getElementById('export-excel-btn').onclick = () => exportToCSV(q, r, `${number}번_문제_기록`);
+        const modalResultsDisplay = document.getElementById('modal-results-display');
+        modalResultsDisplay.innerHTML = '';
+        
+        if (entry.question.image) {
+            const img = document.createElement('img');
+            img.src = entry.question.image;
+            img.className = 'max-w-full h-auto mx-auto border rounded mb-4';
+            modalResultsDisplay.appendChild(img);
+        }
+        
+        const totalCount = Object.keys(entry.responses || {}).length;
+        renderPastResults(entry.question, entry.responses || {}, totalCount, modalResultsDisplay);
+        
+        document.getElementById('history-detail-modal').classList.remove('hidden');
     }
+
+    document.getElementById('modal-close-btn').addEventListener('click', () => {
+         document.getElementById('history-detail-modal').classList.add('hidden');
+    });
+
 
     function renderActiveUsers(presenceData) {
         activeUsersContent.innerHTML = '';
@@ -946,21 +992,21 @@
             
             const correctAnswer = (entry.question.correctAnswer || '').trim().toLowerCase();
             
-            Object.values(entry.responses).forEach(r => allStudents.add(r.name));
+            Object.values(entry.responses || {}).forEach(r => allStudents.add(r.name));
 
             processedHistory.push({
-                number: index + 1, // 1번부터 순서대로 번호 부여
+                number: index + 1,
                 text: questionText,
                 correctAnswer: correctAnswer,
-                responses: entry.responses
+                responses: entry.responses || {}
             });
         });
 
-        const sortedStudents = Array.from(allStudents).sort();
+        const sortedStudents = Array.from(allStudents).sort((a, b) => (a || '').localeCompare(b || ''));
         
         let csvHeader = "참여자 이름";
         processedHistory.forEach(q => {
-            csvHeader += `,"${q.number}번 문제 답변: ${q.text}..."`;
+            csvHeader += `,"${q.number}번 문제 답변: ${q.text.replace(/"/g, '""')}..."`;
             csvHeader += `,"${q.number}번 정답 여부"`;
         });
         let csv = csvHeader + "\n";
@@ -973,8 +1019,8 @@
                 
                 if (response) {
                     const answer = (response.answer || '').replace(/"/g, '""'); 
-                    const isCorrect = (response.answer && q.correctAnswer) ? (response.answer.trim().toLowerCase() === q.correctAnswer) : false;
-                    const correctness = isCorrect ? 'O' : 'X';
+                    const isCorrect = (response.answer && q.correctAnswer) ? (response.answer.trim().toLowerCase().split(',').sort().join(',') === q.correctAnswer.split(',').sort().join(',')) : false;
+                    const correctness = q.correctAnswer ? (isCorrect ? 'O' : 'X') : '-';
                     
                     studentRow += `,"${answer}"`; 
                     studentRow += `,"${correctness}"`; 
@@ -1011,15 +1057,15 @@
         
         let csv = `문제,응답자 이름,응답 내용,정답 여부,제출 시간\n`;
         
-        const qText = (question.text || '이미지 문제').replace(/,/g, ' '); 
+        const qText = (question.text || '이미지 문제').replace(/"/g, '""'); 
         const correctAnswer = (question.correctAnswer || '').trim().toLowerCase();
 
         data.forEach(r => {
             const name = r.name || '익명';
-            const answer = (r.answer || '').replace(/,/g, ' '); 
-            const isCorrect = (r.answer && correctAnswer) ? (r.answer.trim().toLowerCase() === correctAnswer) : '-';
+            const answer = (r.answer || '').replace(/"/g, '""'); 
+            const isCorrect = (r.answer && correctAnswer) ? (r.answer.trim().toLowerCase().split(',').sort().join(',') === correctAnswer.split(',').sort().join(',')) : '-';
             const date = new Date(r.timestamp).toLocaleString('ko-KR');
-            const correctness = isCorrect === true ? 'O' : isCorrect === false ? 'X' : isCorrect;
+            const correctness = correctAnswer ? (isCorrect === true ? 'O' : isCorrect === false ? 'X' : isCorrect) : '-';
 
             csv += `"${qText}","${name}","${answer}","${correctness}","${date}"\n`;
         });
