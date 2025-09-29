@@ -784,6 +784,7 @@
         /** 공격 모드 보드 렌더링 (타겟 팀의 공격 결과만 표시) */
         function renderAttackBoard() {
             const boardArea = document.getElementById('boardArea');
+            boardArea.innerHTML = ''; // 이 줄을 추가해주세요!
             const targetBoard = teams[game.targetTeamIndex].board;
             const boardEl = document.createElement('div');
             boardEl.id = 'targetBoard';
