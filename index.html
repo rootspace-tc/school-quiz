@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 실시간 퀴즈 플랫폼 V25.0 (최종)</title>
+    <title>🚀 실시간 퀴즈 플랫폼 V26.0 (최종)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -552,13 +552,13 @@
     // 💡 [핵심 수정] submitAnswer 함수 (답변 값 가져오는 로직 수정)
     document.getElementById('submit-answer-btn').addEventListener('click', () => {
         
-        const questionType = document.getElementById('question-type').value; 
+        const questionType = questionTypeSelect.value; 
         let answer;
 
         if (questionType === 'ShortAnswer') {
             const input = document.getElementById('short-answer-input');
-            // 💡 [수정] trim() 후 값이 있을 때만 answer에 할당 (빈 문자열도 유효한 답변으로 처리)
-            answer = input && input.value ? input.value.trim() : null; 
+            // 💡 [핵심 수정] 단답형 필드 값을 명시적으로 읽어옴
+            answer = input && input.value.trim() ? input.value.trim() : null; 
         } else if (questionType === 'MultipleChoice') {
             const checkedBoxes = document.querySelectorAll('input[name="student-answer"]:checked');
             answer = Array.from(checkedBoxes).map(cb => cb.value.trim()).join(', ');
@@ -569,8 +569,7 @@
         }
 
         if (answer !== null && answer !== undefined) {
-             // 단답형인 경우, 빈 문자열('')이 들어올 수 있으므로 별도 검사 필요 없음
-            submitAnswer(answer);
+             submitAnswer(answer);
         } else {
             alert('답변을 선택하거나 입력해주세요.');
         }
@@ -631,7 +630,7 @@
         });
     }
 
-    // 💡 [수정] renderStudentInputs: 중복 보기 버그 해결
+    // 💡 [핵심 수정] renderStudentInputs: 중복 보기 버그 해결 및 기존 답변 로드
     function renderStudentInputs(question) {
         document.getElementById('student-answer-buttons').innerHTML = ''; // 💡 [핵심] 영역 초기화
         document.getElementById('submit-answer-btn').classList.remove('hidden');
@@ -642,6 +641,10 @@
         // 이전 답변 미리 로드
         get(ref(db, `${RESPONSES_PATH}/${currentStudentId}`)).then(snapshot => {
             const existingAnswer = snapshot.val() ? snapshot.val().answer : null;
+            
+            // ----------------------------------------------------
+            // 퀴즈 타입별 입력 필드 렌더링
+            // ----------------------------------------------------
             
             if (question.type === 'OX') {
                 const options = ['O', 'X'];
@@ -690,7 +693,7 @@
                 input.rows = 4;
                 input.className = 'w-full border rounded p-4 text-xl';
                 input.placeholder = '답변을 여기에 입력하세요.';
-                input.value = existingAnswer || ''; 
+                input.value = existingAnswer || ''; // 기존 답변 채우기
                 document.getElementById('student-answer-buttons').appendChild(input);
                 document.getElementById('submit-answer-btn').classList.remove('hidden');
             } else {
@@ -760,7 +763,6 @@
         if (question.type === 'MCQ' || question.type === 'MultipleChoice' || question.type === 'OX') {
             const results = {};
             responseList.forEach(r => {
-                // 💡 중복 선택의 경우, 콤마로 분리하여 각 항목의 응답 수를 계산
                 const answers = r.answer.split(',').map(a => a.trim());
                 answers.forEach(answer => {
                     if (answer) {
