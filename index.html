@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 실시간 퀴즈 플랫폼 V24.0 (최종)</title>
+    <title>🚀 실시간 퀴즈 플랫폼 V25.0 (최종)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,7 +28,7 @@
 <body>
 
 <div class="container">
-    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 퀴즈 플랫폼 V24.0</h1>
+    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 퀴즈 플랫폼 V25.0</h1>
     
     <div id="mode-selection" class="flex justify-center space-x-6 mb-8">
         <button id="teacher-mode-btn" class="mode-button bg-red-500 text-white p-4 rounded-lg shadow-md text-xl">
@@ -430,7 +430,7 @@
 
         const text = questionTextarea.value.trim();
         const type = questionTypeSelect.value;
-        const options = type === 'MCQ' || type === 'MultipleChoice' ? mcqOptionsInput.value.split(',').map(s => s.trim()).filter(s => s.length > 0) : [];
+        const options = type === 'MCQ' || type === 'MultipleChoice' ? mcqOptionsInput.value.split(',').map(a => a.trim()).filter(a => a.length > 0) : [];
         const correctAnswer = correctAnswerInput.value.trim(); 
 
         if (!text && !currentImageBase64) {
@@ -557,23 +557,25 @@
 
         if (questionType === 'ShortAnswer') {
             const input = document.getElementById('short-answer-input');
-            // 💡 [수정] trim() 후 값이 있을 때만 answer에 할당
-            answer = input && input.value.trim() ? input.value.trim() : null; 
+            // 💡 [수정] trim() 후 값이 있을 때만 answer에 할당 (null 대신 빈 문자열로 처리)
+            answer = input && input.value.trim() ? input.value.trim() : ''; 
         } else if (questionType === 'MultipleChoice') {
             const checkedBoxes = document.querySelectorAll('input[name="student-answer"]:checked');
             answer = Array.from(checkedBoxes).map(cb => cb.value.trim()).join(', ');
-            // 💡 [수정] 아무것도 선택하지 않았을 경우 빈 문자열이 아닌 null로 처리
             if (answer.trim() === '') answer = null; 
         } else { // MCQ or OX (단일 선택)
             const selected = document.querySelector('input[name="student-answer"]:checked');
             answer = selected ? selected.value : null;
         }
 
-        if (answer) {
-            submitAnswer(answer);
-        } else {
-            alert('답변을 선택하거나 입력해주세요.');
+        // 💡 [수정] 유효성 검사: 단답형은 빈 문자열도 허용, 그러나 명시적으로 빈 값으로 제출하는 경우 제외
+        if (answer === null || answer === undefined || (questionType !== 'ShortAnswer' && answer.trim() === '')) {
+             alert('답변을 선택하거나 입력해주세요.');
+             return;
         }
+        
+        // 💡 [수정] 단답형의 경우 빈 문자열('')이 허용되어야 하므로, null이 아닐 때만 submitAnswer 호출
+        submitAnswer(answer);
     });
 
     function submitAnswer(answer) {
@@ -764,6 +766,7 @@
         if (question.type === 'MCQ' || question.type === 'MultipleChoice' || question.type === 'OX') {
             const results = {};
             responseList.forEach(r => {
+                // 💡 중복 선택의 경우, 콤마로 분리하여 각 항목의 응답 수를 계산
                 const answers = r.answer.split(',').map(a => a.trim());
                 answers.forEach(answer => {
                     if (answer) {
