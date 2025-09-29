@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 실시간 참여 퀴즈 플랫폼 V17.0 (최종 보안)</title>
+    <title>🚀 실시간 퀴즈 플랫폼 V22.0 (최종 안정화)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,7 +12,7 @@
     
     <style>
         body { font-family: 'Jua', sans-serif; background-color: #f7f3e9; font-size: 18px; }
-        .container { max-width: 1100px; margin: 2rem auto; padding: 30px; background: #fff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        .container { max-width: 1100px; margin: 2rem auto; padding: 30px; background: #fff; border-radius: 15px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
         h1 { font-size: 2.5rem !important; } 
         h2 { font-size: 2rem !important; }
         .text-xl { font-size: 1.5rem !important; }
@@ -20,26 +20,25 @@
         #student-question-text { font-size: 3rem !important; line-height: 1.4; } 
         .result-bar { height: 35px; margin-bottom: 8px; color: white; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; transition: width 0.5s ease-out; }
         .correct-answer-highlight { background-color: #d1f7d1; font-weight: bold; border-left: 5px solid #4CAF50; padding: 5px; margin: 3px 0; border-radius: 4px; }
-        #student-answer-buttons button { transition: all 0.2s; font-size: 1.3rem; }
-        .text-lg { font-size: 1.125rem !important; }
-        .text-base { font-size: 1rem !important; }
-        .submission-closed { background-color: #fca5a5; color: #7f1d1d; font-weight: bold; }
-        #question-control-area .flex > button { flex: 1; }
-        #question-control-area .flex-1 { flex: 1; }
+        .question-item { cursor: pointer; border-left: 5px solid transparent; transition: all 0.2s; }
+        .question-item:hover { background-color: #f3f4f6; border-left-color: #3b82f6; }
+        .question-item.selected { background-color: #bfdbfe; border-left-color: #1d4ed8; font-weight: bold; }
         .kick-btn { background-color: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin-left: 10px; }
         .kick-btn:hover { background-color: #dc2626; }
+        #navigation-buttons button:disabled { background-color: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
+        .submission-closed { background-color: #fca5a5; color: #7f1d1d; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 수업 참여 플랫폼 V17.0</h1>
+    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 퀴즈 플랫폼 V22.0</h1>
     
     <div id="mode-selection" class="flex justify-center space-x-6 mb-8">
-        <button id="teacher-mode-btn" class="mode-button bg-red-500 text-white p-4 rounded-lg shadow-md font-semibold text-xl">
+        <button id="teacher-mode-btn" class="mode-button bg-red-500 text-white p-4 rounded-lg shadow-md text-xl">
             👩‍🏫 교사 모드 (비밀번호 필요)
         </button>
-        <button id="student-mode-btn" class="mode-button bg-blue-500 text-white p-4 rounded-lg shadow-md font-semibold text-xl">
+        <button id="student-mode-btn" class="mode-button bg-blue-500 text-white p-4 rounded-lg shadow-md text-xl">
             🧑‍🎓 학생 모드
         </button>
     </div>
@@ -50,44 +49,46 @@
         <h2 class="font-bold mb-5 text-red-600">교사 제어판</h2>
         
         <div id="question-control-area" class="p-8 border border-red-300 rounded-lg bg-red-50 mb-8">
-            <label for="student-password-input" class="block font-semibold mb-3">🔒 학생 접속 비밀번호 설정 (미입력시 비활성화):</label>
-            <input type="text" id="student-password-input" class="w-full border rounded p-3 mb-5 text-lg" placeholder="예: 우리반화이팅">
+            <div class="p-4 border border-blue-300 rounded-lg bg-blue-50 mb-5">
+                <label for="student-password-input" class="block font-semibold mb-3">🔒 학생 접속 비밀번호 설정 (미입력시 비활성화):</label>
+                <input type="text" id="student-password-input" class="w-full border rounded p-3 text-lg" placeholder="예: 우리반화이팅">
+            </div>
 
-
-            <label for="question-text" class="block font-semibold mb-3">📝 질문 내용:</label>
-            <textarea id="question-text" rows="3" class="w-full border rounded p-3 mb-5 text-lg"></textarea>
-
-            <label class="block font-semibold mb-3">🖼️ 이미지 첨부:</label>
-            <div id="image-upload-area" class="border-2 border-dashed border-gray-400 p-5 mb-5 rounded-lg bg-white">
-                <input type="file" id="image-file-input" accept="image/*" class="mb-3 block w-full text-lg">
-                <p class="text-gray-600 text-base">또는, 이미지 파일을 **이 영역에 붙여넣기(Ctrl+V)** 하세요.</p>
-                <div id="image-preview" class="mt-3 text-center hidden">
-                    <p class="mb-2">첨부된 이미지 미리보기:</p>
-                    <img src="" id="current-image-preview" class="max-w-full h-auto mx-auto border border-gray-300 rounded max-h-64">
-                    <button id="remove-image-btn" class="mt-3 bg-gray-400 hover:bg-gray-500 text-white p-2 rounded text-base">
-                        ❌ 이미지 제거
-                    </button>
+            <div id="question-creation-form" class="border-b pb-4 mb-4">
+                <label for="question-text" class="block font-semibold mb-3">📝 질문 내용:</label>
+                <textarea id="question-text" rows="3" class="w-full border rounded p-3 mb-5 text-lg"></textarea>
+                
+                <label class="block font-semibold mb-3">🖼️ 이미지 첨부:</label>
+                <div id="image-upload-area" class="border-2 border-dashed border-gray-400 p-5 mb-5 rounded-lg bg-white">
+                    <input type="file" id="image-file-input" accept="image/*" class="mb-3 block w-full text-lg">
+                    <p class="text-gray-600 text-base">또는, 이미지 파일을 **이 영역에 붙여넣기(Ctrl+V)** 하세요.</p>
+                    <div id="image-preview" class="mt-3 text-center hidden">
+                        <p class="mb-2">첨부된 이미지 미리보기:</p>
+                        <img src="" id="current-image-preview" class="max-w-full h-auto mx-auto border border-gray-300 rounded max-h-64">
+                        <button id="remove-image-btn" class="mt-3 bg-gray-400 hover:bg-gray-500 text-white p-2 rounded text-base">
+                            ❌ 이미지 제거
+                        </button>
+                    </div>
                 </div>
+
+                <label for="question-type" class="block font-semibold mb-3">❓ 질문 유형:</label>
+                <select id="question-type" class="w-full border rounded p-3 mb-5 bg-white text-lg">
+                    <option value="MCQ">객관식 (다지선다)</option>
+                    <option value="OX">OX 퀴즈</option>
+                    <option value="ShortAnswer">주관식 (단답형)</option>
+                </select>
+                
+                <div id="mcq-options-container">
+                    <label for="mcq-options" class="block font-semibold mb-3">🔢 객관식 보기 (콤마(,)로 구분):</label>
+                    <input type="text" id="mcq-options" class="w-full border rounded p-3 text-lg" value="1. 네, 2. 아니오, 3. 아마도, 4. 글쎄요">
+                </div>
+
+                <label for="correct-answer-input" class="block font-semibold mb-3 mt-5">🔑 정답 입력 (선택 사항):</label>
+                <input type="text" id="correct-answer-input" class="w-full border rounded p-3 text-lg" placeholder="예: 3번 또는 정답 텍스트">
             </div>
-
-            <label for="question-type" class="block font-semibold mb-3">❓ 질문 유형:</label>
-            <select id="question-type" class="w-full border rounded p-3 mb-5 bg-white text-lg">
-                <option value="MCQ">객관식 (다지선다)</option>
-                <option value="OX">OX 퀴즈</option>
-                <option value="ShortAnswer">주관식 (단답형)</option>
-            </select>
-            
-            <div id="mcq-options-container">
-                <label for="mcq-options" class="block font-semibold mb-3">🔢 객관식 보기 (콤마(,)로 구분):</label>
-                <input type="text" id="mcq-options" class="w-full border rounded p-3 text-lg" value="1. 네, 2. 아니오, 3. 아마도, 4. 글쎄요">
-            </div>
-
-            <label for="correct-answer-input" class="block font-semibold mb-3 mt-5">🔑 정답 입력 (선택 사항):</label>
-            <input type="text" id="correct-answer-input" class="w-full border rounded p-3 text-lg" placeholder="예: 3번 또는 정답 텍스트 (입력하지 않으면 정답자 표시 안됨)">
-
 
             <div class="flex space-x-3 mt-6">
-                <button id="post-question-btn" class="bg-red-500 hover:bg-red-600 text-white p-4 rounded-lg font-semibold flex-1 text-xl">
+                 <button id="post-question-btn" class="bg-red-500 hover:bg-red-600 text-white p-4 rounded-lg font-semibold flex-1 text-xl">
                     📢 문제 출제하기
                 </button>
                 <button id="close-submission-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white p-4 rounded-lg font-semibold w-1/4 text-xl">
@@ -132,7 +133,8 @@
                  <h4 class="text-xl font-bold mb-4 text-gray-700">🧑‍🎓 전체 답변자 목록 (답변 포함)</h4>
                  <div id="full-list-content" class="text-lg space-y-2">답변이 없습니다.</div>
             </div>
-             <div id="active-users-list" class="mt-8 border-t pt-5">
+             
+            <div id="active-users-list" class="mt-8 border-t pt-5">
                 <h4 class="text-xl font-bold mb-4 text-gray-700">🟢 현재 접속 및 답변자 목록 (<span id="active-count">0</span>명)</h4>
                 <div id="active-users-content" class="text-lg space-y-2 flex flex-wrap gap-2">
                     <p class="text-gray-500">학생들의 접속 및 응답을 기다리고 있습니다.</p>
@@ -143,6 +145,9 @@
         <div class="p-8 border border-blue-300 rounded-lg bg-blue-50 mt-8">
             <h3 class="text-2xl font-bold mb-4 text-blue-700">📂 누적된 과거 퀴즈 기록 보기</h3>
             <div id="history-list" class="text-lg space-y-4">기록된 문제가 없습니다.</div>
+            <button id="clear-history-btn" class="bg-gray-600 hover:bg-gray-700 text-white p-3 rounded-lg font-semibold w-full mt-4 text-xl">
+                💣 전체 기록 초기화
+            </button>
         </div>
         
         <div id="history-detail-modal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center p-4 z-50">
@@ -186,16 +191,25 @@
                 </div>
                 
                 <button id="submit-answer-btn" class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg font-semibold w-full text-xl hidden">
-                    🚀 답변 제출하기
+                    🚀 답변 저장
                 </button>
                 <p id="submission-status-msg" class="text-center mt-3 text-green-700 font-semibold text-2xl hidden">
                     ✅ 답변 제출을 완료했습니다! (수정 가능)
                 </p>
+                
+                <div id="navigation-buttons" class="flex justify-between mt-6 hidden">
+                    <button id="prev-problem-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 p-3 rounded-lg font-semibold w-2/5 text-xl" disabled>
+                        ← 이전 문제
+                    </button>
+                    <button id="next-problem-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 p-3 rounded-lg font-semibold w-2/5 text-xl" disabled>
+                        다음 문제 →
+                    </button>
+                </div>
             </div>
         </div>
         
         <div id="student-submitted-area" class="hidden text-center p-12 border border-green-300 rounded-lg bg-green-50">
-            <h3 class="text-3xl font-bold mb-4 text-green-700">✅ 답변 제출이 완료되었습니다!</h3>
+            <h3 class="text-3xl font-bold mb-4 text-green-700">✅ 답변 제출 완료</h3>
             <p class="text-xl text-gray-700 mb-6">
                 선생님의 다음 문제 출제를 기다려주세요.<br>
                 (화면을 닫거나 새로고침해도 다음 문제가 보입니다.)
@@ -204,8 +218,7 @@
                 ✏️ 답변 수정하기
             </button>
             <p class="text-sm mt-4 text-gray-500">
-                **[설명]** 답변 수정하기 버튼을 누르면 잠시 응답 화면으로 돌아가서<br>
-                답을 수정할 수 있습니다. (단, 선생님이 마감하기 전까지만 가능)
+                **[설명]** 답변 수정하기 버튼을 누르면 잠시 응답 화면으로 돌아갑니다.<br>
             </p>
         </div>
     </div>
@@ -234,19 +247,20 @@
 
     // 데이터베이스 경로 정의
     const STATUS_PATH = 'quiz/status'; 
-    const QUESTION_PATH = 'quiz/currentQuestion';
-    const RESPONSES_PATH = 'quiz/responses';
+    const QUESTION_PATH = 'quiz/currentQuestion'; // 단일 문제 경로로 복원
+    const RESPONSES_PATH = 'quiz/responses'; 
     const HISTORY_PATH = 'quiz/history'; 
     const PRESENCE_PATH = 'quiz/presence'; 
+    const CONFIG_PATH = 'quiz/config'; 
+    // const MANAGED_QUESTIONS_PATH = 'quiz/managedQuestions'; // (사용 안 함)
 
     // ----------------------------------------------------
     // 2. 변수 및 UI 요소 정의
     // ----------------------------------------------------
     const TEACHER_PASSWORD = "2948"; 
     let currentStudentId = null; 
-    let currentQuestionType = 'MCQ';
     let currentImageBase64 = null; 
-
+    
     // UI 요소
     const teacherPanel = document.getElementById('teacher-panel');
     const studentPanel = document.getElementById('student-panel');
@@ -260,34 +274,19 @@
     const correctRespondentsList = document.getElementById('correct-respondents-list'); 
     const correctListContent = document.getElementById('correct-list-content');
     const fullListContent = document.getElementById('full-list-content'); 
-    const studentQuestionTextEl = document.getElementById('student-question-text');
-    const studentAnswerButtonsEl = document.getElementById('student-answer-buttons');
-    const studentNameInput = document.getElementById('student-name');
-    const studentQuizArea = document.getElementById('student-quiz-area');
-    const studentSubmittedArea = document.getElementById('student-submitted-area'); 
-    const studentLoginArea = document.getElementById('student-login-area');
-    const submitAnswerBtn = document.getElementById('submit-answer-btn');
-    const submissionStatusTeacher = document.getElementById('submission-status-teacher'); 
-    const submissionStatusStudent = document.getElementById('submission-status-student'); 
-    const imageFileInput = document.getElementById('image-file-input');
-    const imageUploadArea = document.getElementById('image-upload-area');
-    const removeImageBtn = document.getElementById('remove-image-btn');
-    const hideQuestionBtn = document.getElementById('hide-question-btn'); 
-    const exportExcelBtn = document.getElementById('export-excel-btn'); 
-    const closeSubmissionBtn = document.getElementById('close-submission-btn'); 
     const historyList = document.getElementById('history-list'); 
-    const historyDetailModal = document.getElementById('history-detail-modal');
-    const modalCloseBtn = document.getElementById('modal-close-btn');
-    const questionControlArea = document.getElementById('question-control-area');
-    const modifyAnswerBtn = document.getElementById('modify-answer-btn'); 
-    const clearHistoryBtn = document.getElementById('clear-history-btn');
     const activeUsersContent = document.getElementById('active-users-content'); 
     const activeCount = document.getElementById('active-count'); 
-    
-    // 🔑 [추가] 학생 접속 비밀번호 UI 요소
-    const studentPasswordInput = document.getElementById('student-password-input');
+    const studentNameInput = document.getElementById('student-name');
     const studentAccessPassword = document.getElementById('student-access-password');
-
+    const studentPasswordInput = document.getElementById('student-password-input');
+    const studentQuizArea = document.getElementById('student-quiz-area');
+    const studentSubmittedArea = document.getElementById('student-submitted-area');
+    const submitAnswerBtn = document.getElementById('submit-answer-btn');
+    const removeImageBtn = document.getElementById('remove-image-btn');
+    const hideQuestionBtn = document.getElementById('hide-question-btn');
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
+    const modifyAnswerBtn = document.getElementById('modify-answer-btn'); 
 
     // ----------------------------------------------------
     // 3. 이미지 업로드 및 붙여넣기 로직
@@ -297,7 +296,7 @@
         document.getElementById('image-preview').classList.remove('hidden');
         currentImageBase64 = base64Data;
     }
-    imageFileInput.addEventListener('change', (e) => {
+    document.getElementById('image-file-input').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
@@ -305,7 +304,7 @@
             reader.readAsDataURL(file);
         }
     });
-    imageUploadArea.addEventListener('paste', (e) => {
+    document.getElementById('image-upload-area').addEventListener('paste', (e) => {
         e.preventDefault();
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         for (let i = 0; i < items.length; i++) {
@@ -320,42 +319,48 @@
     });
     removeImageBtn.addEventListener('click', () => {
         currentImageBase64 = null;
-        imageFileInput.value = '';
+        document.getElementById('image-file-input').value = '';
         document.getElementById('image-preview').classList.add('hidden');
     });
 
 
     // ----------------------------------------------------
-    // 4. 모드 전환 및 초기화 로직
+    // 4. 모드 전환 및 초기화 로직 (안정화)
     // ----------------------------------------------------
     
-    questionTypeSelect.addEventListener('change', (e) => {
-        currentQuestionType = e.target.value;
-        if (currentQuestionType === 'MCQ') {
+    document.getElementById('question-type').addEventListener('change', (e) => {
+        if (e.target.value === 'MCQ') {
             document.getElementById('mcq-options-container').classList.remove('hidden');
         } else {
             document.getElementById('mcq-options-container').classList.add('hidden');
         }
     });
     
-    // 💡 [수정] 접속자 목록 리스너 등록 (PRESENCE_PATH 사용)
+    // 💡 [수정] 접속자 목록 리스너 (V16.0 로직)
     function listenForActiveUsers() {
         onValue(ref(db, PRESENCE_PATH), (snapshot) => {
             renderActiveUsers(snapshot.val());
         });
     }
 
-    document.getElementById('teacher-mode-btn').addEventListener('click', () => {
+    document.getElementById('teacher-mode-btn').addEventListener('click', async () => {
         const password = prompt("교사 모드에 접속하시려면 비밀번호를 입력해주세요.");
         
         if (password === TEACHER_PASSWORD) {
+            const configSnapshot = await get(ref(db, CONFIG_PATH));
+            const config = configSnapshot.val();
+            if (config && config.studentPassword) {
+                studentPasswordInput.value = config.studentPassword;
+            } else {
+                studentPasswordInput.value = '';
+            }
+
             teacherPanel.classList.remove('hidden');
             studentPanel.classList.add('hidden');
             modeSelection.classList.add('hidden');
             onValue(ref(db, HISTORY_PATH), (snapshot) => renderHistoryList(snapshot.val()));
             listenForResponses();
             listenForActiveUsers(); // 💡 접속자 리스너 활성화
-            questionControlArea.classList.remove('hidden');
         } else {
             alert("비밀번호가 틀렸습니다.");
         }
@@ -367,8 +372,8 @@
         modeSelection.classList.add('hidden');
     });
 
-    // 💡 [핵심 수정] 학생 로그인 로직 (보안 및 Presence 기록)
-    document.getElementById('student-login-btn').addEventListener('click', () => {
+    // 💡 [수정] 학생 로그인 로직 (단일 퀴즈 구조에 맞게 복원)
+    document.getElementById('student-login-btn').addEventListener('click', async () => {
         const name = studentNameInput.value.trim();
         const accessPassword = studentAccessPassword.value.trim();
         
@@ -377,90 +382,56 @@
             return;
         }
 
-        // 🔑 [수정] 교사 설정 비밀번호 확인
-        if (studentPasswordInput.value.trim() && studentPasswordInput.value.trim() !== accessPassword) {
+        const configSnapshot = await get(ref(db, CONFIG_PATH));
+        const requiredPassword = (configSnapshot.val() && configSnapshot.val().studentPassword) ? configSnapshot.val().studentPassword.trim() : '';
+
+        if (requiredPassword && requiredPassword !== accessPassword) {
             alert('🔒 접속 비밀번호가 틀렸습니다. 다시 확인해주세요.');
             return;
         }
         
         currentStudentId = name.replace(/[.#$/[\]]/g, "_"); 
-        studentLoginArea.classList.add('hidden');
+        document.getElementById('student-login-area').classList.add('hidden');
         studentQuizArea.classList.add('hidden');
         studentSubmittedArea.classList.remove('hidden'); 
-        listenForQuestion();
+        
         localStorage.setItem('quiz_student_name', name); 
         
-        // 💡 Presence 등록: 접속한 학생 이름과 시간을 기록 (접속자 목록에 사용)
+        // Presence 등록: 접속한 학생 이름과 시간을 기록 (접속자 목록에 사용)
         set(ref(db, `${PRESENCE_PATH}/${currentStudentId}`), { 
             name: name,
             lastSeen: Date.now()
         });
+
+        // 💡 [핵심] 학생 접속 시 단일 문제 리스너 등록
+        listenForQuestion();
     });
 
-    modifyAnswerBtn.addEventListener('click', () => {
-        studentQuizArea.classList.remove('hidden');
-        studentSubmittedArea.classList.add('hidden');
+    document.getElementById('modify-answer-btn').addEventListener('click', () => {
+        document.getElementById('student-quiz-area').classList.remove('hidden');
+        document.getElementById('student-submitted-area').classList.add('hidden');
     });
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const savedName = localStorage.getItem('quiz_student_name');
-        if (savedName) {
-            studentNameInput.value = savedName;
-        }
-    });
-    
-    modalCloseBtn.addEventListener('click', () => {
-        historyDetailModal.classList.add('hidden');
-        questionControlArea.classList.remove('hidden');
-        document.querySelector('.container h1').textContent = '🚀 실시간 수업 참여 플랫폼 V16.0';
+    studentPasswordInput.addEventListener('change', () => {
+        const password = studentPasswordInput.value.trim();
+        set(ref(db, CONFIG_PATH), { studentPassword: password });
     });
 
 
     // ----------------------------------------------------
-    // 5. 교사 로직 (문제 출제, 숨기기, 초기화)
+    // 5. 교사 로직 (단일 문제 출제 및 기록)
     // ----------------------------------------------------
 
-    document.getElementById('post-question-btn').addEventListener('click', postQuestion);
-
-    // 💡 [핵심 수정] 기록 저장 함수 (문제당 1회 저장 보장)
-    async function saveCurrentQuestionToHistory() {
-        const questionSnapshot = await get(ref(db, QUESTION_PATH));
-        const responsesSnapshot = await get(ref(db, RESPONSES_PATH));
+    // 💡 [복원] 문제 출제 버튼 로직 (단일 퀴즈 출제)
+    document.getElementById('post-question-btn').addEventListener('click', async () => {
         
-        const questionData = questionSnapshot.val();
-        const responsesData = responsesSnapshot.val();
-        
-        if (questionData && (questionData.text || questionData.image)) {
-            
-            if (!questionData.isSavedToHistory) {
-                 // 💡 [수정] 0번 문제 응답 기록을 제외하고 저장
-                 const filteredResponses = {};
-                 for (const key in responsesData) {
-                    if (key.startsWith(`${currentStudentId}_`)) {
-                        // 💡 현재 접속 기록 제외 (실제 퀴즈 응답만)
-                        continue;
-                    }
-                    filteredResponses[key] = responsesData[key];
-                 }
-
-                 const historyEntry = {
-                    question: questionData,
-                    responses: filteredResponses || {},
-                    date: new Date().toLocaleString('ko-KR')
-                };
-                push(ref(db, HISTORY_PATH), historyEntry);
-                
-                update(ref(db, QUESTION_PATH), { isSavedToHistory: true });
-
-                return true; 
-            }
+        // 이전 문제 기록 저장
+        const prevQuestionSnapshot = await get(ref(db, QUESTION_PATH));
+        const prevQuestionData = prevQuestionSnapshot.val();
+        if (prevQuestionData && prevQuestionData.isSavedToHistory === false) {
+             await saveCurrentQuestionToHistory();
         }
-        return false; 
-    }
-    
-    async function postQuestion() {
-        await saveCurrentQuestionToHistory();
-        
+
         const text = questionTextarea.value.trim();
         const type = questionTypeSelect.value;
         const options = type === 'MCQ' ? mcqOptionsInput.value.split(',').map(s => s.trim()).filter(s => s.length > 0) : [];
@@ -478,31 +449,56 @@
             image: currentImageBase64,
             correctAnswer: correctAnswer || null, 
             isClosed: false, 
-            isSavedToHistory: false, // 💡 [추가] 새 문제는 저장되지 않은 상태로 시작
+            isSavedToHistory: false, // 💡 새 문제는 저장되지 않은 상태로 시작
             timestamp: Date.now()
         };
 
         set(ref(db, QUESTION_PATH), newQuestion)
         .then(() => {
             alert('문제가 성공적으로 출제되었습니다! 답변이 시작됩니다.');
-            
-            // 💡 [수정] 현재 응답 전체 삭제
             remove(ref(db, RESPONSES_PATH)); 
-            
             removeImageBtn.click();
             correctAnswerInput.value = ''; 
             
             update(ref(db, STATUS_PATH), { isClosed: false });
-            submissionStatusTeacher.classList.add('hidden');
+            document.getElementById('submission-status-teacher').classList.add('hidden');
         })
         .catch(error => {
             console.error('문제 출제 실패:', error);
             alert('문제 출제 실패. 콘솔을 확인해주세요.');
         });
-    }
+    });
 
+    // 💡 [핵심 수정] 기록 저장 함수 (문제당 1회 저장 보장)
+    async function saveCurrentQuestionToHistory() {
+        const questionSnapshot = await get(ref(db, QUESTION_PATH));
+        const responsesSnapshot = await get(ref(db, RESPONSES_PATH));
+        
+        const questionData = questionSnapshot.val();
+        const responsesData = responsesSnapshot.val();
+        
+        if (questionData && (questionData.text || questionData.image)) {
+            
+            if (!questionData.isSavedToHistory) {
+                 const historyEntry = {
+                    question: questionData,
+                    responses: responsesData || {},
+                    date: new Date().toLocaleString('ko-KR'),
+                    type: 'SINGLE' // 단일 문제 타입
+                };
+                push(ref(db, HISTORY_PATH), historyEntry);
+                
+                // 저장 후 플래그를 true로 업데이트 (중복 저장 방지)
+                update(ref(db, QUESTION_PATH), { isSavedToHistory: true });
+
+                return true; 
+            }
+        }
+        return false; 
+    }
+    
     // ⛔ 답변 마감 버튼: 기록 저장 후 상태 변경
-    closeSubmissionBtn.addEventListener('click', async () => {
+    document.getElementById('close-submission-btn').addEventListener('click', async () => {
         if (!confirm("현재 문제에 대한 학생들의 답변 수정 및 제출을 마감하고 기록에 저장하시겠습니까?")) return;
         
         await saveCurrentQuestionToHistory(); 
@@ -510,15 +506,12 @@
         update(ref(db, STATUS_PATH), { isClosed: true })
         .then(() => {
             alert('답변 마감이 완료되고 기록에 저장되었습니다.');
-            submissionStatusTeacher.classList.remove('hidden');
-        })
-        .catch(error => {
-            console.error('답변 마감 실패:', error);
+            document.getElementById('submission-status-teacher').classList.remove('hidden');
         });
     });
 
     // 문제 숨기기 기능
-    hideQuestionBtn.addEventListener('click', async () => {
+    document.getElementById('hide-question-btn').addEventListener('click', async () => {
         if (!confirm("현재 출제된 문제를 학생 화면에서 숨기고 기록에 저장하시겠습니까?")) return;
         
         await saveCurrentQuestionToHistory();
@@ -528,30 +521,20 @@
             alert('문제가 학생 화면에서 숨겨졌습니다. 기록에 저장되었습니다.');
             remove(ref(db, RESPONSES_PATH)); 
             update(ref(db, STATUS_PATH), { isClosed: true });
-        })
-        .catch(error => {
-            console.error('문제 숨기기 실패:', error);
-            alert('문제 숨기기 실패.');
         });
     });
 
-    document.getElementById('clear-results-btn').addEventListener('click', clearResults);
-
-    function clearResults() {
+    // 현재 응답 초기화
+    document.getElementById('clear-results-btn').addEventListener('click', () => {
         if (!confirm("모든 응답 결과를 초기화하시겠습니까?")) return;
         remove(ref(db, RESPONSES_PATH))
         .then(() => {
             alert('응답 결과가 초기화되었습니다.');
-        })
-        .catch(error => {
-            console.error('결과 초기화 실패:', error);
         });
-    }
+    });
 
     // 💣 전체 기록 초기화 버튼 로직
-    clearHistoryBtn.addEventListener('click', clearAllHistory);
-
-    function clearAllHistory() {
+    document.getElementById('clear-history-btn').addEventListener('click', () => {
         if (!confirm("경고: 누적된 모든 과거 퀴즈 기록을 영구히 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) return;
         
         remove(ref(db, HISTORY_PATH))
@@ -562,36 +545,13 @@
             
             alert('모든 과거 기록이 삭제되었습니다. 다음 출제 문제는 1번부터 시작됩니다.');
             renderHistoryList(null); 
-        })
-        .catch(error => {
-            console.error('전체 기록 삭제 실패:', error);
-            alert('전체 기록 삭제 실패.');
         });
-    }
-
-
-    // ----------------------------------------------------
-    // 6. 학생 로직 (자동 전환 및 마감 상태 연동)
-    // ----------------------------------------------------
-
-    submitAnswerBtn.addEventListener('click', () => {
-        let answer = null;
-        
-        if (currentQuestionType === 'ShortAnswer') {
-            const input = document.getElementById('short-answer-input');
-            answer = input ? input.value.trim() : null;
-        } 
-        else {
-            const selected = document.querySelector('input[name="student-answer"]:checked');
-            answer = selected ? selected.value : null;
-        }
-
-        if (answer) {
-            submitAnswer(answer);
-        } else {
-            alert('답변을 선택하거나 입력해주세요.');
-        }
     });
+
+
+    // ----------------------------------------------------
+    // 6. 학생 로직 (단일 문제 구조에 맞게 복원)
+    // ----------------------------------------------------
     
     function submitAnswer(answer) {
         if (!currentStudentId) {
@@ -603,80 +563,56 @@
             const status = snapshot.val();
             if (status && status.isClosed) {
                 alert('⛔ 답변 수정이 마감되어 제출할 수 없습니다.');
-                studentQuizArea.classList.add('hidden');
-                studentSubmittedArea.classList.remove('hidden');
+                document.getElementById('student-quiz-area').classList.add('hidden');
+                document.getElementById('student-submitted-area').classList.remove('hidden');
                 return;
             }
             
+            // 💡 [수정] 단일 문제 응답으로 저장
             set(ref(db, `${RESPONSES_PATH}/${currentStudentId}`), {
                 name: studentNameInput.value.trim(),
                 answer: answer,
                 timestamp: Date.now()
             })
             .then(() => {
-                studentQuizArea.classList.add('hidden');
-                studentSubmittedArea.classList.remove('hidden'); 
-            })
-            .catch(error => {
-                console.error('답변 제출 실패:', error);
-                alert('답변 제출 실패. 콘솔을 확인해주세요.');
+                document.getElementById('student-quiz-area').classList.add('hidden');
+                document.getElementById('student-submitted-area').classList.remove('hidden'); 
             });
         });
     }
 
-    // 💡 답변 마감 상태 동기화 및 버튼 활성화/비활성화
-    onValue(ref(db, STATUS_PATH), (snapshot) => {
-        const status = snapshot.val();
-        const isClosed = status ? status.isClosed : false;
-
-        const inputs = studentAnswerButtonsEl.querySelectorAll('input, textarea, button');
-        const submitButton = submitAnswerBtn;
-        
-        if (isClosed) {
-            inputs.forEach(el => el.disabled = true);
-            submitButton.disabled = true;
-            submitButton.textContent = '⛔ 마감됨';
-            submissionStatusStudent.classList.remove('hidden');
-            modifyAnswerBtn.disabled = true; 
-        } else {
-            inputs.forEach(el => el.disabled = false);
-            submitButton.disabled = false;
-            submitButton.textContent = '🚀 답변 제출하기';
-            submissionStatusStudent.classList.add('hidden');
-            modifyAnswerBtn.disabled = false; 
-        }
-    });
-
     // 💡 문제 출제 시 자동 전환 로직 (핵심)
-    onValue(ref(db, QUESTION_PATH), (snapshot) => {
-        const questionData = snapshot.val();
-        
-        if (questionData && (questionData.text || questionData.image)) {
-            studentQuestionTextEl.textContent = questionData.text || '';
-            currentQuestionType = questionData.type;
+    function listenForQuestion() {
+        onValue(ref(db, QUESTION_PATH), (snapshot) => {
+            const questionData = snapshot.val();
             
-            studentSubmittedArea.classList.add('hidden'); 
-            studentQuizArea.classList.remove('hidden'); 
+            if (questionData && (questionData.text || questionData.image)) {
+                document.getElementById('student-question-text').textContent = questionData.text || '';
+                
+                document.getElementById('student-submitted-area').classList.add('hidden'); 
+                document.getElementById('student-quiz-area').classList.remove('hidden'); 
 
-            renderStudentInputs(questionData);
+                renderStudentInputs(questionData);
 
-            if (questionData.image) {
-                document.getElementById('student-question-image').src = questionData.image;
-                document.getElementById('student-question-image-container').classList.remove('hidden');
+                if (questionData.image) {
+                    document.getElementById('student-question-image').src = questionData.image;
+                    document.getElementById('student-question-image-container').classList.remove('hidden');
+                } else {
+                    document.getElementById('student-question-image-container').classList.add('hidden');
+                }
             } else {
+                document.getElementById('student-question-text').textContent = '[선생님이 문제를 출제할 때까지 기다려주세요.]';
+                document.getElementById('student-answer-buttons').innerHTML = '';
+                document.getElementById('submit-answer-btn').classList.add('hidden');
                 document.getElementById('student-question-image-container').classList.add('hidden');
             }
-        } else {
-            studentQuestionTextEl.textContent = '[선생님이 문제를 출제할 때까지 기다려주세요.]';
-            studentAnswerButtonsEl.innerHTML = '';
-            submitAnswerBtn.classList.add('hidden');
-            document.getElementById('student-question-image-container').classList.add('hidden');
-        }
-    });
+        });
+    }
 
+    // 💡 [수정] renderStudentInputs: 단일 퀴즈 구조로 복원
     function renderStudentInputs(question) {
-        studentAnswerButtonsEl.innerHTML = ''; 
-        submitAnswerBtn.classList.remove('hidden');
+        document.getElementById('student-answer-buttons').innerHTML = ''; 
+        document.getElementById('submit-answer-btn').classList.remove('hidden');
         
         if (question.type === 'OX') {
             const options = ['O', 'X'];
@@ -685,9 +621,9 @@
                 btn.className = `p-5 text-2xl font-bold rounded-lg ${option === 'O' ? 'bg-green-100 hover:bg-green-200 text-green-700' : 'bg-red-100 hover:bg-red-200 text-red-700'}`;
                 btn.textContent = option;
                 btn.setAttribute('onclick', `(function(){ submitAnswer('${option}'); })();`); 
-                studentAnswerButtonsEl.appendChild(btn);
+                document.getElementById('student-answer-buttons').appendChild(btn);
             });
-            submitAnswerBtn.classList.add('hidden'); 
+            document.getElementById('submit-answer-btn').classList.add('hidden'); 
             
         } else if (question.type === 'MCQ' && question.options && question.options.length > 0) {
             question.options.forEach((option, index) => {
@@ -709,9 +645,9 @@
 
                 div.appendChild(input);
                 div.appendChild(label);
-                studentAnswerButtonsEl.appendChild(div);
+                document.getElementById('student-answer-buttons').appendChild(div);
             });
-            submitAnswerBtn.classList.remove('hidden'); 
+            document.getElementById('submit-answer-btn').classList.remove('hidden'); 
 
         } else if (question.type === 'ShortAnswer') {
             const input = document.createElement('textarea');
@@ -719,11 +655,11 @@
             input.rows = 4;
             input.className = 'w-full border rounded p-4 text-xl';
             input.placeholder = '답변을 여기에 입력하세요.';
-            studentAnswerButtonsEl.appendChild(input);
-            submitAnswerBtn.classList.remove('hidden');
+            document.getElementById('student-answer-buttons').appendChild(input);
+            document.getElementById('submit-answer-btn').classList.remove('hidden');
         } else {
-             studentQuestionTextEl.textContent = '[선생님이 문제 유형 또는 보기를 확인해야 합니다.]';
-             submitAnswerBtn.classList.add('hidden');
+             document.getElementById('student-question-text').textContent = '[선생님이 문제 유형 또는 보기를 확인해야 합니다.]';
+             document.getElementById('submit-answer-btn').classList.add('hidden');
         }
     }
 
@@ -734,53 +670,46 @@
 
     function listenForResponses() {
         onValue(ref(db, RESPONSES_PATH), (snapshot) => {
-            const responses = snapshot.val();
-            renderResults(responses);
+            renderResults(snapshot.val());
         });
     }
 
-    // 💡 [수정] 강제 퇴장(Kick) 함수
     window.kickUser = function(studentName, studentId) {
         if (!confirm(`${studentName} 학생을 퇴장시키고 아이디를 초기화하시겠습니까?`)) return;
 
-        remove(ref(db, `${PRESENCE_PATH}/${studentId}`)); // 접속 상태 제거
+        remove(ref(db, `${PRESENCE_PATH}/${studentId}`)); 
 
         alert(`${studentName} 학생의 접속이 초기화되었습니다. 해당 학생에게 이름/번호를 재입력하도록 안내해주세요.`);
     }
 
     function renderResults(responses) {
-        resultsDisplay.innerHTML = '';
-        correctListContent.innerHTML = '';
-        fullListContent.innerHTML = '';
+        document.getElementById('results-display').innerHTML = '';
+        document.getElementById('correct-list-content').innerHTML = '';
+        document.getElementById('full-list-content').innerHTML = '';
         
-        // 💡 [수정] 0번 문제 응답(접속 기록)을 제외하고 응답자 명단 및 카운트 계산
-        const filteredResponses = {};
-        for (const key in responses) {
-            // 'Q0_'로 시작하는 키는 접속 기록이므로 건너뛰고, 순수 응답만 사용
-            if (!key.startsWith('Q0_')) {
-                filteredResponses[key] = responses[key];
-            }
-        }
+        const filteredResponses = responses || {};
         
         if (Object.keys(filteredResponses).length === 0) {
-            totalResponsesEl.textContent = 0;
-            resultsDisplay.innerHTML = '<p class="text-gray-500 text-lg">아직 응답이 없습니다.</p>';
-            correctRespondentsList.classList.add('hidden');
-            fullListContent.textContent = '답변이 없습니다.';
+            document.getElementById('total-responses').textContent = 0;
+            document.getElementById('results-display').innerHTML = '<p class="text-gray-500 text-lg">아직 응답이 없습니다.</p>';
+            document.getElementById('correct-respondents-list').classList.add('hidden');
+            document.getElementById('full-list-content').textContent = '답변이 없습니다.';
             return;
         }
 
         const responseList = Object.values(filteredResponses);
         const totalCount = responseList.length;
-        totalResponsesEl.textContent = totalCount;
+        document.getElementById('total-responses').textContent = totalCount;
 
         get(ref(db, QUESTION_PATH)).then((qSnapshot) => {
             const question = qSnapshot.val();
             if (!question) {
-                renderPastResults({text: '문제 없음'}, filteredResponses, totalCount, resultsDisplay);
+                // 단일 퀴즈 구조에 맞게 변경
+                const defaultQuestion = { text: '문제 없음', type: 'MCQ', options: [] };
+                renderPastResults(defaultQuestion, filteredResponses, totalCount, document.getElementById('results-display'));
                 return;
             }
-            renderPastResults(question, filteredResponses, totalCount, resultsDisplay);
+            renderPastResults(question, filteredResponses, totalCount, document.getElementById('results-display'));
         });
     }
     
@@ -824,7 +753,7 @@
                     </div>
                 `;
             });
-            if (displayElement === resultsDisplay) resultsDisplay.innerHTML = graphHTML;
+            if (displayElement === document.getElementById('results-display')) document.getElementById('results-display').innerHTML = graphHTML;
         } 
         
         // 2. 전체 답변자 목록 렌더링
@@ -836,45 +765,43 @@
             const isCorrect = correctAnswer && r.answer && r.answer.trim().toLowerCase() === correctAnswer;
             const li = document.createElement('li');
             li.className = isCorrect ? 'correct-answer-highlight' : 'border-b pb-1';
+            // 💡 [수정] 이름이 undefined가 아닌, 정확히 표시되도록 수정
             li.innerHTML = `
                 <span class="font-bold text-gray-800">${r.name || '익명'}</span>: 
                 <span class="text-gray-700">${r.answer}</span>
                 ${isCorrect ? '<span class="text-green-600 font-bold">(정답)</span>' : ''}
             `;
             ul.appendChild(li);
-            if (isCorrect && displayElement !== resultsDisplay) correctNames.push(r.name || '익명');
         });
 
-        if (displayElement === resultsDisplay) {
-            fullListContent.innerHTML = '';
-            fullListContent.appendChild(ul);
+        if (displayElement === document.getElementById('results-display')) {
+            document.getElementById('full-list-content').innerHTML = '';
+            document.getElementById('full-list-content').appendChild(ul);
         } else {
             displayElement.appendChild(document.createElement('h4')).textContent = '답변 목록:';
             displayElement.appendChild(ul);
         }
 
-
         // 3. 정답자 명단 업데이트 (현재 문제만)
-        if (displayElement === resultsDisplay) {
+        if (displayElement === document.getElementById('results-display')) {
             if (correctAnswer) {
-                correctRespondentsList.classList.remove('hidden');
+                document.getElementById('correct-respondents-list').classList.remove('hidden');
                 if (correctNames.length > 0) {
-                    correctListContent.innerHTML = correctNames.map(name => `<span class="inline-block bg-green-200 text-green-800 px-3 py-1 rounded-full m-1">${name}</span>`).join('');
+                    document.getElementById('correct-list-content').innerHTML = correctNames.map(name => `<span class="inline-block bg-green-200 text-green-800 px-3 py-1 rounded-full m-1">${name}</span>`).join('');
                 } else {
-                    correctListContent.textContent = '아직 정답자가 없습니다. (정답: ' + correctAnswer + ')';
+                    document.getElementById('correct-list-content').textContent = '아직 정답자가 없습니다. (정답: ' + correctAnswer + ')';
                 }
             } else {
-                correctRespondentsList.classList.add('hidden');
+                document.getElementById('correct-respondents-list').classList.add('hidden');
             }
         }
     }
     
-    // History Renderer
     function renderHistoryList(historyData) {
-        historyList.innerHTML = '';
+        document.getElementById('history-list').innerHTML = '';
         
         if (!historyData) {
-            historyList.textContent = '기록된 과거 문제가 없습니다.';
+            document.getElementById('history-list').textContent = '기록된 과거 문제가 없습니다.';
             return;
         }
 
@@ -894,7 +821,7 @@
                 <div class="text-sm text-gray-600">출제일: ${entry.date} | 응답: ${responsesCount}명</div>
             `;
             div.onclick = () => showHistoryDetail(entryNumber, entry); 
-            historyList.appendChild(div);
+            document.getElementById('history-list').appendChild(div);
         });
     }
 
@@ -912,11 +839,10 @@
 
         renderPastResults(q, r, totalCount, document.getElementById('modal-results-display'));
 
-        // 💡 엑셀 다운로드 버튼 이벤트 핸들러 임시 변경 (단일 기록 다운로드)
         document.getElementById('export-excel-btn').onclick = () => exportToCSV(q, r, `${number}번_문제_기록`);
     }
 
-    // 💡 [핵심 수정] 접속자 목록 렌더링 함수 (PRESENCE_PATH 기반)
+    // 💡 [수정] 접속자 목록 렌더링 함수
     function renderActiveUsers(presenceData) {
         activeUsersContent.innerHTML = '';
         let userCount = 0;
@@ -947,7 +873,7 @@
 
 
     // ----------------------------------------------------
-    // 8. 엑셀 다운로드 (CSV) - 전체 기록 안정화
+    // 8. 엑셀 다운로드 (CSV)
     // ----------------------------------------------------
 
     document.getElementById('export-excel-btn').addEventListener('click', exportAllHistoryToCSV); 
@@ -966,7 +892,6 @@
         const allStudents = new Set();
         const processedHistory = [];
         
-        // 💡 [수정] History Data를 배열로 변환하여 순서 보장 및 번호 부여
         const historyEntries = Object.values(historyData);
         
         historyEntries.forEach((entry, index) => {
@@ -986,7 +911,6 @@
 
         const sortedStudents = Array.from(allStudents).sort();
         
-        // 2. CSV 헤더 생성
         let csvHeader = "참여자 이름";
         processedHistory.forEach(q => {
             csvHeader += `,"${q.number}번 문제 답변: ${q.text}..."`;
@@ -994,7 +918,6 @@
         });
         let csv = csvHeader + "\n";
 
-        // 3. CSV 본문 생성 (학생별로 데이터 배열)
         sortedStudents.forEach(studentName => {
             let studentRow = `"${studentName}"`;
             
@@ -1017,7 +940,6 @@
             csv += studentRow + "\n";
         });
 
-        // 4. 파일 다운로드
         const filename = `전체_퀴즈_기록_${new Date().toLocaleDateString('ko-KR')}`;
         const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
@@ -1032,7 +954,6 @@
         }
     }
 
-    // 단일 기록 다운로드용 함수 (과거 기록 모달에서 임시 사용)
     function exportToCSV(question, responses, filename) {
         if (!responses || Object.keys(responses).length === 0) {
             alert('다운로드할 응답 데이터가 없습니다.');
