@@ -561,8 +561,9 @@
             answer = input && input.value.trim() ? input.value.trim() : null; 
         } else if (questionType === 'MultipleChoice') {
             const checkedBoxes = document.querySelectorAll('input[name="student-answer"]:checked');
-            // 중복 선택된 값들을 콤마와 공백으로 연결하여 저장
             answer = Array.from(checkedBoxes).map(cb => cb.value.trim()).join(', ');
+            // 💡 [수정] 아무것도 선택하지 않았을 경우 빈 문자열이 아닌 null로 처리
+            if (answer.trim() === '') answer = null; 
         } else { // MCQ or OX (단일 선택)
             const selected = document.querySelector('input[name="student-answer"]:checked');
             answer = selected ? selected.value : null;
@@ -630,7 +631,7 @@
         });
     }
 
-    // 💡 [수정] renderStudentInputs: 중복 선택 기능 추가
+    // 💡 [수정] renderStudentInputs: 중복 선택 기능 추가 및 초기 답변 로드
     function renderStudentInputs(question) {
         document.getElementById('student-answer-buttons').innerHTML = ''; 
         document.getElementById('submit-answer-btn').classList.remove('hidden');
@@ -638,53 +639,69 @@
         const isMultipleChoice = question.type === 'MultipleChoice';
         const inputType = isMultipleChoice ? 'checkbox' : 'radio';
 
-        if (question.type === 'OX') {
-            const options = ['O', 'X'];
-            options.forEach(option => {
-                const btn = document.createElement('button');
-                btn.className = `p-5 text-2xl font-bold rounded-lg ${option === 'O' ? 'bg-green-100 hover:bg-green-200 text-green-700' : 'bg-red-100 hover:bg-red-200 text-red-700'}`;
-                btn.textContent = option;
-                btn.setAttribute('onclick', `(function(){ submitAnswer('${option}'); })();`); 
-                document.getElementById('student-answer-buttons').appendChild(btn);
-            });
-            document.getElementById('submit-answer-btn').classList.add('hidden'); 
+        // 이전 답변 미리 로드
+        get(ref(db, `${RESPONSES_PATH}/${currentStudentId}`)).then(snapshot => {
+            const existingAnswer = snapshot.val() ? snapshot.val().answer : null;
             
-        } else if (question.type === 'MCQ' || isMultipleChoice) {
-            question.options.forEach((option, index) => {
-                const inputId = `${inputType}-option-${index}`;
-                const div = document.createElement('div');
-                div.className = 'flex items-center p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 cursor-pointer';
-
-                const input = document.createElement('input');
-                input.type = inputType;
-                input.id = inputId;
-                input.name = 'student-answer';
-                input.value = option;
-                input.className = 'w-6 h-6 text-yellow-600 focus:ring-yellow-500 mr-4';
+            // ----------------------------------------------------
+            // 퀴즈 타입별 입력 필드 렌더링
+            // ----------------------------------------------------
+            
+            if (question.type === 'OX') {
+                const options = ['O', 'X'];
+                options.forEach(option => {
+                    const btn = document.createElement('button');
+                    btn.className = `p-5 text-2xl font-bold rounded-lg ${option === 'O' ? 'bg-green-100 hover:bg-green-200 text-green-700' : 'bg-red-100 hover:bg-red-200 text-red-700'}`;
+                    btn.textContent = existingAnswer === option ? `✅ ${option}` : option;
+                    btn.setAttribute('onclick', `(function(){ submitAnswer('${option}'); })();`); 
+                    document.getElementById('student-answer-buttons').appendChild(btn);
+                });
+                document.getElementById('submit-answer-btn').classList.add('hidden'); 
                 
-                const label = document.createElement('label');
-                label.htmlFor = inputId;
-                label.textContent = option;
-                label.className = 'text-xl font-medium text-gray-700 flex-1';
+            } else if (question.type === 'MCQ' || isMultipleChoice) {
+                const existingAnswers = isMultipleChoice && existingAnswer ? existingAnswer.split(',').map(a => a.trim()) : [existingAnswer];
+                
+                question.options.forEach((option, index) => {
+                    const inputId = `${inputType}-option-${index}`;
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 cursor-pointer';
 
-                div.appendChild(input);
-                div.appendChild(label);
-                document.getElementById('student-answer-buttons').appendChild(div);
-            });
-            document.getElementById('submit-answer-btn').classList.remove('hidden'); 
+                    const input = document.createElement('input');
+                    input.type = inputType;
+                    input.id = inputId;
+                    input.name = 'student-answer';
+                    input.value = option;
+                    input.className = 'w-6 h-6 text-yellow-600 focus:ring-yellow-500 mr-4';
+                    
+                    if (existingAnswers.includes(option)) {
+                        input.checked = true;
+                    }
 
-        } else if (question.type === 'ShortAnswer') {
-            const input = document.createElement('textarea');
-            input.id = 'short-answer-input';
-            input.rows = 4;
-            input.className = 'w-full border rounded p-4 text-xl';
-            input.placeholder = '답변을 여기에 입력하세요.';
-            document.getElementById('student-answer-buttons').appendChild(input);
-            document.getElementById('submit-answer-btn').classList.remove('hidden');
-        } else {
-             document.getElementById('student-question-text').textContent = '[선생님이 문제 유형 또는 보기를 확인해야 합니다.]';
-             document.getElementById('submit-answer-btn').classList.add('hidden');
-        }
+                    const label = document.createElement('label');
+                    label.htmlFor = inputId;
+                    label.textContent = option;
+                    label.className = 'text-xl font-medium text-gray-700 flex-1';
+
+                    div.appendChild(input);
+                    div.appendChild(label);
+                    document.getElementById('student-answer-buttons').appendChild(div);
+                });
+                document.getElementById('submit-answer-btn').classList.remove('hidden'); 
+
+            } else if (question.type === 'ShortAnswer') {
+                const input = document.createElement('textarea');
+                input.id = 'short-answer-input';
+                input.rows = 4;
+                input.className = 'w-full border rounded p-4 text-xl';
+                input.placeholder = '답변을 여기에 입력하세요.';
+                input.value = existingAnswer || ''; // 기존 답변 채우기
+                document.getElementById('student-answer-buttons').appendChild(input);
+                document.getElementById('submit-answer-btn').classList.remove('hidden');
+            } else {
+                 document.getElementById('student-question-text').textContent = '[선생님이 문제 유형 또는 보기를 확인해야 합니다.]';
+                 document.getElementById('submit-answer-btn').classList.add('hidden');
+            }
+        });
     }
 
 
@@ -747,7 +764,6 @@
         if (question.type === 'MCQ' || question.type === 'MultipleChoice' || question.type === 'OX') {
             const results = {};
             responseList.forEach(r => {
-                // 💡 중복 선택의 경우, 콤마로 분리하여 각 항목의 응답 수를 계산
                 const answers = r.answer.split(',').map(a => a.trim());
                 answers.forEach(answer => {
                     if (answer) {
@@ -755,7 +771,7 @@
                     }
                 });
                 
-                // 정답자 판별 (중복 선택의 경우, 저장된 모든 답변이 정답과 일치해야 정답으로 간주)
+                // 정답자 판별
                 if (correctAnswer) {
                      const isCorrect = answers.sort().join(',') === correctAnswer.split(',').map(a => a.trim()).sort().join(',');
                     if (isCorrect) {
