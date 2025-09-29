@@ -10,13 +10,6 @@
         body { font-family: 'Jua', sans-serif; background-color: #f0f4f8; font-size: 18px; }
         .container { max-width: 1300px; margin: 2rem auto; padding: 30px; background: #fff; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         h1, h2, h3 { font-family: 'Jua', sans-serif; }
-        .dashboard-table { width: 100%; border-collapse: collapse; }
-        .dashboard-table th, .dashboard-table td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
-        .dashboard-table th { background-color: #f1f5f9; }
-        .dashboard-table td { min-width: 80px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
-        .dashboard-table th:first-child, .dashboard-table td:first-child { position: sticky; left: 0; background-color: #f8fafc; z-index: 10; min-width: 120px; }
-        .correct { background-color: #dcfce7 !important; }
-        .incorrect { background-color: #fee2e2 !important; }
         .modal { display: none; }
         .modal.active { display: flex; }
         .order-btn { background: none; border: none; cursor: pointer; font-size: 1.2rem; line-height: 1; padding: 0 4px; color: #64748b; }
@@ -89,9 +82,10 @@
         </div>
 
         <div class="p-6 border border-gray-300 rounded-lg">
-            <h3 class="text-xl font-bold mb-4">📊 실시간 답안 제출 현황판 (오답 클릭 시 정답 처리)</h3>
-             <div id="submission-status-teacher" class="text-center p-3 rounded mb-4 text-xl bg-red-200 text-red-800 hidden">⛔ 시험이 종료되어 더 이상 답안을 수정할 수 없습니다.</div>
-            <div class="overflow-x-auto"><table id="dashboard-table" class="dashboard-table"><thead><tr id="dashboard-header"><th>학생 이름</th></tr></thead><tbody id="dashboard-body"><tr><td class="text-gray-500 p-4" colspan="2">시험이 시작되면 여기에 실시간 현황이 표시됩니다.</td></tr></tbody></table></div>
+            <h3 class="text-xl font-bold mb-4">📡 실시간 접속자 현황 (<span id="presence-count">0</span>명)</h3>
+            <div id="presence-list" class="flex flex-wrap gap-2">
+                <p class="text-gray-500">학생들의 접속을 기다리고 있습니다.</p>
+            </div>
         </div>
     </div>
 
@@ -104,13 +98,22 @@
     </div>
 
     <div id="results-modal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 items-center justify-center p-4 z-50">
-        <div class="bg-white p-6 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">📈 시험 결과 분석</h2><button id="close-results-modal-btn" class="text-2xl font-bold">&times;</button></div><div class="flex space-x-2 border-b mb-4"><button class="tab-btn p-2 border-b-4 border-blue-500" data-tab="overall">전체 결과</button><button class="tab-btn p-2 border-b-4 border-transparent" data-tab="by-student">학생별 결과</button><button class="tab-btn p-2 border-b-4 border-transparent" data-tab="by-question">문제별 결과</button></div><div id="results-content"></div></div>
+        <div class="bg-white p-6 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4"><h2 id="results-modal-title" class="text-2xl font-bold">📈 시험 결과 분석</h2><button id="close-results-modal-btn" class="text-2xl font-bold">&times;</button></div>
+            <div id="results-tabs" class="flex space-x-2 border-b mb-4">
+                <button class="tab-btn p-2 border-b-4 border-blue-500" data-tab="overall">전체 결과</button>
+                <button class="tab-btn p-2 border-b-4 border-transparent" data-tab="by-student">학생별 결과</button>
+                <button class="tab-btn p-2 border-b-4 border-transparent" data-tab="by-question">문제별 결과</button>
+            </div>
+            <button id="back-to-results-btn" class="hidden mb-4 bg-gray-500 text-white px-4 py-2 rounded">← 학생 목록으로 돌아가기</button>
+            <div id="results-content"></div>
+        </div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue, update, remove, get, onDisconnect } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
     const firebaseConfig = { apiKey: "AIzaSyAN1iAC82xKL_haJUs9291YBKNv7g7WSvU", authDomain: "foranswering-afec8.firebaseapp.com", databaseURL: "https://foranswering-afec8-default-rtdb.firebaseio.com", projectId: "foranswering-afec8", storageBucket: "foranswering-afec8.firebasestorage.app", messagingSenderId: "291098085525", appId: "1:291098085525:web:883a852c6320859294339c" };
     const app = initializeApp(firebaseConfig);
@@ -121,6 +124,7 @@
     const STATUS_PATH = 'multiQuiz/status';
     const CONFIG_PATH = 'multiQuiz/config';
     const SLOTS_PATH = 'multiQuiz/slots';
+    const PRESENCE_PATH = 'multiQuiz/presence'; // [현황판] 접속자 경로 추가
     const TEACHER_PASSWORD = "2948";
 
     const teacherPanel = document.getElementById('teacher-panel');
@@ -153,96 +157,142 @@
         removeImageBtn.addEventListener('click', () => { currentImageBase64 = null; imageFileInput.value = ''; imagePreview.classList.add('hidden'); });
         questionType.addEventListener('change', () => { mcqOptionsContainer.style.display = (questionType.value === 'MCQ' || questionType.value === 'MultipleChoice') ? 'block' : 'none'; });
         document.getElementById('add-question-btn').addEventListener('click', () => { if (localQuestionSet.length >= 50) return alert("문제는 최대 50개까지 추가할 수 있습니다."); const newQuestion = { text: questionText.value.trim(), image: currentImageBase64, type: questionType.value, options: (questionType.value === 'MCQ' || questionType.value === 'MultipleChoice') ? mcqOptions.value.split(',').map(o => o.trim()) : [], correctAnswer: correctAnswer.value.trim() || null }; if (!newQuestion.text && !newQuestion.image) return alert("질문 내용이나 이미지를 입력해주세요."); localQuestionSet.push(newQuestion); renderQuestionSetList(); questionText.value = ''; mcqOptions.value = ''; correctAnswer.value = ''; removeImageBtn.click(); });
-        
-        function renderQuestionSetList() {
-            const listEl = document.getElementById('question-set-list'); listEl.innerHTML = ''; document.getElementById('question-count').textContent = localQuestionSet.length; if (localQuestionSet.length === 0) { listEl.innerHTML = '<p class="text-gray-500">아직 추가된 문제가 없습니다.</p>'; return; }
-            localQuestionSet.forEach((q, index) => {
-                const item = document.createElement('div'); item.className = 'flex justify-between items-center p-2 border rounded bg-gray-50'; const displayText = q.text ? `${q.text.substring(0, 30)}...` : '[이미지 문제]'; const imageIcon = q.image ? '🖼️' : '';
-                item.innerHTML = `<span class="font-semibold">${index + 1}. ${imageIcon} ${displayText}</span><div class="flex items-center"><button class="order-btn up-btn" data-index="${index}" style="visibility: ${index === 0 ? 'hidden' : 'visible'}">▲</button><button class="order-btn down-btn" data-index="${index}" style="visibility: ${index === localQuestionSet.length - 1 ? 'hidden' : 'visible'}">▼</button><button class="edit-btn text-sm bg-yellow-400 text-white px-2 py-1 rounded ml-2" data-index="${index}">수정</button><button class="delete-btn text-sm bg-red-500 text-white px-2 py-1 rounded" data-index="${index}">삭제</button></div>`; listEl.appendChild(item);
-            });
-            listEl.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', (e) => { const index = parseInt(e.target.dataset.index); localQuestionSet.splice(index, 1); renderQuestionSetList(); }));
-            listEl.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', (e) => { const index = parseInt(e.target.dataset.index); const q = localQuestionSet[index]; questionText.value = q.text; questionType.value = q.type; mcqOptions.value = q.options.join(','); correctAnswer.value = q.correctAnswer || ''; if (q.image) { setImage(q.image); } else { removeImageBtn.click(); } localQuestionSet.splice(index, 1); renderQuestionSetList(); }));
-            listEl.querySelectorAll('.up-btn').forEach(btn => btn.addEventListener('click', e => { const i = parseInt(e.currentTarget.dataset.index); if (i > 0) { [localQuestionSet[i-1], localQuestionSet[i]] = [localQuestionSet[i], localQuestionSet[i-1]]; renderQuestionSetList(); } }));
-            listEl.querySelectorAll('.down-btn').forEach(btn => btn.addEventListener('click', e => { const i = parseInt(e.currentTarget.dataset.index); if (i < localQuestionSet.length - 1) { [localQuestionSet[i+1], localQuestionSet[i]] = [localQuestionSet[i], localQuestionSet[i+1]]; renderQuestionSetList(); } }));
-        }
-
-        document.getElementById('publish-quiz-btn').addEventListener('click', () => { if (localQuestionSet.length === 0) return alert("하나 이상의 문제를 추가한 후 시험을 시작할 수 있습니다."); if (!confirm(`${localQuestionSet.length}개의 문제로 시험을 시작하시겠습니까?`)) return; set(ref(db, QUIZ_SET_PATH), localQuestionSet); set(ref(db, STATUS_PATH), { isPublished: true, isClosed: false }); set(ref(db, RESPONSES_PATH), {}); alert("시험이 시작되었습니다."); });
+        function renderQuestionSetList() { const listEl = document.getElementById('question-set-list'); listEl.innerHTML = ''; document.getElementById('question-count').textContent = localQuestionSet.length; if (localQuestionSet.length === 0) { listEl.innerHTML = '<p class="text-gray-500">아직 추가된 문제가 없습니다.</p>'; return; } localQuestionSet.forEach((q, index) => { const item = document.createElement('div'); item.className = 'flex justify-between items-center p-2 border rounded bg-gray-50'; const displayText = q.text ? `${q.text.substring(0, 30)}...` : '[이미지 문제]'; const imageIcon = q.image ? '🖼️' : ''; item.innerHTML = `<span class="font-semibold">${index + 1}. ${imageIcon} ${displayText}</span><div class="flex items-center"><button class="order-btn up-btn" data-index="${index}" style="visibility: ${index === 0 ? 'hidden' : 'visible'}">▲</button><button class="order-btn down-btn" data-index="${index}" style="visibility: ${index === localQuestionSet.length - 1 ? 'hidden' : 'visible'}">▼</button><button class="edit-btn text-sm bg-yellow-400 text-white px-2 py-1 rounded ml-2" data-index="${index}">수정</button><button class="delete-btn text-sm bg-red-500 text-white px-2 py-1 rounded" data-index="${index}">삭제</button></div>`; listEl.appendChild(item); }); listEl.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', (e) => { const index = parseInt(e.target.dataset.index); localQuestionSet.splice(index, 1); renderQuestionSetList(); })); listEl.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', (e) => { const index = parseInt(e.target.dataset.index); const q = localQuestionSet[index]; questionText.value = q.text; questionType.value = q.type; mcqOptions.value = q.options.join(','); correctAnswer.value = q.correctAnswer || ''; if (q.image) { setImage(q.image); } else { removeImageBtn.click(); } localQuestionSet.splice(index, 1); renderQuestionSetList(); })); listEl.querySelectorAll('.up-btn').forEach(btn => btn.addEventListener('click', e => { const i = parseInt(e.currentTarget.dataset.index); if (i > 0) { [localQuestionSet[i-1], localQuestionSet[i]] = [localQuestionSet[i], localQuestionSet[i-1]]; renderQuestionSetList(); } })); listEl.querySelectorAll('.down-btn').forEach(btn => btn.addEventListener('click', e => { const i = parseInt(e.currentTarget.dataset.index); if (i < localQuestionSet.length - 1) { [localQuestionSet[i+1], localQuestionSet[i]] = [localQuestionSet[i], localQuestionSet[i+1]]; renderQuestionSetList(); } })); }
+        document.getElementById('publish-quiz-btn').addEventListener('click', () => { if (localQuestionSet.length === 0) return alert("하나 이상의 문제를 추가한 후 시험을 시작할 수 있습니다."); if (!confirm(`${localQuestionSet.length}개의 문제로 시험을 시작하시겠습니까?`)) return; set(ref(db, QUIZ_SET_PATH), localQuestionSet); set(ref(db, STATUS_PATH), { isPublished: true, isClosed: false }); set(ref(db, RESPONSES_PATH), {}); set(ref(db, PRESENCE_PATH), {}); alert("시험이 시작되었습니다."); });
         document.getElementById('close-quiz-btn').addEventListener('click', () => { if (!confirm("시험을 종료하시겠습니까?")) return; update(ref(db, STATUS_PATH), { isClosed: true }); });
-        document.getElementById('reset-quiz-btn').addEventListener('click', () => { if (!confirm("경고: 현재 시험의 모든 것을 초기화하시겠습니까?")) return; remove(ref(db, QUIZ_SET_PATH)); remove(ref(db, RESPONSES_PATH)); remove(ref(db, STATUS_PATH)); localQuestionSet = []; allResponses = {}; renderQuestionSetList(); updateDashboardHeader(); updateDashboardBody(); alert("시험이 초기화되었습니다."); });
+        document.getElementById('reset-quiz-btn').addEventListener('click', () => { if (!confirm("경고: 현재 시험의 모든 것을 초기화하시겠습니까?")) return; remove(ref(db, QUIZ_SET_PATH)); remove(ref(db, RESPONSES_PATH)); remove(ref(db, STATUS_PATH)); remove(ref(db, PRESENCE_PATH)); localQuestionSet = []; allResponses = {}; renderQuestionSetList(); alert("시험이 초기화되었습니다."); });
 
+        // [현황판] 리스너 수정
         function setupTeacherListeners() {
             onValue(ref(db, CONFIG_PATH), (snapshot) => { studentPasswordInput.value = snapshot.val()?.studentPassword || ''; });
-            onValue(ref(db, QUIZ_SET_PATH), (snapshot) => { localQuestionSet = snapshot.val() || []; renderQuestionSetList(); updateDashboardBody(); });
-            onValue(ref(db, RESPONSES_PATH), (snapshot) => { allResponses = snapshot.val() || {}; updateDashboardBody(); });
             onValue(ref(db, STATUS_PATH), (snapshot) => { document.getElementById('submission-status-teacher').style.display = (snapshot.val()?.isClosed) ? 'block' : 'none'; });
-        }
-        
-        // [수정] 현황판 업데이트 로직 강화
-        function updateDashboardHeader() { const header = document.getElementById('dashboard-header'); header.innerHTML = '<th>학생 이름</th>'; localQuestionSet.forEach((q, index) => { header.innerHTML += `<th>${index + 1}번</th>`; }); }
-        
-        function updateDashboardBody() {
-            updateDashboardHeader(); // 헤더를 항상 최신 상태로 유지
-            const body = document.getElementById('dashboard-body'); body.innerHTML = '';
-            if (localQuestionSet.length === 0) { body.innerHTML = '<tr><td class="text-gray-500 p-4" colspan="99">시험 시작 대기중...</td></tr>'; return; }
-            const studentIds = Object.keys(allResponses);
-            if (studentIds.length === 0) { body.innerHTML = `<tr><td class="text-gray-500 p-4" colspan="${localQuestionSet.length + 1}">답변 제출 학생 없음</td></tr>`; return; }
-            studentIds.forEach(studentId => {
-                const studentData = allResponses[studentId]; const studentAnswers = studentData.answers || {}; const studentName = studentData.name || '익명';
-                let rowHtml = `<td>${studentName}</td>`;
-                for (let i = 0; i < localQuestionSet.length; i++) {
-                    const question = localQuestionSet[i];
-                    const answer = studentAnswers[i] !== undefined ? studentAnswers[i] : '';
-                    const isCorrect = isAnswerCorrect(answer, question.correctAnswer);
-                    const isOverridden = studentData.manualOverrides && studentData.manualOverrides[i];
-                    let cellClass = '';
-                    if (answer !== '') { cellClass = (isCorrect || isOverridden) ? 'correct' : 'incorrect'; }
-                    rowHtml += `<td class="${cellClass}" data-student-id="${studentId}" data-q-index="${i}">${answer}</td>`;
+            onValue(ref(db, PRESENCE_PATH), (snapshot) => {
+                const presenceData = snapshot.val() || {};
+                const presenceList = document.getElementById('presence-list');
+                const presenceCount = document.getElementById('presence-count');
+                const users = Object.values(presenceData);
+                presenceCount.textContent = users.length;
+                presenceList.innerHTML = '';
+                if (users.length === 0) {
+                    presenceList.innerHTML = '<p class="text-gray-500">학생들의 접속을 기다리고 있습니다.</p>';
+                    return;
                 }
-                body.innerHTML += `<tr>${rowHtml}</tr>`;
-            });
-
-            body.querySelectorAll('td.incorrect').forEach(cell => {
-                cell.addEventListener('click', () => {
-                    const studentId = cell.dataset.studentId; const qIndex = cell.dataset.qIndex;
-                    if (confirm(`'${allResponses[studentId].name}' 학생의 ${parseInt(qIndex)+1}번 문항 답안을 정답으로 처리하시겠습니까?`)) {
-                        set(ref(db, `${RESPONSES_PATH}/${studentId}/manualOverrides/${qIndex}`), true);
-                    }
+                users.forEach(user => {
+                    const span = document.createElement('span');
+                    span.className = 'bg-green-100 text-green-800 text-lg font-medium mr-2 px-3 py-1 rounded-full';
+                    span.textContent = user.name;
+                    presenceList.appendChild(span);
                 });
             });
         }
         
         const isAnswerCorrect = (answer, correctAnswer) => { if (answer === null || answer === undefined || !correctAnswer) return false; const formattedAnswer = String(answer).split(',').map(s => s.trim()).sort().join(','); const formattedCorrectAnswer = String(correctAnswer).split(',').map(s => s.trim()).sort().join(','); return formattedAnswer.toLowerCase() === formattedCorrectAnswer.toLowerCase(); };
-        document.getElementById('analyze-results-btn').addEventListener('click', () => { showResultsModal('overall'); });
+        
+        // [상세 채점] 결과 분석 로직 수정
+        document.getElementById('analyze-results-btn').addEventListener('click', async () => {
+             // 항상 최신 데이터로 분석
+            const [quizSetSnap, responsesSnap] = await Promise.all([get(ref(db, QUIZ_SET_PATH)), get(ref(db, RESPONSES_PATH))]);
+            localQuestionSet = quizSetSnap.val() || [];
+            allResponses = responsesSnap.val() || {};
+            showResultsModal('overall');
+        });
         document.getElementById('close-results-modal-btn').addEventListener('click', () => document.getElementById('results-modal').classList.remove('active'));
+        document.getElementById('back-to-results-btn').addEventListener('click', () => showResultsModal('by-student'));
         document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', e => showResultsModal(e.target.dataset.tab)));
-        function showResultsModal(tab) {
+        
+        function showResultsModal(tab, studentId = null) {
             document.getElementById('results-modal').classList.add('active');
+            const content = document.getElementById('results-content');
+            const tabs = document.getElementById('results-tabs');
+            const backBtn = document.getElementById('back-to-results-btn');
+            const modalTitle = document.getElementById('results-modal-title');
+
+            if (studentId) { // 학생 상세 보기
+                tabs.classList.add('hidden');
+                backBtn.classList.remove('hidden');
+                modalTitle.textContent = `🧑‍🎓 ${allResponses[studentId].name} 학생 상세 결과`;
+                showStudentDetailView(studentId);
+                return;
+            }
+            
+            tabs.classList.remove('hidden');
+            backBtn.classList.add('hidden');
+            modalTitle.textContent = '📈 시험 결과 분석';
             document.querySelectorAll('.tab-btn').forEach(btn => { btn.classList.replace('border-blue-500', 'border-transparent'); });
             document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.replace('border-transparent', 'border-blue-500');
-            const content = document.getElementById('results-content');
             const results = calculateResults();
-            if (Object.keys(results).length === 0) { content.innerHTML = '<p>아직 분석할 데이터가 없습니다. 시험이 시작되고 학생들이 답변을 제출했는지 확인해주세요.</p>'; return; }
+            if (Object.keys(results).length === 0) { content.innerHTML = '<p>아직 분석할 데이터가 없습니다.</p>'; return; }
             if (tab === 'overall') { content.innerHTML = `<h3 class="text-xl font-bold mb-4">전체 결과 요약</h3><p><strong>총 참여 인원:</strong> ${results.totalStudents}명</p><p><strong>전체 평균 점수:</strong> ${results.averageScore.toFixed(1)}점 (만점: ${localQuestionSet.length}점)</p><h4 class="text-lg font-bold mt-4">점수 분포</h4><div class="border p-4 mt-2">${Object.entries(results.scoreDistribution).map(([range, count]) => `<p>${range}점: ${count}명</p>`).join('')}</div>`; }
-            else if (tab === 'by-student') { content.innerHTML = `<h3 class="text-xl font-bold mb-4">학생별 결과</h3><table class="w-full text-left"><thead><tr><th class="p-2 border">이름</th><th class="p-2 border">점수</th><th class="p-2 border">정답률</th></tr></thead><tbody>${results.studentScores.map(s => `<tr><td class="p-2 border">${s.name}</td><td class="p-2 border">${s.score}/${localQuestionSet.length}</td><td class="p-2 border">${s.percentage.toFixed(1)}%</td></tr>`).join('')}</tbody></table>`; }
+            else if (tab === 'by-student') {
+                content.innerHTML = `<h3 class="text-xl font-bold mb-4">학생별 결과 (이름 클릭 시 상세 보기)</h3><table class="w-full text-left"><thead><tr><th class="p-2 border">이름</th><th class="p-2 border">점수</th><th class="p-2 border">정답률</th></tr></thead><tbody>${results.studentScores.map(s => `<tr><td class="p-2 border"><button class="text-blue-600 hover:underline student-detail-btn" data-student-id="${s.id}">${s.name}</button></td><td class="p-2 border">${s.score}/${localQuestionSet.length}</td><td class="p-2 border">${s.percentage.toFixed(1)}%</td></tr>`).join('')}</tbody></table>`;
+                content.querySelectorAll('.student-detail-btn').forEach(btn => btn.addEventListener('click', e => showResultsModal('by-student', e.target.dataset.studentId)));
+            }
             else if (tab === 'by-question') { content.innerHTML = `<h3 class="text-xl font-bold mb-4">문제별 결과</h3><table class="w-full text-left"><thead><tr><th class="p-2 border">문제 번호</th><th class="p-2 border">정답률</th><th class="p-2 border">정답자 수</th></tr></thead><tbody>${results.questionStats.map((q, i) => `<tr><td class="p-2 border">${i+1}번</td><td class="p-2 border">${q.percentage.toFixed(1)}%</td><td class="p-2 border">${q.correctCount}/${results.totalStudents}</td></tr>`).join('')}</tbody></table>`; }
         }
+
+        function showStudentDetailView(studentId) {
+            const studentData = allResponses[studentId];
+            let detailHtml = '<div class="space-y-4">';
+            localQuestionSet.forEach((q, i) => {
+                const answer = studentData.answers?.[i] || '미제출';
+                const correctAnswer = q.correctAnswer || '-';
+                const isAutoCorrect = isAnswerCorrect(answer, correctAnswer);
+                const override = studentData.overrides?.[i];
+                let finalCorrect;
+                if (override === 'correct') finalCorrect = true;
+                else if (override === 'incorrect') finalCorrect = false;
+                else finalCorrect = isAutoCorrect;
+                
+                detailHtml += `
+                    <div class="p-3 border rounded ${finalCorrect ? 'bg-green-50' : 'bg-red-50'}">
+                        <div class="flex justify-between items-center">
+                            <p class="font-bold text-lg">${i+1}번 문제. (자동 채점: ${isAutoCorrect ? 'O' : 'X'})</p>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" class="override-checkbox w-5 h-5" data-q-index="${i}" ${finalCorrect ? 'checked' : ''}>
+                                <span>정답 처리</span>
+                            </label>
+                        </div>
+                        <p class="mt-2"><strong>학생 답:</strong> ${answer}</p>
+                        <p><strong>실제 정답:</strong> ${correctAnswer}</p>
+                    </div>`;
+            });
+            detailHtml += '</div>';
+            document.getElementById('results-content').innerHTML = detailHtml;
+            document.querySelectorAll('.override-checkbox').forEach(box => box.addEventListener('change', e => {
+                const qIndex = e.target.dataset.qIndex;
+                const isChecked = e.target.checked;
+                const autoCorrect = isAnswerCorrect(studentData.answers?.[qIndex], localQuestionSet[qIndex].correctAnswer);
+                let newOverride = null;
+                if(isChecked && !autoCorrect) newOverride = 'correct'; // 오답인데 정답으로 변경
+                if(!isChecked && autoCorrect) newOverride = 'incorrect'; // 정답인데 오답으로 변경
+                update(ref(db, `${RESPONSES_PATH}/${studentId}/overrides/${qIndex}`), newOverride);
+            }));
+        }
+
         function calculateResults() {
             if (localQuestionSet.length === 0 || Object.keys(allResponses).length === 0) return {};
             const studentScores = []; const questionStats = Array(localQuestionSet.length).fill(0).map(() => ({ correctCount: 0 })); const studentIds = Object.keys(allResponses);
-            studentIds.forEach(studentId => { const data = allResponses[studentId]; let score = 0; for (let i = 0; i < localQuestionSet.length; i++) { const isCorrectAuto = isAnswerCorrect(data.answers?.[i], localQuestionSet[i].correctAnswer); const isCorrectManual = data.manualOverrides?.[i]; if (isCorrectAuto || isCorrectManual) { score++; questionStats[i].correctCount++; } } studentScores.push({ name: data.name, score }); });
+            studentIds.forEach(studentId => { const data = allResponses[studentId]; let score = 0; for (let i = 0; i < localQuestionSet.length; i++) { const isAutoCorrect = isAnswerCorrect(data.answers?.[i], localQuestionSet[i].correctAnswer); const override = data.overrides?.[i]; let finalCorrect; if (override === 'correct') finalCorrect = true; else if (override === 'incorrect') finalCorrect = false; else finalCorrect = isAutoCorrect; if (finalCorrect) { score++; questionStats[i].correctCount++; } } studentScores.push({ id: studentId, name: data.name, score }); });
             studentScores.sort((a,b) => b.score - a.score); const totalScore = studentScores.reduce((sum, s) => sum + s.score, 0); const scoreDistribution = {"90-100": 0, "80-89": 0, "70-79": 0, "60-69": 0, "0-59": 0 };
-            studentScores.forEach(s => { const pct = (s.score / localQuestionSet.length) * 100; s.percentage = pct; if(pct>=90) scoreDistribution["90-100"]++; else if(pct>=80) scoreDistribution["80-89"]++; else if(pct>=70) scoreDistribution["70-79"]++; else if(pct>=60) scoreDistribution["60-69"]++; else scoreDistribution["0-59"]++; });
+            studentScores.forEach(s => { const pct = localQuestionSet.length > 0 ? (s.score / localQuestionSet.length) * 100 : 0; s.percentage = pct; if(pct>=90) scoreDistribution["90-100"]++; else if(pct>=80) scoreDistribution["80-89"]++; else if(pct>=70) scoreDistribution["70-79"]++; else if(pct>=60) scoreDistribution["60-69"]++; else scoreDistribution["0-59"]++; });
             return { totalStudents: studentIds.length, averageScore: studentIds.length > 0 ? totalScore / studentIds.length : 0, studentScores, questionStats: questionStats.map(q => ({...q, percentage: studentIds.length > 0 ? (q.correctCount/studentIds.length)*100 : 0})), scoreDistribution };
         }
     }
 
     // ====================================================
-    // 학생 로직 (이전과 동일, 오류 없음)
+    // 학생 로직
     // ====================================================
     let studentQuizSet = [], currentQuestionIndex = 0, studentId = null, studentName = '';
     if (document.getElementById('student-mode-btn')) {
         document.getElementById('student-login-btn').addEventListener('click', async () => { studentName = document.getElementById('student-name').value.trim(); const password = document.getElementById('student-access-password').value.trim(); if (!studentName) return alert("이름을 입력해주세요."); const configSnap = await get(ref(db, CONFIG_PATH)); const requiredPassword = configSnap.val()?.studentPassword; if (requiredPassword && password !== requiredPassword) return alert("비밀번호가 틀렸습니다."); studentId = studentName.replace(/[.#$/[\]]/g, "_"); localStorage.setItem('multi_quiz_student_name', studentName); document.getElementById('student-login-area').classList.add('hidden'); document.getElementById('student-waiting-area').classList.remove('hidden'); setupStudentListeners(); setupAntiCheating(); });
-        function setupStudentListeners() { onValue(ref(db, STATUS_PATH), (snapshot) => { const status = snapshot.val(); const quizArea = document.getElementById('student-quiz-area'); const waitingArea = document.getElementById('student-waiting-area'); const finishedArea = document.getElementById('student-finished-area'); const statusMsg = document.getElementById('submission-status-student'); if (status?.isPublished) { waitingArea.classList.add('hidden'); finishedArea.classList.add('hidden'); quizArea.classList.remove('hidden'); if (!studentQuizSet || studentQuizSet.length === 0) { get(ref(db, QUIZ_SET_PATH)).then(quizSnapshot => { studentQuizSet = quizSnapshot.val() || []; renderCurrentQuestion(); }); } } else { waitingArea.classList.remove('hidden'); quizArea.classList.add('hidden'); finishedArea.classList.add('hidden'); } const isClosed = status?.isClosed; statusMsg.style.display = isClosed ? 'block' : 'none'; document.querySelectorAll('#student-answer-options input, #student-answer-options textarea').forEach(el => el.disabled = isClosed); }); }
+        function setupStudentListeners() {
+            // [현황판] 접속 시 presence 등록 및 연결 종료 시 자동 삭제
+            const presenceRef = ref(db, `${PRESENCE_PATH}/${studentId}`);
+            onDisconnect(presenceRef).remove();
+            set(presenceRef, { name: studentName, joinedAt: Date.now() });
+
+            onValue(ref(db, STATUS_PATH), (snapshot) => { const status = snapshot.val(); const quizArea = document.getElementById('student-quiz-area'); const waitingArea = document.getElementById('student-waiting-area'); const finishedArea = document.getElementById('student-finished-area'); const statusMsg = document.getElementById('submission-status-student'); if (status?.isPublished) { waitingArea.classList.add('hidden'); finishedArea.classList.add('hidden'); quizArea.classList.remove('hidden'); if (!studentQuizSet || studentQuizSet.length === 0) { get(ref(db, QUIZ_SET_PATH)).then(quizSnapshot => { studentQuizSet = quizSnapshot.val() || []; renderCurrentQuestion(); }); } } else { waitingArea.classList.remove('hidden'); quizArea.classList.add('hidden'); finishedArea.classList.add('hidden'); } const isClosed = status?.isClosed; statusMsg.style.display = isClosed ? 'block' : 'none'; document.querySelectorAll('#student-answer-options input, #student-answer-options textarea').forEach(el => el.disabled = isClosed); });
+        }
         function renderCurrentQuestion() { const question = studentQuizSet[currentQuestionIndex]; if (!question) return; document.getElementById('student-question-title').textContent = `문제 ${currentQuestionIndex + 1}`; document.getElementById('student-question-text').textContent = question.text; document.getElementById('question-progress').textContent = `${currentQuestionIndex + 1} / ${studentQuizSet.length}`; const imageContainer = document.getElementById('student-question-image-container'); if (question.image) { document.getElementById('student-question-image').src = question.image; imageContainer.classList.remove('hidden'); } else { imageContainer.classList.add('hidden'); } const optionsContainer = document.getElementById('student-answer-options'); optionsContainer.innerHTML = ''; get(ref(db, `${RESPONSES_PATH}/${studentId}/answers/${currentQuestionIndex}`)).then(snapshot => { const savedAnswer = snapshot.val(); if (question.type === 'OX') { ['O', 'X'].forEach(opt => { const isChecked = savedAnswer === opt; optionsContainer.innerHTML += createRadioInput(opt, opt, isChecked); }); } else if (question.type === 'MCQ') { question.options.forEach(opt => { const isChecked = savedAnswer === opt; optionsContainer.innerHTML += createRadioInput(opt, opt, isChecked); }); } else if (question.type === 'MultipleChoice') { const savedAnswers = savedAnswer ? savedAnswer.split(', ') : []; question.options.forEach(opt => { const isChecked = savedAnswers.includes(opt); optionsContainer.innerHTML += createCheckboxInput(opt, opt, isChecked); }); } else if (question.type === 'ShortAnswer') { optionsContainer.innerHTML = `<textarea id="short-answer-input" rows="4" class="w-full border rounded p-4 text-xl">${savedAnswer || ''}</textarea>`; optionsContainer.querySelector('textarea').addEventListener('blur', saveAnswer); } optionsContainer.querySelectorAll('input').forEach(input => input.addEventListener('change', saveAnswer)); get(ref(db, STATUS_PATH)).then(statusSnap => { if(statusSnap.val()?.isClosed){ document.querySelectorAll('#student-answer-options input, #student-answer-options textarea').forEach(el => el.disabled = true); }}); }); document.getElementById('prev-question-btn').disabled = currentQuestionIndex === 0; const nextBtn = document.getElementById('next-question-btn'); if (currentQuestionIndex === studentQuizSet.length - 1) { nextBtn.textContent = '완료'; nextBtn.classList.replace('bg-blue-500', 'bg-green-500'); nextBtn.classList.replace('hover:bg-blue-600', 'hover:bg-green-600');} else { nextBtn.textContent = '다음 문제 →'; nextBtn.classList.replace('bg-green-500', 'bg-blue-500'); nextBtn.classList.replace('hover:bg-green-600', 'hover:bg-blue-600'); } }
         function saveAnswer() { const question = studentQuizSet[currentQuestionIndex]; let answer; if (question.type === 'MultipleChoice') { const checked = Array.from(document.querySelectorAll('input[name="student-answer"]:checked')).map(el => el.value); answer = checked.join(', '); } else if (question.type === 'ShortAnswer') { answer = document.getElementById('short-answer-input').value; } else { const selected = document.querySelector('input[name="student-answer"]:checked'); answer = selected ? selected.value : null; } const updates = {}; updates[`${RESPONSES_PATH}/${studentId}/name`] = studentName; updates[`${RESPONSES_PATH}/${studentId}/answers/${currentQuestionIndex}`] = answer; update(ref(db), updates); }
         document.getElementById('next-question-btn').addEventListener('click', () => { if (currentQuestionIndex < studentQuizSet.length - 1) { currentQuestionIndex++; renderCurrentQuestion(); } else { saveAnswer(); if (confirm("시험지를 제출하시겠습니까? 제출 후에는 수정할 수 없습니다.")) { document.getElementById('student-quiz-area').classList.add('hidden'); document.getElementById('student-finished-area').classList.remove('hidden'); } } });
