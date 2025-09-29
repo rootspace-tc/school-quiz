@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 실시간 퀴즈 플랫폼 V23.0 (최종)</title>
+    <title>🚀 실시간 퀴즈 플랫폼 V24.0 (최종)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,7 +28,7 @@
 <body>
 
 <div class="container">
-    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 퀴즈 플랫폼 V23.0</h1>
+    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 퀴즈 플랫폼 V24.0</h1>
     
     <div id="mode-selection" class="flex justify-center space-x-6 mb-8">
         <button id="teacher-mode-btn" class="mode-button bg-red-500 text-white p-4 rounded-lg shadow-md text-xl">
@@ -69,7 +69,8 @@
 
                 <label for="question-type" class="block font-semibold mb-3">❓ 질문 유형:</label>
                 <select id="question-type" class="w-full border rounded p-3 mb-5 bg-white text-lg">
-                    <option value="MCQ">객관식 (다지선다)</option>
+                    <option value="MCQ">객관식 (단일 선택)</option>
+                    <option value="MultipleChoice">중복 선택 (체크박스)</option>
                     <option value="OX">OX 퀴즈</option>
                     <option value="ShortAnswer">주관식 (단답형)</option>
                 </select>
@@ -80,7 +81,7 @@
                 </div>
 
                 <label for="correct-answer-input" class="block font-semibold mb-3 mt-5">🔑 정답 입력 (선택 사항):</label>
-                <input type="text" id="correct-answer-input" class="w-full border rounded p-3 text-lg" placeholder="예: 3번 또는 정답 텍스트">
+                <input type="text" id="correct-answer-input" class="w-full border rounded p-3 text-lg" placeholder="예: 3번 또는 정답 텍스트 (중복 선택 시 정답 보기 콤마로 구분)">
             </div>
 
             <div class="flex space-x-3 mt-6">
@@ -243,7 +244,7 @@
 
     // 데이터베이스 경로 정의
     const STATUS_PATH = 'quiz/status'; 
-    const QUESTION_PATH = 'quiz/currentQuestion'; // 단일 문제 경로
+    const QUESTION_PATH = 'quiz/currentQuestion'; 
     const RESPONSES_PATH = 'quiz/responses'; 
     const HISTORY_PATH = 'quiz/history'; 
     const PRESENCE_PATH = 'quiz/presence'; 
@@ -255,7 +256,7 @@
     const TEACHER_PASSWORD = "2948"; 
     let currentStudentId = null; 
     let currentImageBase64 = null; 
-    
+
     // UI 요소
     const teacherPanel = document.getElementById('teacher-panel');
     const studentPanel = document.getElementById('student-panel');
@@ -282,7 +283,6 @@
     const hideQuestionBtn = document.getElementById('hide-question-btn');
     const clearHistoryBtn = document.getElementById('clear-history-btn');
     const modifyAnswerBtn = document.getElementById('modify-answer-btn'); 
-
 
     // ----------------------------------------------------
     // 3. 이미지 업로드 및 붙여넣기 로직
@@ -321,11 +321,12 @@
 
 
     // ----------------------------------------------------
-    // 4. 모드 전환 및 초기화 로직 (안정화)
+    // 4. 모드 전환 및 초기화 로직
     // ----------------------------------------------------
     
     document.getElementById('question-type').addEventListener('change', (e) => {
-        if (e.target.value === 'MCQ') {
+        // 💡 [수정] 중복 선택 모드 추가
+        if (e.target.value === 'MCQ' || e.target.value === 'MultipleChoice') {
             document.getElementById('mcq-options-container').classList.remove('hidden');
         } else {
             document.getElementById('mcq-options-container').classList.add('hidden');
@@ -408,8 +409,8 @@
         document.getElementById('student-submitted-area').classList.add('hidden');
     });
 
-    studentPasswordInput.addEventListener('change', () => {
-        const password = studentPasswordInput.value.trim();
+    document.getElementById('student-password-input').addEventListener('change', () => {
+        const password = document.getElementById('student-password-input').value.trim();
         set(ref(db, CONFIG_PATH), { studentPassword: password });
     });
 
@@ -430,7 +431,7 @@
 
         const text = questionTextarea.value.trim();
         const type = questionTypeSelect.value;
-        const options = type === 'MCQ' ? mcqOptionsInput.value.split(',').map(s => s.trim()).filter(s => s.length > 0) : [];
+        const options = type === 'MCQ' || type === 'MultipleChoice' ? mcqOptionsInput.value.split(',').map(s => s.trim()).filter(s => s.length > 0) : [];
         const correctAnswer = correctAnswerInput.value.trim(); 
 
         if (!text && !currentImageBase64) {
@@ -546,18 +547,24 @@
 
 
     // ----------------------------------------------------
-    // 6. 학생 로직 (단일 문제 구조에 맞게 복원)
+    // 6. 학생 로직 (답변 저장 안정화)
     // ----------------------------------------------------
     
     // 💡 [핵심 수정] submitAnswer 함수 (답변 값 가져오는 로직 수정)
     document.getElementById('submit-answer-btn').addEventListener('click', () => {
-        let answer = null;
         
-        if (questionTypeSelect.value === 'ShortAnswer') {
+        const questionType = document.getElementById('question-type').value; 
+        let answer;
+
+        if (questionType === 'ShortAnswer') {
             const input = document.getElementById('short-answer-input');
-            answer = input ? input.value.trim() : null;
-        } 
-        else {
+            // 💡 [수정] trim() 후 값이 있을 때만 answer에 할당
+            answer = input && input.value.trim() ? input.value.trim() : null; 
+        } else if (questionType === 'MultipleChoice') {
+            const checkedBoxes = document.querySelectorAll('input[name="student-answer"]:checked');
+            // 중복 선택된 값들을 콤마와 공백으로 연결하여 저장
+            answer = Array.from(checkedBoxes).map(cb => cb.value.trim()).join(', ');
+        } else { // MCQ or OX (단일 선택)
             const selected = document.querySelector('input[name="student-answer"]:checked');
             answer = selected ? selected.value : null;
         }
@@ -584,9 +591,8 @@
                 return;
             }
             
-            // 💡 [핵심] 단일 문제 응답으로 저장
             set(ref(db, `${RESPONSES_PATH}/${currentStudentId}`), {
-                name: studentNameInput.value.trim(),
+                name: document.getElementById('student-name').value.trim(),
                 answer: answer,
                 timestamp: Date.now()
             })
@@ -625,11 +631,14 @@
         });
     }
 
-    // 💡 [수정] renderStudentInputs: 단일 퀴즈 구조로 복원
+    // 💡 [수정] renderStudentInputs: 중복 선택 기능 추가
     function renderStudentInputs(question) {
         document.getElementById('student-answer-buttons').innerHTML = ''; 
         document.getElementById('submit-answer-btn').classList.remove('hidden');
         
+        const isMultipleChoice = question.type === 'MultipleChoice';
+        const inputType = isMultipleChoice ? 'checkbox' : 'radio';
+
         if (question.type === 'OX') {
             const options = ['O', 'X'];
             options.forEach(option => {
@@ -641,21 +650,21 @@
             });
             document.getElementById('submit-answer-btn').classList.add('hidden'); 
             
-        } else if (question.type === 'MCQ' && question.options && question.options.length > 0) {
+        } else if (question.type === 'MCQ' || isMultipleChoice) {
             question.options.forEach((option, index) => {
-                const radioId = `mcq-option-${index}`;
+                const inputId = `${inputType}-option-${index}`;
                 const div = document.createElement('div');
                 div.className = 'flex items-center p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 cursor-pointer';
 
                 const input = document.createElement('input');
-                input.type = 'radio';
-                input.id = radioId;
+                input.type = inputType;
+                input.id = inputId;
                 input.name = 'student-answer';
                 input.value = option;
                 input.className = 'w-6 h-6 text-yellow-600 focus:ring-yellow-500 mr-4';
                 
                 const label = document.createElement('label');
-                label.htmlFor = radioId;
+                label.htmlFor = inputId;
                 label.textContent = option;
                 label.className = 'text-xl font-medium text-gray-700 flex-1';
 
@@ -736,13 +745,23 @@
         const correctNames = []; 
 
         // 1. 막대 그래프/통계 표시
-        if (question.type === 'MCQ' || question.type === 'OX') {
+        if (question.type === 'MCQ' || question.type === 'MultipleChoice' || question.type === 'OX') {
             const results = {};
             responseList.forEach(r => {
-                const answer = r.answer || '미응답';
-                results[answer] = (results[answer] || 0) + 1;
-                if (correctAnswer && r.answer && r.answer.trim().toLowerCase() === correctAnswer) {
-                    correctNames.push(r.name || '익명');
+                // 💡 중복 선택의 경우, 콤마로 분리하여 각 항목의 응답 수를 계산
+                const answers = r.answer.split(',').map(a => a.trim());
+                answers.forEach(answer => {
+                    if (answer) {
+                        results[answer] = (results[answer] || 0) + 1;
+                    }
+                });
+                
+                // 정답자 판별 (중복 선택의 경우, 저장된 모든 답변이 정답과 일치해야 정답으로 간주)
+                if (correctAnswer) {
+                     const isCorrect = answers.sort().join(',') === correctAnswer.split(',').map(a => a.trim()).sort().join(',');
+                    if (isCorrect) {
+                        correctNames.push(r.name || '익명');
+                    }
                 }
             });
             
@@ -753,13 +772,15 @@
             sortedResults.forEach((item, index) => {
                 const percentage = totalCount > 0 ? (item.count / totalCount) * 100 : 0;
                 const color = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500'][index % 4];
-                const isCorrect = correctAnswer && item.answer.trim().toLowerCase() === correctAnswer;
-                const barClass = isCorrect ? 'bg-green-700' : color;
                 
+                const isItemCorrect = correctAnswer.split(',').map(a => a.trim().toLowerCase()).includes(item.answer.toLowerCase());
+                const barClass = isItemCorrect && correctAnswer.length > 0 ? 'bg-green-700' : color;
+
+
                 graphHTML += `
                     <div class="mb-5">
                         <div class="flex justify-between mb-1 font-medium text-lg">
-                            <span>${item.answer} ${isCorrect ? ' (🔑 정답)' : ''}</span>
+                            <span>${item.answer} ${isItemCorrect && question.type !== 'OX' ? ' (🔑 정답 보기)' : ''}</span>
                             <span>${item.count}명 (${percentage.toFixed(1)}%)</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full">
@@ -780,6 +801,7 @@
             const isCorrect = correctAnswer && r.answer && r.answer.trim().toLowerCase() === correctAnswer;
             const li = document.createElement('li');
             li.className = isCorrect ? 'correct-answer-highlight' : 'border-b pb-1';
+            
             li.innerHTML = `
                 <span class="font-bold text-gray-800">${r.name || '익명'}</span>: 
                 <span class="text-gray-700">${r.answer}</span>
@@ -856,6 +878,7 @@
         document.getElementById('export-excel-btn').onclick = () => exportToCSV(q, r, `${number}번_문제_기록`);
     }
 
+    // 💡 [수정] 접속자 목록 렌더링 함수
     function renderActiveUsers(presenceData) {
         activeUsersContent.innerHTML = '';
         let userCount = 0;
