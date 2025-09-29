@@ -325,7 +325,6 @@
     // ----------------------------------------------------
     
     document.getElementById('question-type').addEventListener('change', (e) => {
-        // 💡 [수정] 중복 선택 모드 추가
         if (e.target.value === 'MCQ' || e.target.value === 'MultipleChoice') {
             document.getElementById('mcq-options-container').classList.remove('hidden');
         } else {
@@ -347,9 +346,9 @@
             const configSnapshot = await get(ref(db, CONFIG_PATH));
             const config = configSnapshot.val();
             if (config && config.studentPassword) {
-                studentPasswordInput.value = config.studentPassword;
+                document.getElementById('student-password-input').value = config.studentPassword;
             } else {
-                studentPasswordInput.value = '';
+                document.getElementById('student-password-input').value = '';
             }
 
             teacherPanel.classList.remove('hidden');
@@ -878,7 +877,6 @@
         document.getElementById('export-excel-btn').onclick = () => exportToCSV(q, r, `${number}번_문제_기록`);
     }
 
-    // 💡 [수정] 접속자 목록 렌더링 함수
     function renderActiveUsers(presenceData) {
         activeUsersContent.innerHTML = '';
         let userCount = 0;
