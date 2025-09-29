@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 실시간 퀴즈 플랫폼 V22.0 (최종 안정화)</title>
+    <title>🚀 실시간 퀴즈 플랫폼 V23.0 (최종)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,19 +20,15 @@
         #student-question-text { font-size: 3rem !important; line-height: 1.4; } 
         .result-bar { height: 35px; margin-bottom: 8px; color: white; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; transition: width 0.5s ease-out; }
         .correct-answer-highlight { background-color: #d1f7d1; font-weight: bold; border-left: 5px solid #4CAF50; padding: 5px; margin: 3px 0; border-radius: 4px; }
-        .question-item { cursor: pointer; border-left: 5px solid transparent; transition: all 0.2s; }
-        .question-item:hover { background-color: #f3f4f6; border-left-color: #3b82f6; }
-        .question-item.selected { background-color: #bfdbfe; border-left-color: #1d4ed8; font-weight: bold; }
         .kick-btn { background-color: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin-left: 10px; }
         .kick-btn:hover { background-color: #dc2626; }
-        #navigation-buttons button:disabled { background-color: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
         .submission-closed { background-color: #fca5a5; color: #7f1d1d; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 퀴즈 플랫폼 V22.0</h1>
+    <h1 class="font-bold text-center mb-10 text-indigo-700">🚀 실시간 퀴즈 플랫폼 V23.0</h1>
     
     <div id="mode-selection" class="flex justify-center space-x-6 mb-8">
         <button id="teacher-mode-btn" class="mode-button bg-red-500 text-white p-4 rounded-lg shadow-md text-xl">
@@ -88,7 +84,7 @@
             </div>
 
             <div class="flex space-x-3 mt-6">
-                 <button id="post-question-btn" class="bg-red-500 hover:bg-red-600 text-white p-4 rounded-lg font-semibold flex-1 text-xl">
+                <button id="post-question-btn" class="bg-red-500 hover:bg-red-600 text-white p-4 rounded-lg font-semibold flex-1 text-xl">
                     📢 문제 출제하기
                 </button>
                 <button id="close-submission-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white p-4 rounded-lg font-semibold w-1/4 text-xl">
@@ -247,12 +243,11 @@
 
     // 데이터베이스 경로 정의
     const STATUS_PATH = 'quiz/status'; 
-    const QUESTION_PATH = 'quiz/currentQuestion'; // 단일 문제 경로로 복원
+    const QUESTION_PATH = 'quiz/currentQuestion'; // 단일 문제 경로
     const RESPONSES_PATH = 'quiz/responses'; 
     const HISTORY_PATH = 'quiz/history'; 
     const PRESENCE_PATH = 'quiz/presence'; 
     const CONFIG_PATH = 'quiz/config'; 
-    // const MANAGED_QUESTIONS_PATH = 'quiz/managedQuestions'; // (사용 안 함)
 
     // ----------------------------------------------------
     // 2. 변수 및 UI 요소 정의
@@ -287,6 +282,7 @@
     const hideQuestionBtn = document.getElementById('hide-question-btn');
     const clearHistoryBtn = document.getElementById('clear-history-btn');
     const modifyAnswerBtn = document.getElementById('modify-answer-btn'); 
+
 
     // ----------------------------------------------------
     // 3. 이미지 업로드 및 붙여넣기 로직
@@ -553,6 +549,26 @@
     // 6. 학생 로직 (단일 문제 구조에 맞게 복원)
     // ----------------------------------------------------
     
+    // 💡 [핵심 수정] submitAnswer 함수 (답변 값 가져오는 로직 수정)
+    document.getElementById('submit-answer-btn').addEventListener('click', () => {
+        let answer = null;
+        
+        if (questionTypeSelect.value === 'ShortAnswer') {
+            const input = document.getElementById('short-answer-input');
+            answer = input ? input.value.trim() : null;
+        } 
+        else {
+            const selected = document.querySelector('input[name="student-answer"]:checked');
+            answer = selected ? selected.value : null;
+        }
+
+        if (answer) {
+            submitAnswer(answer);
+        } else {
+            alert('답변을 선택하거나 입력해주세요.');
+        }
+    });
+
     function submitAnswer(answer) {
         if (!currentStudentId) {
             alert('먼저 이름을 입력하고 참여를 시작해주세요.');
@@ -568,7 +584,7 @@
                 return;
             }
             
-            // 💡 [수정] 단일 문제 응답으로 저장
+            // 💡 [핵심] 단일 문제 응답으로 저장
             set(ref(db, `${RESPONSES_PATH}/${currentStudentId}`), {
                 name: studentNameInput.value.trim(),
                 answer: answer,
@@ -704,7 +720,6 @@
         get(ref(db, QUESTION_PATH)).then((qSnapshot) => {
             const question = qSnapshot.val();
             if (!question) {
-                // 단일 퀴즈 구조에 맞게 변경
                 const defaultQuestion = { text: '문제 없음', type: 'MCQ', options: [] };
                 renderPastResults(defaultQuestion, filteredResponses, totalCount, document.getElementById('results-display'));
                 return;
@@ -765,7 +780,6 @@
             const isCorrect = correctAnswer && r.answer && r.answer.trim().toLowerCase() === correctAnswer;
             const li = document.createElement('li');
             li.className = isCorrect ? 'correct-answer-highlight' : 'border-b pb-1';
-            // 💡 [수정] 이름이 undefined가 아닌, 정확히 표시되도록 수정
             li.innerHTML = `
                 <span class="font-bold text-gray-800">${r.name || '익명'}</span>: 
                 <span class="text-gray-700">${r.answer}</span>
@@ -842,7 +856,6 @@
         document.getElementById('export-excel-btn').onclick = () => exportToCSV(q, r, `${number}번_문제_기록`);
     }
 
-    // 💡 [수정] 접속자 목록 렌더링 함수
     function renderActiveUsers(presenceData) {
         activeUsersContent.innerHTML = '';
         let userCount = 0;
