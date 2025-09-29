@@ -23,8 +23,6 @@
         .kick-btn { background-color: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin-left: 10px; }
         .kick-btn:hover { background-color: #dc2626; }
         .submission-closed { background-color: #fca5a5; color: #7f1d1d; font-weight: bold; }
-        /* 💡 [추가] 마감 버튼 색상 */
-        .closed-button { background-color: #ef4444; color: white !important; }
     </style>
 </head>
 <body>
@@ -285,6 +283,8 @@
     const hideQuestionBtn = document.getElementById('hide-question-btn');
     const clearHistoryBtn = document.getElementById('clear-history-btn');
     const modifyAnswerBtn = document.getElementById('modify-answer-btn'); 
+    const submissionStatusTeacher = document.getElementById('submission-status-teacher');
+    const submissionStatusStudent = document.getElementById('submission-status-student');
 
     // ----------------------------------------------------
     // 3. 이미지 업로드 및 붙여넣기 로직
@@ -554,14 +554,14 @@
     // 💡 [핵심 수정] submitAnswer 함수 (답변 값 가져오는 로직 수정)
     document.getElementById('submit-answer-btn').addEventListener('click', () => {
         
-        const questionType = document.getElementById('question-type').value; 
+        const currentQuestionType = document.getElementById('question-type').value; 
         let answer;
 
-        if (questionType === 'ShortAnswer') {
+        if (currentQuestionType === 'ShortAnswer') {
             const input = document.getElementById('short-answer-input');
             // 💡 [수정] trim() 후 값이 있을 때만 answer에 할당 (빈 문자열도 유효한 답변으로 처리)
             answer = input && input.value ? input.value.trim() : null; 
-        } else if (questionType === 'MultipleChoice') {
+        } else if (currentQuestionType === 'MultipleChoice') {
             const checkedBoxes = document.querySelectorAll('input[name="student-answer"]:checked');
             answer = Array.from(checkedBoxes).map(cb => cb.value.trim()).join(', ');
             if (answer.trim() === '') answer = null; 
