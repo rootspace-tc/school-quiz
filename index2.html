@@ -125,7 +125,7 @@
             <h3 class="text-3xl font-bold mb-4 text-gray-700">⏳ 시험 대기중...</h3>
             <p class="text-xl text-gray-600">선생님이 시험을 시작할 때까지 잠시 기다려주세요.</p>
         </div>
-
+        
         <div id="student-finished-area" class="hidden text-center p-12 border border-green-300 rounded-lg bg-green-50">
             <h3 class="text-3xl font-bold mb-4 text-green-700">🎉 수고하셨습니다!</h3>
             <p class="text-xl text-gray-600">답안 제출이 완료되었습니다. 선생님의 안내를 기다려주세요.</p>
@@ -149,7 +149,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { getDatabase, ref, set, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-    // Firebase 설정
     const firebaseConfig = { apiKey: "AIzaSyAN1iAC82xKL_haJUs9291YBKNv7g7WSvU", authDomain: "foranswering-afec8.firebaseapp.com", databaseURL: "https://foranswering-afec8-default-rtdb.firebaseio.com", projectId: "foranswering-afec8", storageBucket: "foranswering-afec8.firebasestorage.app", messagingSenderId: "291098085525", appId: "1:291098085525:web:883a852c6320859294339c" };
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
@@ -198,14 +197,12 @@
 
         function setupTeacherListeners() {
             onValue(ref(db, CONFIG_PATH), (snapshot) => { studentPasswordInput.value = snapshot.val()?.studentPassword || ''; });
-            // [현황판] 문제 목록 리스너 수정
             onValue(ref(db, QUIZ_SET_PATH), (snapshot) => {
                 const questions = snapshot.val() || [];
                 localQuestionSet = questions;
                 renderQuestionSetList();
                 updateDashboardHeader(questions);
-                // 문제 목록이 로드된 후, 현재 답변 데이터로 현황판을 다시 그림
-                updateDashboardBody(allResponses);
+                updateDashboardBody(allResponses); // [수정] 문제 목록 로드 후, 현황판 강제 업데이트
             });
             onValue(ref(db, RESPONSES_PATH), (snapshot) => { allResponses = snapshot.val() || {}; updateDashboardBody(allResponses); });
             onValue(ref(db, STATUS_PATH), (snapshot) => { document.getElementById('submission-status-teacher').style.display = (snapshot.val()?.isClosed) ? 'block' : 'none'; });
@@ -214,7 +211,9 @@
         function updateDashboardHeader(questions) { const header = document.getElementById('dashboard-header'); header.innerHTML = '<th>학생 이름</th>'; questions.forEach((q, index) => { header.innerHTML += `<th>${index + 1}번</th>`; }); }
 
         function updateDashboardBody(responses) {
-            const body = document.getElementById('dashboard-body'); body.innerHTML = ''; const studentIds = Object.keys(responses);
+            const body = document.getElementById('dashboard-body'); body.innerHTML = '';
+            if (localQuestionSet.length === 0) { body.innerHTML = '<tr><td class="text-gray-500 p-4" colspan="99">시험 시작 대기중...</td></tr>'; return; } // [수정] 문제가 없으면 실행 중단
+            const studentIds = Object.keys(responses);
             if (studentIds.length === 0) { body.innerHTML = '<tr><td class="text-gray-500 p-4" colspan="99">답변 제출 학생 없음</td></tr>'; return; }
             studentIds.forEach(studentId => {
                 const studentData = responses[studentId]; const studentAnswers = studentData.answers || {}; const studentName = studentData.name || '익명';
@@ -246,8 +245,8 @@
         document.getElementById('analyze-results-btn').addEventListener('click', () => { showResultsModal('overall'); });
         document.getElementById('close-results-modal-btn').addEventListener('click', () => document.getElementById('results-modal').classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', e => showResultsModal(e.target.dataset.tab)));
-        function showResultsModal(tab) { /* ... 기존과 동일 ... */ }
-        function calculateResults() { /* ... 기존과 동일 ... */ }
+        function showResultsModal(tab) { /* ... */ }
+        function calculateResults() { /* ... */ }
     }
 
     // ====================================================
@@ -256,18 +255,71 @@
     let studentQuizSet = [], currentQuestionIndex = 0, studentId = null, studentName = '';
     if (document.getElementById('student-mode-btn')) {
         document.getElementById('student-login-btn').addEventListener('click', async () => { studentName = document.getElementById('student-name').value.trim(); const password = document.getElementById('student-access-password').value.trim(); if (!studentName) return alert("이름을 입력해주세요."); const configSnap = await get(ref(db, CONFIG_PATH)); const requiredPassword = configSnap.val()?.studentPassword; if (requiredPassword && password !== requiredPassword) return alert("비밀번호가 틀렸습니다."); studentId = studentName.replace(/[.#$/[\]]/g, "_"); localStorage.setItem('multi_quiz_student_name', studentName); document.getElementById('student-login-area').classList.add('hidden'); document.getElementById('student-waiting-area').classList.remove('hidden'); setupStudentListeners(); setupAntiCheating(); });
-        function setupStudentListeners() { /* ... 기존과 동일 ... */ }
-        function renderCurrentQuestion() { /* ... 기존과 동일 ... */ }
-        function saveAnswer() { /* ... 기존과 동일 ... */ }
+        
+        // [수정] 비어 있던 함수들의 내용을 모두 복원
+        function setupStudentListeners() {
+            onValue(ref(db, STATUS_PATH), (snapshot) => {
+                const status = snapshot.val();
+                const quizArea = document.getElementById('student-quiz-area');
+                const waitingArea = document.getElementById('student-waiting-area');
+                const finishedArea = document.getElementById('student-finished-area');
+                const statusMsg = document.getElementById('submission-status-student');
 
-        // [완료] 완료 버튼 이벤트 리스너 수정
+                if (status?.isPublished) {
+                    waitingArea.classList.add('hidden');
+                    finishedArea.classList.add('hidden');
+                    quizArea.classList.remove('hidden');
+                    if (!studentQuizSet || studentQuizSet.length === 0) {
+                        get(ref(db, QUIZ_SET_PATH)).then(quizSnapshot => {
+                           studentQuizSet = quizSnapshot.val() || [];
+                           renderCurrentQuestion();
+                        });
+                    }
+                } else {
+                    waitingArea.classList.remove('hidden');
+                    quizArea.classList.add('hidden');
+                    finishedArea.classList.add('hidden');
+                }
+                const isClosed = status?.isClosed;
+                statusMsg.style.display = isClosed ? 'block' : 'none';
+                document.querySelectorAll('#student-answer-options input, #student-answer-options textarea').forEach(el => el.disabled = isClosed);
+            });
+        }
+
+        function renderCurrentQuestion() {
+            const question = studentQuizSet[currentQuestionIndex]; if (!question) return;
+            document.getElementById('student-question-title').textContent = `문제 ${currentQuestionIndex + 1}`; document.getElementById('student-question-text').textContent = question.text; document.getElementById('question-progress').textContent = `${currentQuestionIndex + 1} / ${studentQuizSet.length}`;
+            const imageContainer = document.getElementById('student-question-image-container'); if (question.image) { document.getElementById('student-question-image').src = question.image; imageContainer.classList.remove('hidden'); } else { imageContainer.classList.add('hidden'); }
+            const optionsContainer = document.getElementById('student-answer-options'); optionsContainer.innerHTML = '';
+            get(ref(db, `${RESPONSES_PATH}/${studentId}/answers/${currentQuestionIndex}`)).then(snapshot => {
+                const savedAnswer = snapshot.val();
+                if (question.type === 'OX') { ['O', 'X'].forEach(opt => { const isChecked = savedAnswer === opt; optionsContainer.innerHTML += createRadioInput(opt, opt, isChecked); }); }
+                else if (question.type === 'MCQ') { question.options.forEach(opt => { const isChecked = savedAnswer === opt; optionsContainer.innerHTML += createRadioInput(opt, opt, isChecked); }); }
+                else if (question.type === 'MultipleChoice') { const savedAnswers = savedAnswer ? savedAnswer.split(', ') : []; question.options.forEach(opt => { const isChecked = savedAnswers.includes(opt); optionsContainer.innerHTML += createCheckboxInput(opt, opt, isChecked); }); }
+                else if (question.type === 'ShortAnswer') { optionsContainer.innerHTML = `<textarea id="short-answer-input" rows="4" class="w-full border rounded p-4 text-xl">${savedAnswer || ''}</textarea>`; optionsContainer.querySelector('textarea').addEventListener('blur', saveAnswer); }
+                optionsContainer.querySelectorAll('input').forEach(input => input.addEventListener('change', saveAnswer));
+                get(ref(db, STATUS_PATH)).then(statusSnap => { if(statusSnap.val()?.isClosed){ document.querySelectorAll('#student-answer-options input, #student-answer-options textarea').forEach(el => el.disabled = true); }});
+            });
+            document.getElementById('prev-question-btn').disabled = currentQuestionIndex === 0; const nextBtn = document.getElementById('next-question-btn');
+            if (currentQuestionIndex === studentQuizSet.length - 1) { nextBtn.textContent = '완료'; nextBtn.classList.replace('bg-blue-500', 'bg-green-500'); nextBtn.classList.replace('hover:bg-blue-600', 'hover:bg-green-600');}
+            else { nextBtn.textContent = '다음 문제 →'; nextBtn.classList.replace('bg-green-500', 'bg-blue-500'); nextBtn.classList.replace('hover:bg-green-600', 'hover:bg-blue-600'); }
+        }
+        
+        function saveAnswer() {
+            const question = studentQuizSet[currentQuestionIndex]; let answer;
+            if (question.type === 'MultipleChoice') { const checked = Array.from(document.querySelectorAll('input[name="student-answer"]:checked')).map(el => el.value); answer = checked.join(', '); }
+            else if (question.type === 'ShortAnswer') { answer = document.getElementById('short-answer-input').value; }
+            else { const selected = document.querySelector('input[name="student-answer"]:checked'); answer = selected ? selected.value : null; }
+            const updates = {}; updates[`${RESPONSES_PATH}/${studentId}/name`] = studentName; updates[`${RESPONSES_PATH}/${studentId}/answers/${currentQuestionIndex}`] = answer;
+            update(ref(db), updates);
+        }
+
         document.getElementById('next-question-btn').addEventListener('click', () => {
             if (currentQuestionIndex < studentQuizSet.length - 1) {
                 currentQuestionIndex++;
                 renderCurrentQuestion();
             } else {
-                // 마지막 문제에서 클릭 시
-                saveAnswer(); // 현재 페이지의 답을 최종 저장
+                saveAnswer();
                 if (confirm("시험지를 제출하시겠습니까? 제출 후에는 수정할 수 없습니다.")) {
                     document.getElementById('student-quiz-area').classList.add('hidden');
                     document.getElementById('student-finished-area').classList.remove('hidden');
@@ -275,14 +327,17 @@
             }
         });
         document.getElementById('prev-question-btn').addEventListener('click', () => { if (currentQuestionIndex > 0) { currentQuestionIndex--; renderCurrentQuestion(); } });
-        const createRadioInput = (id, val, checked) => `<div class="flex items-center p-3 bg-gray-100 rounded-lg hover:bg-gray-200"><input type="radio" id="${id}" name="student-answer" value="${val}" class="w-5 h-5" ${checked ? 'checked' : ''}><label for="${id}" class="ml-3 text-xl text-gray-800 flex-1">${val}</label></div>`;
-        const createCheckboxInput = (id, val, checked) => `<div class="flex items-center p-3 bg-gray-100 rounded-lg hover:bg-gray-200"><input type="checkbox" id="${id}" name="student-answer" value="${val}" class="w-5 h-5" ${checked ? 'checked' : ''}><label for="${id}" class="ml-3 text-xl text-gray-800 flex-1">${val}</label></div>`;
-        function setupAntiCheating() { /* ... 기존과 동일 ... */ }
+        const createRadioInput = (id, val, checked) => `<div class="flex items-center p-3 bg-gray-100 rounded-lg hover:bg-gray-200"><input type="radio" id="${val.replace(/[^a-zA-Z0-9]/g, "")}" name="student-answer" value="${val}" class="w-5 h-5" ${checked ? 'checked' : ''}><label for="${val.replace(/[^a-zA-Z0-9]/g, "")}" class="ml-3 text-xl text-gray-800 flex-1">${val}</label></div>`;
+        const createCheckboxInput = (id, val, checked) => `<div class="flex items-center p-3 bg-gray-100 rounded-lg hover:bg-gray-200"><input type="checkbox" id="${val.replace(/[^a-zA-Z0-9]/g, "")}" name="student-answer" value="${val}" class="w-5 h-5" ${checked ? 'checked' : ''}><label for="${val.replace(/[^a-zA-Z0-9]/g, "")}" class="ml-3 text-xl text-gray-800 flex-1">${val}</label></div>`;
+    
+        function setupAntiCheating() {
+            const preventAction = (e) => { e.preventDefault(); alert("시험 중에는 해당 기능을 사용할 수 없습니다."); };
+            document.addEventListener('contextmenu', preventAction); document.addEventListener('copy', preventAction); document.addEventListener('cut', preventAction); document.addEventListener('paste', preventAction);
+            document.addEventListener('visibilitychange', () => { if (document.hidden) { alert("경고: 시험 화면을 벗어났습니다. 다시 이탈할 경우 불이익이 있을 수 있습니다."); } });
+        }
     }
 
-    // ====================================================
     // 공통 로직
-    // ====================================================
     document.getElementById('teacher-mode-btn').addEventListener('click', () => { const password = prompt("교사 모드 비밀번호를 입력하세요."); if (password === TEACHER_PASSWORD) { modeSelection.classList.add('hidden'); teacherPanel.classList.remove('hidden'); setupTeacherListeners(); } else { alert("비밀번호가 틀렸습니다."); } });
     document.getElementById('student-mode-btn').addEventListener('click', () => { modeSelection.classList.add('hidden'); studentPanel.classList.remove('hidden'); const savedName = localStorage.getItem('multi_quiz_student_name'); if(savedName) { document.getElementById('student-name').value = savedName; } });
 </script>
