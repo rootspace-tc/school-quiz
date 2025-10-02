@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>두근두근 폭탄 게임!</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        :root { --main-pink: #ff69b4; --light-pink: #fff0f5; --point-blue: #87ceeb; --dark-blue: #6a5acd; --gray: #cccccc; }
+        
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #ffe6e6;
+            color: #555;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: var(--light-pink);
+            padding: 40px;
+            border-radius: 30px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            width: 1200px;
+            max-width: 95%;
+            position: relative;
+        }
+
+        h1 {
+            color: var(--main-pink);
+            margin-bottom: 30px;
+            font-size: 3.5em;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: var(--dark-blue);
+            font-size: 2.5em;
+            margin-top: 0;
+        }
+
+        /* --- 화면 전환 관리 --- */
+        #participant-setup-container, #student-selection-container, #game-container { display: none; }
+
+        /* 게임 설정 화면 */
+        #setup-container label, #participant-setup-container label { font-size: 2em; margin-right: 15px; color: #ff1493; display: block; margin-bottom: 15px; }
+        #holes-input, #students-input {
+            font-family: 'Jua', sans-serif;
+            padding: 15px; font-size: 1.8em;
+            border: 3px solid #ffb6c1; border-radius: 15px;
+            text-align: center; background-color: #fff;
+            margin-bottom: 20px;
+        }
+        #holes-input { width: 120px; }
+        #students-input { width: 90%; height: 100px; text-align: left; }
+
+        .btn {
+            font-family: 'Jua', sans-serif;
+            font-size: 2.2em; padding: 15px 30px; border: none;
+            border-radius: 15px; cursor: pointer; background-color: var(--main-pink);
+            color: white; transition: background-color 0.3s, transform 0.2s;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+            margin: 5px;
+        }
+        .btn:hover { background-color: #ff1493; transform: translateY(-3px); }
+        .btn:active { transform: translateY(0); }
+
+        /* 학생 선택 화면 */
+        #student-buttons-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .student-btn { font-size: 1.5em; padding: 20px 10px; }
+        .student-btn.in-progress { background-color: var(--point-blue); }
+        .student-btn.in-progress:hover { background-color: #5f9ea0; }
+        .student-btn.finished { background-color: var(--gray); color: #666; cursor: not-allowed; }
+        .student-btn.finished:hover { background-color: var(--gray); transform: none; }
+        
+        #restart-game-btn { background-color: #dc3545; }
+        #restart-game-btn:hover { background-color: #c82333; }
+
+        /* 게임 화면 */
+        .game-layout { display: flex; gap: 30px; align-items: stretch; }
+        .button-panel {
+            flex: 2; background-color: #b0e0e6; border: 15px solid var(--point-blue);
+            border-radius: 40px; padding: 25px; box-shadow: inset 0 0 30px rgba(0,0,0,0.1);
+            display: flex; justify-content: center; align-items: center;
+        }
+        .bomb-panel { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .status-wrapper {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            width: 100%; height: 100%;
+        }
+        #bomb-item {
+            width: 220px; height: auto;
+            transition: transform 0.5s ease-out, opacity 0.3s ease-out;
+        }
+        #bomb-item svg { width: 100%; height: auto; display: block; }
+        #bomb-item.exploded { transform: scale(1.5); opacity: 0; }
+
+        #holes-container { display: grid; gap: 15px; justify-content: center; align-content: center; width: 100%; }
+
+        .hole {
+            width: 70px; height: 70px;
+            background-color: #ffdab9; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            color: #a0522d; font-size: 1.8em; font-weight: bold;
+            cursor: pointer; transition: background-color 0.2s, transform 0.1s;
+            user-select: none;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1), 0 3px 6px rgba(0,0,0,0.15);
+        }
+        .hole.stabbed {
+            background-color: var(--gray); cursor: not-allowed; color: transparent;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.15); transform: translateY(0);
+        }
+        .hole.checking { animation: pulse-color 0.3s infinite alternate; }
+
+        @keyframes pulse-color { from { background-color: #ff4500; } to { background-color: #ffd700; } }
+        
+        #result-message {
+            font-size: 3em; color: white; min-height: 160px; font-weight: bold;
+            line-height: 1.4; display: flex; justify-content: center; align-items: center;
+            text-align: center; visibility: hidden; background-color: rgba(0, 0, 0, 0.6);
+            border-radius: 20px; padding: 20px; margin-top: 20px; width: 90%;
+            box-sizing: border-box;
+        }
+
+        #back-btn { background-color: var(--dark-blue); visibility: hidden; margin-top: 20px; }
+        #back-btn:hover { background-color: #483d8b; }
+
+        #bgm-toggle-btn {
+            position: absolute; top: 25px; right: 25px; width: 50px; height: 50px;
+            background-color: #ffb6c1; border: 2px solid white; border-radius: 50%;
+            cursor: pointer; display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); padding: 0;
+        }
+        #bgm-toggle-btn svg { width: 24px; height: 24px; fill: white; }
+
+        #explosion-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(255, 255, 255, 0.7);
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.3s ease-out;
+            pointer-events: none; z-index: 100;
+        }
+        #explosion-overlay.show { opacity: 1; }
+        #explosion-overlay svg { width: 500px; height: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button id="bgm-toggle-btn"></button>
+
+        <div id="setup-container">
+            <h1>두근두근 폭탄 게임!</h1>
+            <label for="holes-input">버튼 개수 설정:</label>
+            <input type="number" id="holes-input" value="20" min="5" max="50">
+            <button id="confirm-holes-btn" class="btn">다음!</button>
+        </div>
+
+        <div id="participant-setup-container">
+            <h1>참가자 등록</h1>
+            <label for="students-input">참가자 이름을 쉼표(,)로 구분해서 입력하세요:</label>
+            <textarea id="students-input">김철수,이영희,박민준,최지우,정다은</textarea>
+            <button id="create-students-btn" class="btn">참가자 생성!</button>
+        </div>
+
+        <div id="student-selection-container">
+            <h1>학생 선택</h1>
+            <div id="student-buttons-container"></div>
+            <button id="restart-game-btn" class="btn">게임 전체 다시 시작</button>
+        </div>
+
+        <div id="game-container">
+            <h2 id="current-student-name"></h2>
+            <div class="game-layout">
+                <div class="button-panel">
+                    <div id="holes-container"></div>
+                </div>
+                <div class="bomb-panel">
+                    <div class="status-wrapper">
+                        <div id="bomb-item">
+                            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <radialGradient id="bombGrad" cx="35%" cy="35%" r="65%">
+                                        <stop offset="0%" style="stop-color:#6e7c85;"/>
+                                        <stop offset="100%" style="stop-color:#2c3e50;"/>
+                                    </radialGradient>
+                                </defs>
+                                <path d="M165.5,107.4c0,36.5-29.5,66.1-66,66.1s-66-29.6-66-66.1c0-36.5,29.5-66.1,66-66.1S165.5,70.9,165.5,107.4z" fill="url(#bombGrad)"/>
+                                <path d="M117.8,40.1c-0.8-1.5-2.5-2.5-4.4-2.5h-26c-1.9,0-3.6,1-4.4,2.5l-4.5,8.8c-1.2,2.4,0.4,5.2,3.1,5.2h37.4c2.7,0,4.3-2.8,3.1-5.2L117.8,40.1z" fill="#4a4a4a"/>
+                                <rect x="91.5" y="19.3" width="16.3" height="18.5" rx="4" ry="4" fill="#a0522d"/>
+                                <path d="M106.9,23.3c3,0,4.5-3.5,2.4-5.6s-5.6,0.8-5.6,3.9S103.9,23.3,106.9,23.3z" fill="#ffc107"/>
+                                <circle cx="78.1" cy="107.4" r="13.9" fill="white"/><circle cx="78.1" cy="107.4" r="6.9" fill="black"/>
+                                <circle cx="121.2" cy="107.4" r="13.9" fill="white"/><circle cx="121.2" cy="107.4" r="6.9" fill="black"/>
+                                <path d="M89.3,136.9c0-5.8,4.7-10.4,10.4-10.4s10.4,4.7,10.4,10.4" fill="none" stroke="white" stroke-width="5" stroke-linecap="round"/>
+                                <circle cx="65" cy="90" r="6" fill="rgba(255,255,255,0.5)"/>
+                            </svg>
+                        </div>
+                        <div id="result-message"></div>
+                        <button id="back-btn" class="btn">학생 선택으로 돌아가기</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <audio id="bgm-sound" src="" loop preload="auto"></audio>
+    <audio id="click-sound" src="" preload="auto"></audio>
+    <audio id="pass-sound" src="" preload="auto"></audio>
+    <audio id="explosion-sound" src="" preload="auto"></audio>
+    
+    <div id="explosion-overlay">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <defs><radialGradient id="expGrad" cx="50%" cy="50%" r="50%"><stop offset="0%" style="stop-color:white; stop-opacity:1" /><stop offset="70%" style="stop-color:#FFD700; stop-opacity:1" /><stop offset="100%" style="stop-color:#FF4500; stop-opacity:0" /></radialGradient></defs>
+            <path d="M 50,0 L 58,38 L 98,38 L 68,62 L 78,100 L 50,75 L 22,100 L 32,62 L 2,38 L 42,38 Z" fill="url(#expGrad)"/><path d="M 50,10 L 56,40 L 88,44 L 63,62 L 70,90 L 50,75 L 30,90 L 37,62 L 12,44 L 44,40 Z" fill="#FF4500" opacity="0.7"/>
+        </svg>
+    </div>
+
+    <script>
+        // --- DOM 요소 ---
+        const setupContainer = document.getElementById('setup-container');
+        const participantSetupContainer = document.getElementById('participant-setup-container');
+        const studentSelectionContainer = document.getElementById('student-selection-container');
+        const gameContainer = document.getElementById('game-container');
+
+        const holesInput = document.getElementById('holes-input');
+        const confirmHolesBtn = document.getElementById('confirm-holes-btn');
+        const studentsInput = document.getElementById('students-input');
+        const createStudentsBtn = document.getElementById('create-students-btn');
+        const studentButtonsContainer = document.getElementById('student-buttons-container');
+        const restartGameBtn = document.getElementById('restart-game-btn');
+
+        const currentStudentNameEl = document.getElementById('current-student-name');
+        const holesContainer = document.getElementById('holes-container');
+        const bombItem = document.getElementById('bomb-item');
+        const resultMessage = document.getElementById('result-message');
+        const backBtn = document.getElementById('back-btn');
+        
+        const explosionOverlay = document.getElementById('explosion-overlay');
+        const bgmToggleBtn = document.getElementById('bgm-toggle-btn');
+
+        // --- 오디오 요소 ---
+        const bgmSound = document.getElementById('bgm-sound');
+        const clickSound = document.getElementById('click-sound');
+        const passSound = document.getElementById('pass-sound');
+        const explosionSound = document.getElementById('explosion-sound');
+        
+        // --- BGM 아이콘 SVG ---
+        const speakerOnIcon = `<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>`;
+        const speakerOffIcon = `<svg viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L7 9H3v6h4l5 5v-6.73l-2-2V9.27L12 4z"/></svg>`;
+
+        // --- 게임 상태 변수 ---
+        let totalHoles = 0;
+        let studentData = {}; // 학생별 게임 데이터를 저장할 객체
+        let currentStudent = null; // 현재 게임을 진행하는 학생 이름
+
+        let gameActive = false;
+        let isChecking = false;
+        let checkingTimeoutId = null;
+        let currentlyCheckingHole = null;
+
+        // --- 화면 전환 함수 ---
+        function showScreen(screenName) {
+            setupContainer.style.display = 'none';
+            participantSetupContainer.style.display = 'none';
+            studentSelectionContainer.style.display = 'none';
+            gameContainer.style.display = 'none';
+
+            if (screenName === 'setup') setupContainer.style.display = 'block';
+            else if (screenName === 'participant-setup') participantSetupContainer.style.display = 'block';
+            else if (screenName === 'student-selection') studentSelectionContainer.style.display = 'block';
+            else if (screenName === 'game') gameContainer.style.display = 'block';
+        }
+        
+        // --- 이벤트 리스너 ---
+        confirmHolesBtn.addEventListener('click', () => {
+            const holes = parseInt(holesInput.value);
+            if (isNaN(holes) || holes < 5 || holes > 50) {
+                alert("버튼 개수는 5개에서 50개 사이로 설정해주세요!");
+                return;
+            }
+            totalHoles = holes;
+            showScreen('participant-setup');
+        });
+
+        createStudentsBtn.addEventListener('click', () => {
+            const names = studentsInput.value.split(',')
+                .map(name => name.trim())
+                .filter(name => name.length > 0);
+            
+            if (names.length === 0) {
+                alert('참가자 이름을 한 명 이상 입력해주세요.');
+                return;
+            }
+
+            studentData = {}; // 초기화
+            names.forEach(name => {
+                studentData[name] = {
+                    losingHole: -1, // -1은 아직 게임 시작 전이라는 의미
+                    stabbedHoles: [],
+                    isFinished: false
+                };
+            });
+            renderStudentButtons();
+            showScreen('student-selection');
+        });
+        
+        restartGameBtn.addEventListener('click', () => {
+            if(confirm('정말로 모든 게임 진행상황을 초기화하고 처음부터 다시 시작하시겠습니까?')) {
+                showScreen('setup');
+            }
+        });
+
+        backBtn.addEventListener('click', () => {
+            renderStudentButtons(); // 상태가 업데이트되었을 수 있으므로 버튼 다시 렌더링
+            showScreen('student-selection');
+        });
+        
+        bgmToggleBtn.innerHTML = speakerOnIcon;
+        bgmToggleBtn.addEventListener('click', () => {
+            if (!bgmSound.src) return;
+            if (bgmSound.paused) {
+                bgmSound.play();
+                bgmToggleBtn.innerHTML = speakerOnIcon;
+            } else {
+                bgmSound.pause();
+                bgmToggleBtn.innerHTML = speakerOffIcon;
+            }
+        });
+
+        gameContainer.addEventListener('click', (event) => {
+            const clickedHole = event.target.closest('.hole');
+            if (clickedHole) {
+                if (!gameActive || clickedHole.classList.contains('stabbed') || isChecking) return;
+                
+                if (clickSound.src) clickSound.play();
+                isChecking = true;
+                currentlyCheckingHole = clickedHole;
+                clickedHole.classList.add('checking');
+                checkingTimeoutId = setTimeout(() => {
+                    resolveHoleCheck(clickedHole);
+                }, 2000);
+                return;
+            }
+            
+            if (isChecking && currentlyCheckingHole) {
+                resolveHoleCheck(currentlyCheckingHole);
+            }
+        });
+
+        // --- 게임 로직 함수 ---
+        function renderStudentButtons() {
+            studentButtonsContainer.innerHTML = '';
+            for (const name in studentData) {
+                const button = document.createElement('button');
+                button.textContent = name;
+                button.classList.add('btn', 'student-btn');
+                button.dataset.studentName = name;
+
+                const data = studentData[name];
+                if (data.isFinished) {
+                    button.classList.add('finished');
+                } else if (data.stabbedHoles.length > 0) {
+                    button.classList.add('in-progress');
+                }
+
+                if (!data.isFinished) {
+                    button.addEventListener('click', () => {
+                        startGameForStudent(name);
+                    });
+                }
+                studentButtonsContainer.appendChild(button);
+            }
+        }
+
+        function startGameForStudent(studentName) {
+            currentStudent = studentName;
+            const data = studentData[currentStudent];
+
+            // 해당 학생의 게임이 처음 시작되는 경우 폭탄 위치 생성
+            if (data.losingHole === -1) {
+                data.losingHole = Math.floor(Math.random() * totalHoles) + 1;
+                console.log(`${studentName}의 꽝 번호: ${data.losingHole}`);
+            }
+
+            initializeGameView();
+            showScreen('game');
+            if (bgmSound.src && bgmSound.paused) {
+                bgmSound.play();
+            }
+        }
+        
+        function initializeGameView() {
+            const data = studentData[currentStudent];
+            gameActive = !data.isFinished;
+            
+            holesContainer.innerHTML = '';
+            currentStudentNameEl.textContent = `${currentStudent}의 게임`;
+
+            // 버튼(hole) 생성 및 상태 복원
+            const cols = Math.ceil(Math.sqrt(totalHoles * 1.5));
+            holesContainer.style.gridTemplateColumns = `repeat(${cols}, auto)`;
+
+            for (let i = 1; i <= totalHoles; i++) {
+                const holeElement = document.createElement('div');
+                holeElement.classList.add('hole');
+                holeElement.textContent = i;
+                holeElement.dataset.holeId = i;
+                if (data.stabbedHoles.includes(i)) {
+                    holeElement.classList.add('stabbed');
+                }
+                holesContainer.appendChild(holeElement);
+            }
+
+            // UI 초기화
+            resultMessage.style.visibility = 'hidden';
+            resultMessage.innerHTML = '';
+            backBtn.style.visibility = 'visible';
+            bombItem.classList.remove('exploded');
+            
+            // 만약 이미 폭탄을 찾은 상태라면 결과 바로 표시
+            if(data.isFinished) {
+                 bombItem.classList.add('exploded');
+                 resultMessage.innerHTML = "💥 펑! <br> 폭탄이 <br> 터졌어요! 💥";
+                 resultMessage.style.visibility = 'visible';
+                 backBtn.style.visibility = 'visible';
+            }
+        }
+
+        function resolveHoleCheck(hole) {
+            if (!isChecking || !hole) return;
+
+            if (checkingTimeoutId) clearTimeout(checkingTimeoutId);
+
+            hole.classList.remove('checking');
+            hole.classList.add('stabbed');
+            
+            const holeNumber = parseInt(hole.dataset.holeId);
+            const data = studentData[currentStudent];
+            
+            if (!data.stabbedHoles.includes(holeNumber)) {
+                data.stabbedHoles.push(holeNumber);
+            }
+            
+            if (holeNumber === data.losingHole) {
+                if (explosionSound.src) explosionSound.play();
+                bombItem.classList.add('exploded');
+                explosionOverlay.classList.add('show');
+                resultMessage.innerHTML = "💥 펑! <br> 폭탄이 <br> 터졌어요! 💥";
+                resultMessage.style.visibility = 'visible';
+                
+                gameActive = false;
+                data.isFinished = true; // 상태 저장
+                
+                setTimeout(() => {
+                    backBtn.style.visibility = 'visible';
+                    explosionOverlay.classList.remove('show');
+                }, 2000);
+            } else {
+                if (passSound.src) passSound.play();
+            }
+            
+            isChecking = false;
+            currentlyCheckingHole = null;
+            checkingTimeoutId = null;
+        }
+
+        // 초기 화면 표시
+        showScreen('setup');
+    </script>
+</body>
+</html>
