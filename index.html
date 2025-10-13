@@ -222,8 +222,8 @@
 </div>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"; 
-    import { getDatabase, ref, set, onValue, remove, push, get, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, remove, push, get, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
     // ----------------------------------------------------
     // 1. Firebase 설정
@@ -253,7 +253,7 @@
     // ----------------------------------------------------
     // 2. 변수 및 UI 요소 정의
     // ----------------------------------------------------
-    const TEACHER_PASSWORD = "2948"; 
+    // const TEACHER_PASSWORD = "2948"; 
     let currentStudentId = null; 
     let currentImageBase64 = null; 
     let currentQuestion = null; // ✅ [수정] 학생의 현재 문제 정보를 담을 변수
@@ -341,29 +341,6 @@
         });
     }
 
-    document.getElementById('teacher-mode-btn').addEventListener('click', async () => {
-        const password = prompt("교사 모드에 접속하시려면 비밀번호를 입력해주세요.");
-        
-        if (password === TEACHER_PASSWORD) {
-            const configSnapshot = await get(ref(db, CONFIG_PATH));
-            const config = configSnapshot.val();
-            if (config && config.studentPassword) {
-                document.getElementById('student-password-input').value = config.studentPassword;
-            } else {
-                document.getElementById('student-password-input').value = '';
-            }
-
-            teacherPanel.classList.remove('hidden');
-            studentPanel.classList.add('hidden');
-            modeSelection.classList.add('hidden');
-            onValue(ref(db, HISTORY_PATH), (snapshot) => renderHistoryList(snapshot.val()));
-            listenForResponses();
-            listenForActiveUsers();
-        } else {
-            alert("비밀번호가 틀렸습니다.");
-        }
-    });
-
     document.getElementById('student-mode-btn').addEventListener('click', () => {
         teacherPanel.classList.add('hidden');
         studentPanel.classList.remove('hidden');
@@ -389,8 +366,8 @@
         
         currentStudentId = name.replace(/[.#$/[\]]/g, "_"); 
         document.getElementById('student-login-area').classList.add('hidden');
-        studentQuizArea.classList.add('hidden');
-        studentSubmittedArea.classList.remove('hidden'); 
+        studentQuizArea.classList.remove('hidden');
+        studentSubmittedArea.classList.add('hidden'); 
         
         localStorage.setItem('quiz_student_name', name); 
         
