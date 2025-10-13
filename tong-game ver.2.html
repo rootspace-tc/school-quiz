@@ -82,7 +82,7 @@
         .student-btn { font-size: 1.5em; padding: 20px 10px; }
         .student-btn.in-progress { background-color: var(--point-blue); }
         .student-btn.in-progress:hover { background-color: #5f9ea0; }
-        .student-btn.finished { background-color: var(--gray); color: #666; cursor: not-allowed; }
+        .student-btn.finished { background-color: var(--gray); color: #666; cursor: pointer; }
         .student-btn.finished:hover { background-color: var(--gray); transform: none; }
         
         #restart-game-btn { background-color: #dc3545; }
@@ -364,7 +364,8 @@
         });
 
         // --- 게임 로직 함수 ---
-        function renderStudentButtons() {
+
+function renderStudentButtons() {
             studentButtonsContainer.innerHTML = '';
             for (const name in studentData) {
                 const button = document.createElement('button');
@@ -375,6 +376,20 @@
                 const data = studentData[name];
                 if (data.isFinished) {
                     button.classList.add('finished');
+                    // <<< 추가된 부분 시작 >>>
+                    // 게임이 끝난 학생을 클릭하면 되살릴지 물어봅니다.
+                    button.addEventListener('click', () => {
+                        if (confirm(`${name} 학생을 다시 플레이할 수 있도록 되살릴까요? (기존 기록은 사라집니다)`)) {
+                            // 학생 데이터 초기화
+                            studentData[name].isFinished = false;
+                            studentData[name].losingHole = -1; // 폭탄 위치 초기화
+                            studentData[name].stabbedHoles = []; // 찌른 기록 초기화
+                            
+                            // 버튼 목록 새로고침
+                            renderStudentButtons();
+                        }
+                    });
+                    // <<< 추가된 부분 끝 >>>
                 } else if (data.stabbedHoles.length > 0) {
                     button.classList.add('in-progress');
                 }
