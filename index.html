@@ -641,86 +641,80 @@ import { getDatabase, ref, set, onValue, remove, push, get, update } from "https
         });
     }
 
-    // ✅ [수정] OX 문제 답변 방식 수정: setAttribute 대신 addEventListener 사용
-    function renderStudentInputs(question) {
-        document.getElementById('student-answer-buttons').innerHTML = '';
-        document.getElementById('submit-answer-btn').classList.remove('hidden');
-        
-        const isMultipleChoice = question.type === 'MultipleChoice';
-        const inputType = isMultipleChoice ? 'checkbox' : 'radio';
+   function renderStudentInputs(question) {
+    const answerButtonsContainer = document.getElementById('student-answer-buttons');
+    const submitBtn = document.getElementById('submit-answer-btn');
+    answerButtonsContainer.innerHTML = ''; // 기존 버튼들 초기화
 
-        get(ref(db, `${RESPONSES_PATH}/${currentStudentId}`)).then(snapshot => {
-            const existingAnswer = snapshot.val() ? snapshot.val().answer : null;
-            
-            if (question.type === 'OX') {
-                const options = ['O', 'X'];
-                options.forEach(option => {
-                    const btn = document.createElement('button');
-                    btn.className = `p-5 text-2xl font-bold rounded-lg ${option === 'O' ? 'bg-green-100 hover:bg-green-200 text-green-700' : 'bg-red-100 hover:bg-red-200 text-red-700'}`;
-                    btn.textContent = option;
-                    // 올바른 이벤트 리스너 방식으로 변경
-                    btn.addEventListener('click', () => submitAnswer(option)); 
-                    document.getElementById('student-answer-buttons').appendChild(btn);
-                });
-                document.getElementById('submit-answer-btn').classList.add('hidden'); 
-                
-            } else if (question.type === 'MCQ' || isMultipleChoice) {
-                const existingAnswers = isMultipleChoice && existingAnswer ? existingAnswer.split(',').map(a => a.trim()) : [existingAnswer];
-                
-                question.options.forEach((option, index) => {
-                    const inputId = `${inputType}-option-${index}`;
-                    const div = document.createElement('div');
-                    div.className = 'flex items-center p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 cursor-pointer';
+    // 기본적으로 답변 저장 버튼은 숨김 처리
+    submitBtn.classList.add('hidden');
 
-                    const input = document.createElement('input');
-                    input.type = inputType;
-                    input.id = inputId;
-                    input.name = 'student-answer';
-                    input.value = option;
-                    input.className = 'w-6 h-6 text-yellow-600 focus:ring-yellow-500 mr-4';
-                    
-                    if (existingAnswers.includes(option)) {
-                        input.checked = true;
-                    }
+    // 이전에 제출했던 답변이 있는지 확인
+    get(ref(db, `${RESPONSES_PATH}/${currentStudentId}`)).then(snapshot => {
+        const existingAnswer = snapshot.val() ? snapshot.val().answer : null;
 
-                    const label = document.createElement('label');
-                    label.htmlFor = inputId;
-                    label.textContent = option;
-                    label.className = 'text-xl font-medium text-gray-700 flex-1 cursor-pointer';
-
-                    div.appendChild(input);
-                    div.appendChild(label);
-                    // div 전체를 클릭해도 체크되도록
-                    div.addEventListener('click', (e) => {
-                        if (e.target.nodeName !== 'INPUT') {
-                            input.click();
-                        }
-                    });
-                    document.getElementById('student-answer-buttons').appendChild(div);
-                });
-                document.getElementById('submit-answer-btn').classList.remove('hidden'); 
-
-            } else if (question.type === 'ShortAnswer') {
-                const input = document.createElement('textarea');
-                input.id = 'short-answer-input';
-                input.rows = 4;
-                input.className = 'w-full border rounded p-4 text-xl';
-                input.placeholder = '답변을 여기에 입력하세요.';
-                input.value = existingAnswer || '';
-                document.getElementById('student-answer-buttons').appendChild(input);
-                document.getElementById('submit-answer-btn').classList.remove('hidden');
-            } else {
-                 document.getElementById('student-question-text').textContent = '[선생님이 문제 유형 또는 보기를 확인해야 합니다.]';
-                 document.getElementById('submit-answer-btn').classList.add('hidden');
-            }
-            // 마감 상태를 다시 한 번 확인하여 UI에 즉시 반영
-            get(ref(db, STATUS_PATH)).then(statusSnapshot => {
-                if(statusSnapshot.val() && statusSnapshot.val().isClosed) {
-                    listenForStatusChanges();
-                }
+        if (question.type === 'OX') {
+            ['O', 'X'].forEach(option => {
+                const btn = document.createElement('button');
+                btn.className = `p-5 text-2xl font-bold rounded-lg ${option === 'O' ? 'bg-green-100 hover:bg-green-200 text-green-700' : 'bg-red-100 hover:bg-red-200 text-red-700'}`;
+                btn.textContent = option;
+                btn.addEventListener('click', () => submitAnswer(option));
+                answerButtonsContainer.appendChild(btn);
             });
-        });
-    }
+            // OX 문제는 버튼 누르면 바로 제출되므로 저장 버튼이 필요 없음
+            submitBtn.classList.add('hidden');
+
+        } else if (question.type === 'MCQ' || question.type === 'MultipleChoice') {
+            const isMultiple = question.type === 'MultipleChoice';
+            const inputType = isMultiple ? 'checkbox' : 'radio';
+            const existingAnswers = isMultiple && existingAnswer ? existingAnswer.split(',').map(a => a.trim()) : [existingAnswer];
+
+            (question.options || []).forEach((option, index) => {
+                const inputId = `${inputType}-option-${index}`;
+                const div = document.createElement('div');
+                div.className = 'flex items-center p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 cursor-pointer';
+
+                const input = document.createElement('input');
+                input.type = inputType;
+                input.id = inputId;
+                input.name = 'student-answer';
+                input.value = option;
+                input.className = 'w-6 h-6 text-yellow-600 focus:ring-yellow-500 mr-4';
+                if (existingAnswers.includes(option)) {
+                    input.checked = true;
+                }
+
+                const label = document.createElement('label');
+                label.htmlFor = inputId;
+                label.textContent = option;
+                label.className = 'text-xl font-medium text-gray-700 flex-1 cursor-pointer';
+
+                div.appendChild(input);
+                div.appendChild(label);
+                div.addEventListener('click', (e) => {
+                    if (e.target.nodeName !== 'INPUT') input.click();
+                });
+                answerButtonsContainer.appendChild(div);
+            });
+            // 객관식/다중선택 문제는 보기를 그린 후에 저장 버튼을 보여줌
+            submitBtn.classList.remove('hidden');
+
+        } else if (question.type === 'ShortAnswer') {
+            const input = document.createElement('textarea');
+            input.id = 'short-answer-input';
+            input.rows = 4;
+            input.className = 'w-full border rounded p-4 text-xl';
+            input.placeholder = '답변을 여기에 입력하세요.';
+            input.value = existingAnswer || '';
+            answerButtonsContainer.appendChild(input);
+            // 주관식 문제도 입력창을 그린 후에 저장 버튼을 보여줌
+            submitBtn.classList.remove('hidden');
+        }
+
+        // UI를 모두 그린 후, 현재 마감 상태를 확인해서 버튼들을 비활성화할지 결정
+        listenForStatusChanges();
+    });
+}
 
 
     // ----------------------------------------------------
