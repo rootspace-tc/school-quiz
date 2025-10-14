@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>자음모음 숨바꼭질</title>
+    <style>
+        /* BMJUA 글꼴 불러오기 */
+        @font-face {
+            font-family: 'BMJUA';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_one@1.0/BMJUA.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        :root {
+            --primary-color: #ffb6c1; /* Light Pink */
+            --secondary-color: #add8e6; /* Light Blue */
+            --tertiary-color: #f0e68c; /* Khaki */
+            --background-color: #fffaf0; /* Floral White */
+            --text-color: #333;
+            --circle-size: 168px; /* 70% 축소 */
+            --highlight-size: 210px; /* 70% 축소 */
+        }
+
+        body {
+            font-family: 'BMJUA', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 14px; /* 70% 축소 */
+            box-sizing: border-box;
+            font-size: 1.05em; /* 70% 축소 */
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 1260px; /* 70% 축소 */
+            padding: 63px; /* 70% 축소 */
+            background-color: #fff;
+            border-radius: 52.5px; /* 70% 축소 */
+            box-shadow: 0 21px 42px rgba(0, 0, 0, 0.1); /* 70% 축소 */
+            text-align: center;
+            transition: all 0.3s ease-in-out;
+        }
+
+        h1 {
+            font-size: 5.25em; /* 70% 축소 */
+            color: var(--primary-color);
+            margin-bottom: 21px; /* 70% 축소 */
+            text-shadow: 4.2px 4.2px 8.4px rgba(0, 0, 0, 0.1); /* 70% 축소 */
+        }
+
+        p {
+            font-size: 2.31em; /* 70% 축소 */
+            margin-bottom: 42px; /* 70% 축소 */
+            color: #666;
+        }
+
+        .input-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 31.5px; /* 70% 축소 */
+            width: 100%;
+        }
+
+        input[type="text"] {
+            width: 80%;
+            padding: 25.2px 42px; /* 70% 축소 */
+            border: 4.2px solid var(--primary-color); /* 70% 축소 */
+            border-radius: 31.5px; /* 70% 축소 */
+            font-family: 'BMJUA', sans-serif;
+            font-size: 2.52em; /* 70% 축소 */
+            text-align: center;
+            transition: border-color 0.3s;
+            outline: none;
+            cursor: pointer; /* 클릭 가능한 UI임을 표시 */
+        }
+        input[type="text"]:focus {
+            border-color: var(--secondary-color);
+        }
+
+        button {
+            padding: 25.2px 52.5px; /* 70% 축소 */
+            border: none;
+            border-radius: 31.5px; /* 70% 축소 */
+            font-family: 'BMJUA', sans-serif;
+            font-size: 2.52em; /* 70% 축소 */
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            background-color: var(--primary-color);
+            box-shadow: 0 8.4px 12.6px rgba(0, 0, 0, 0.1); /* 70% 축소 */
+        }
+        button:hover {
+            transform: translateY(-4.2px); /* 70% 축소 */
+            box-shadow: 0 12.6px 16.8px rgba(0, 0, 0, 0.15); /* 70% 축소 */
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        #checkAnswerButton, #resetButton {
+            background-color: var(--secondary-color);
+        }
+        #checkAnswerButton:hover, #resetButton:hover {
+            background-color: #87ceeb;
+        }
+
+        /* --- 정답 표시 영역 --- */
+        #jamoDisplay {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 21px; /* 70% 축소 */
+            width: 100%;
+            min-height: 105px; /* 70% 축소 */
+            margin-bottom: 63px; /* 70% 축소 */
+            transition: all 0.5s ease-in-out;
+        }
+
+        .jamo-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 84px; /* 70% 축소 */
+            height: 84px; /* 70% 축소 */
+            border: 4.2px solid var(--primary-color); /* 70% 축소 */
+            border-radius: 25.2px; /* 70% 축소 */
+            font-size: 3.15em; /* 70% 축소 */
+            font-weight: bold;
+            color: var(--primary-color);
+            transition: transform 0.3s ease-in-out, background-color 0.3s;
+            opacity: 0;
+            transform: translateY(21px); /* 70% 축소 */
+            animation: fadeInFromTop 0.5s forwards;
+        }
+
+        @keyframes fadeInFromTop {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* --- 숨겨진 글자 동그라미 --- */
+        #circleContainer {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 42px; /* 70% 축소 */
+            margin-bottom: 63px; /* 70% 축소 */
+            transition: all 0.5s ease-in-out;
+        }
+
+        .jamo-circle-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .jamo-circle-wrapper:hover {
+            transform: translateY(-10.5px); /* 70% 축소 */
+        }
+
+        .jamo-circle {
+            width: var(--circle-size);
+            height: var(--circle-size);
+            background-color: var(--tertiary-color);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 8.4px 12.6px rgba(0, 0, 0, 0.1); /* 70% 축소 */
+            transition: all 0.3s ease-in-out;
+            position: relative;
+            z-index: 2;
+        }
+
+        .jamo-circle.revealed {
+            background-color: transparent; /* 배경을 투명하게 만듭니다. */
+            opacity: 1;
+            cursor: not-allowed;
+            box-shadow: none; /* 그림자를 제거합니다. */
+        }
+        
+        .circle-number {
+            font-size: 3.15em; /* 70% 축소 */
+            font-weight: bold;
+            color: white;
+            text-shadow: 2.1px 2.1px 4.2px rgba(0, 0, 0, 0.2); /* 70% 축소 */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 3;
+        }
+        
+        .revealed-jamo {
+            font-size: 3.15em;
+            font-weight: bold;
+            color: var(--text-color);
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* --- 글자 하이라이트 애니메이션 --- */
+        .highlight-jamo {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: 0;
+            font-weight: bold;
+            color: white;
+            z-index: 10;
+            opacity: 0;
+            transition: transform 0.5s ease-in-out, font-size 0.5s, opacity 0.5s;
+            text-shadow: 4.2px 4.2px 10.5px rgba(0, 0, 0, 0.3); /* 70% 축소 */
+        }
+        .highlight-jamo.animate {
+            transform: translate(-50%, -50%) scale(1.5);
+            font-size: var(--highlight-size);
+            opacity: 1;
+        }
+
+        /* --- 최종 정답 표시 --- */
+        #resultDisplay {
+            margin-top: 63px; /* 70% 축소 */
+            transition: all 0.5s ease-in-out;
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        #resultDisplay.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+        #resultDisplay h2 {
+            font-size: 8.4em; /* 70% 축소 */
+            color: var(--primary-color);
+            text-shadow: 6.3px 6.3px 12.6px rgba(0, 0, 0, 0.1); /* 70% 축소 */
+        }
+
+        /* --- 기타 유틸리티 --- */
+        .hidden {
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <h1>글자 숨바꼭질</h1>
+    <p>아래 입력창을 클릭하고 단어를 입력한 후 '시작' 버튼을 누르세요.</p>
+    
+    <div class="input-area" id="inputArea">
+        <input type="text" id="wordInput" placeholder="단어를 입력하세요" readonly>
+        <button id="startButton">시작</button>
+    </div>
+
+    <div id="jamoDisplay" class="hidden"></div>
+    <div id="circleContainer" class="hidden"></div>
+
+    <div id="buttonGroup" class="hidden">
+        <button id="checkAnswerButton">정답 확인</button>
+        <button id="resetButton">다시 하기</button>
+    </div>
+
+    <div id="resultDisplay" class="hidden">
+        <h2></h2>
+    </div>
+
+    <div id="highlightJamo" class="highlight-jamo"></div>
+</div>
+
+<script>
+    window.onload = function() {
+        const wordInput = document.getElementById('wordInput');
+        const startButton = document.getElementById('startButton');
+        const checkAnswerButton = document.getElementById('checkAnswerButton');
+        const resetButton = document.getElementById('resetButton');
+        const inputArea = document.getElementById('inputArea');
+        const jamoDisplay = document.getElementById('jamoDisplay');
+        const circleContainer = document.getElementById('circleContainer');
+        const buttonGroup = document.getElementById('buttonGroup');
+        const resultDisplay = document.getElementById('resultDisplay');
+        const highlightJamo = document.getElementById('highlightJamo');
+        const CHOSUNG = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+        const JUNGSUNG = ['ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ'];
+        const JONGSUNG = ['', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+
+        let originalWord = '';
+        let jamos = [];
+        let revealedJamosCount = 0;
+        let shuffledJamos = [];
+
+        // 한글 단어를 자음과 모음으로 분리하는 함수
+        function splitKoreanWord(word) {
+            const result = [];
+            for (let i = 0; i < word.length; i++) {
+                const charCode = word.charCodeAt(i);
+                if (charCode >= 0xAC00 && charCode <= 0xD7A3) { // 완성형 한글
+                    const unicode = charCode - 0xAC00;
+                    const chosungIndex = parseInt(unicode / 588);
+                    const jungsungIndex = parseInt((unicode % 588) / 28);
+                    const jongsungIndex = unicode % 28;
+
+                    result.push(CHOSUNG[chosungIndex]);
+                    result.push(JUNGSUNG[jungsungIndex]);
+                    if (jongsungIndex > 0) {
+                        result.push(JONGSUNG[jongsungIndex]);
+                    }
+                } else { // 기타 단일 자음/모음, 한자, 영문 등
+                    result.push(word[i]);
+                }
+            }
+            return result;
+        }
+        
+        // 배열을 섞는 함수 (Fisher-Yates 알고리즘)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+            }
+
+        // 입력창 클릭 시 새 창 띄우기
+        wordInput.addEventListener('click', function() {
+            const popupWidth = 400;
+            const popupHeight = 200;
+            const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : window.screenX;
+            const dualScreenTop = window.screenTop !== undefined ? window.screenTop : window.screenY;
+            const width = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
+            const height = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
+            const left = ((width / 2) - (popupWidth / 2)) + dualScreenLeft;
+            const top = ((height / 2) - (popupHeight / 2)) + dualScreenTop;
+            
+            const newWindow = window.open('', '_blank', `width=${popupWidth},height=${popupHeight},top=${top},left=${left}`);
+            
+            if (newWindow) {
+                newWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html lang="ko">
+                    <head>
+                        <title>단어 입력</title>
+                        <style>
+                            @font-face {
+                                font-family: 'BMJUA';
+                                src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_one@1.0/BMJUA.woff') format('woff');
+                            }
+                            body {
+                                font-family: 'BMJUA', sans-serif;
+                                display: flex;
+                                flex-direction: column;
+                                justify-content: center;
+                                align-items: center;
+                                height: 100vh;
+                                margin: 0;
+                                background-color: #fffaf0;
+                                color: #333;
+                                text-align: center;
+                                padding: 20px;
+                            }
+                            h2 { font-size: 1.5em; margin-bottom: 20px; }
+                            input[type="text"] {
+                                padding: 10px;
+                                border: 2px solid #ffb6c1;
+                                border-radius: 15px;
+                                font-family: 'BMJUA', sans-serif;
+                                font-size: 1.2em;
+                                text-align: center;
+                                outline: none;
+                            }
+                            button {
+                                margin-top: 20px;
+                                padding: 10px 30px;
+                                border: none;
+                                border-radius: 15px;
+                                font-family: 'BMJUA', sans-serif;
+                                font-size: 1.2em;
+                                color: white;
+                                background-color: #add8e6;
+                                cursor: pointer;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <h2>숨길 단어를 입력하세요.</h2>
+                        <input type="text" id="popupWordInput" autofocus>
+                        <button id="submitButton">입력</button>
+                        <script>
+                            const popupWordInput = document.getElementById('popupWordInput');
+                            const submitButton = document.getElementById('submitButton');
+                            submitButton.addEventListener('click', function() {
+                                if (popupWordInput.value.trim() !== '') {
+                                    window.opener.receiveWord(popupWordInput.value);
+                                    window.close();
+                                }
+                            });
+                            popupWordInput.addEventListener('keypress', function(e) {
+                                if (e.key === 'Enter') {
+                                    submitButton.click();
+                                }
+                            });
+                        </\script>
+                    </body>
+                    </html>
+                `);
+                newWindow.document.close();
+            } else {
+                console.error('팝업 창을 열 수 없습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+            }
+        });
+
+        // 새 창에서 단어를 받아오는 함수
+        window.receiveWord = function(word) {
+            originalWord = word.trim();
+            if (originalWord) {
+                wordInput.value = '단어를 입력했습니다';
+                wordInput.style.color = 'var(--text-color)';
+                startButton.disabled = false;
+            }
+        };
+
+        // 시작 버튼 클릭 이벤트
+        startButton.addEventListener('click', function() {
+            if (!originalWord) {
+                console.error('단어를 먼저 입력해주세요.');
+                return;
+            }
+            
+            jamos = splitKoreanWord(originalWord);
+            shuffledJamos = shuffleArray([...jamos]);
+            revealedJamosCount = 0;
+
+            inputArea.classList.add('hidden');
+            jamoDisplay.classList.remove('hidden');
+            circleContainer.classList.remove('hidden');
+            buttonGroup.classList.remove('hidden');
+            resultDisplay.classList.add('hidden');
+            resultDisplay.querySelector('h2').textContent = '';
+            jamoDisplay.innerHTML = '';
+            circleContainer.innerHTML = '';
+
+            // 숨겨진 글자 동그라미 생성
+            shuffledJamos.forEach((jamo, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.classList.add('jamo-circle-wrapper');
+                wrapper.dataset.jamo = jamo;
+                wrapper.dataset.shuffledIndex = index;
+
+                const circle = document.createElement('div');
+                circle.classList.add('jamo-circle');
+                const number = document.createElement('span');
+                number.classList.add('circle-number');
+                number.textContent = index + 1; // 섞인 순서의 번호 표시
+
+                circle.appendChild(number);
+                wrapper.appendChild(circle);
+                circleContainer.appendChild(wrapper);
+
+                // 클릭 이벤트 리스너 추가
+                wrapper.addEventListener('click', handleCircleClick);
+            });
+        });
+
+        // 동그라미 클릭 이벤트
+        function handleCircleClick(event) {
+            const wrapper = this;
+            const jamo = wrapper.dataset.jamo;
+            const circle = wrapper.querySelector('.jamo-circle');
+            const number = wrapper.querySelector('.circle-number');
+            
+            if (circle.classList.contains('revealed')) return;
+
+            circle.classList.add('revealed');
+            wrapper.style.cursor = 'default';
+            revealedJamosCount++;
+
+            // 하이라이트 애니메이션
+            const rect = wrapper.getBoundingClientRect();
+            highlightJamo.textContent = jamo;
+            highlightJamo.style.left = `${rect.left + rect.width / 2}px`;
+            highlightJamo.style.top = `${rect.top + rect.height / 2}px`;
+            highlightJamo.classList.add('animate');
+
+            setTimeout(() => {
+                highlightJamo.classList.remove('animate');
+                
+                // 동그라미의 숫자 없애고 자음/모음 남기기
+                number.remove();
+                const revealedJamoSpan = document.createElement('span');
+                revealedJamoSpan.classList.add('revealed-jamo');
+                revealedJamoSpan.textContent = jamo;
+                circle.appendChild(revealedJamoSpan);
+
+                // 상단에 자음/모음 표시
+                const jamoBox = document.createElement('div');
+                jamoBox.classList.add('jamo-box');
+                jamoBox.textContent = jamo;
+                jamoDisplay.appendChild(jamoBox);
+
+            }, 500);
+        }
+
+        // 정답 확인 버튼 클릭 이벤트
+        checkAnswerButton.addEventListener('click', function() {
+            const popupWidth = 2000;
+            const popupHeight = 800;
+            const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : window.screenX;
+            const dualScreenTop = window.screenTop !== undefined ? window.screenTop : window.screenY;
+            const width = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
+            const height = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
+            const left = ((width / 2) - (popupWidth / 2)) + dualScreenLeft;
+            const top = ((height / 2) - (popupHeight / 2)) + dualScreenTop;
+            
+            const newWindow = window.open('', '_blank', `width=${popupWidth},height=${popupHeight},top=${top},left=${left}`);
+            
+            if (newWindow) {
+                newWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html lang="ko">
+                    <head>
+                        <title>정답 확인</title>
+                        <style>
+                            @font-face {
+                                font-family: 'BMJUA';
+                                src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_one@1.0/BMJUA.woff') format('woff');
+                            }
+                            body {
+                                font-family: 'BMJUA', sans-serif;
+                                display: flex;
+                                justify-content: center;
+                                align-items: center;
+                                height: 100vh;
+                                margin: 0;
+                                background-color: #fffaf0;
+                                color: #ffb6c1;
+                                text-align: center;
+                            }
+                            h1 {
+                                font-size: 8.4em;
+                                text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>${originalWord}</h1>
+                    </body>
+                    </html>
+                `);
+                newWindow.document.close();
+            } else {
+                console.error('팝업 창을 열 수 없습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+            }
+        });
+
+        // 다시 하기 버튼 클릭 이벤트
+        resetButton.addEventListener('click', function() {
+            wordInput.value = '';
+            originalWord = '';
+            jamoDisplay.innerHTML = '';
+            circleContainer.innerHTML = '';
+            resultDisplay.classList.remove('show');
+            wordInput.placeholder = '단어를 입력하세요';
+
+            inputArea.classList.remove('hidden');
+            jamoDisplay.classList.add('hidden');
+            circleContainer.classList.add('hidden');
+            buttonGroup.classList.add('hidden');
+        });
+    }
+</script>
+
+</body>
+</html>
