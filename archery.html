@@ -138,15 +138,30 @@
             audio.bgm.src = BGM_BASE64; audio.aim.src = AIM_SOUND_BASE64; audio.woosh.src = WOOSH_SOUND_BASE64;
             audio.hitHigh.src = HIT_HIGH_BASE64; audio.hitLow.src = HIT_LOW_BASE64; audio.miss.src = MISS_SOUND_BASE64;
         }
-        startButton.addEventListener('click', () => {
+       // 수정된 코드
+startButton.addEventListener('click', async () => { // 1. async 추가
     const teamCount = parseInt(teamCountInput.value);
     if (teamCount > 0 && teamCount <= 8) {
-        // audio.bgm.play().catch(() => {}); audio.bgm.pause(); // <--- 스마트폰 오류를 일으키는 코드 삭제!
+        // 2. 오디오 컨텍스트를 활성화하는 코드 (더 안정적인 방법)
+        try {
+            // 소리를 아주 작게 해서 잠깐 재생했다 멈춤으로써
+            // 브라우저의 오디오 정책을 안전하게 통과합니다.
+            audio.bgm.volume = 0.01;
+            await audio.bgm.play();
+            audio.bgm.pause();
+            audio.bgm.currentTime = 0;
+            audio.bgm.volume = 1.0;
+        } catch (error) {
+            console.log("사용자 상호작용 전 오디오 재생이 차단되었지만, 게임은 계속 진행합니다.");
+        }
+
+        // 3. 기존 게임 시작 로직 실행
         initGame(teamCount);
         setupScreen.classList.add('hidden');
         gameScreen.classList.remove('hidden');
-    } else { 
-        alert('팀 수는 1팀에서 8팀까지만 가능합니다.'); 
+
+    } else {
+        alert('팀 수는 1팀에서 8팀까지만 가능합니다.');
     }
 });
         function initGame(numTeams) {
