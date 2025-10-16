@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>코드 브레이커 (Code Breaker)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #1a202c;
+            color: #e2e8f0;
+        }
+        .game-panel, .scoreboard-panel {
+            background-color: #2d3748;
+            border: 1px solid #4a5568;
+        }
+        .number-input {
+            font-family: 'Jua', sans-serif;
+            width: 60px;
+            height: 70px;
+            text-align: center;
+            font-size: 2.5rem;
+            border: 2px solid #4a5568;
+            background-color: #1a202c;
+            color: #e2e8f0;
+            border-radius: 0.5rem;
+            margin: 0 5px;
+            -moz-appearance: textfield; /* Firefox */
+        }
+        .number-input::-webkit-outer-spin-button,
+        .number-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .btn-primary {
+            background-color: #4299e1;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #3182ce;
+        }
+        .btn-primary:disabled {
+            background-color: #4a5568;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background-color: #4a5568;
+        }
+        .btn-secondary:hover {
+            background-color: #2d3748;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 8px;
+            background-color: #1a202c;
+            margin-bottom: 8px;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+        }
+        .strike { color: #48bb78; } /* 초록색 */
+        .ball { color: #f6ad55; } /* 주황색 */
+        #rules-toggle:checked ~ #rules-content {
+            display: block;
+        }
+        #scoreboard-list li {
+            display: grid;
+            grid-template-columns: 50px 1fr auto;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 4px;
+            border-bottom: 1px solid #4a5568;
+        }
+        #scoreboard-list li:last-child {
+            border-bottom: none;
+        }
+        .rank { font-weight: bold; color: #63b3ed; }
+        .name { color: #e2e8f0; cursor: pointer; transition: color 0.2s; text-align: center; }
+        .name:hover { color: #f6ad55; }
+        .score { color: #a0aec0; }
+        .scoreboard-input {
+            background-color: #1a202c;
+            border: 1px solid #63b3ed;
+            color: #e2e8f0;
+            border-radius: 4px;
+            padding: 2px 6px;
+            width: 100%;
+            text-align: center;
+            font-family: 'Jua', sans-serif;
+            font-size: 1.125rem; /* 18px */
+        }
+    </style>
+</head>
+<body class="p-4">
+
+    <div id="game-container" class="w-full flex flex-col lg:flex-row items-start justify-center gap-8">
+        <!-- Game Panel -->
+        <div class="game-panel w-full max-w-md mx-auto p-6 rounded-xl shadow-2xl">
+            <header class="text-center mb-6">
+                <h1 class="text-5xl font-bold text-blue-400 tracking-wider">Code Breaker</h1>
+                <p class="text-gray-400 mt-2">비밀 코드를 추리하여 해제하세요!</p>
+            </header>
+
+            <main>
+                <!-- 게임 규칙 섹션 -->
+                <div class="mb-4 bg-gray-900 rounded-lg p-3">
+                    <label for="rules-toggle" class="cursor-pointer flex justify-between items-center">
+                        <h2 class="text-xl font-semibold">📜 게임 규칙</h2>
+                        <span class="text-2xl transform transition-transform duration-300">▼</span>
+                    </label>
+                    <input type="checkbox" id="rules-toggle" class="hidden">
+                    <div id="rules-content" class="hidden mt-3 text-gray-300 border-t border-gray-700 pt-3">
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>컴퓨터가 0~9 사이의 **중복 가능한** 4자리 코드를 만듭니다.</li>
+                            <li>최소한의 횟수로 코드를 맞혀 명예의 전당에 이름을 올리세요!</li>
+                            <li><span class="strike font-bold">Strike(S)</span>: 숫자와 위치 모두 정답</li>
+                            <li><span class="ball font-bold">Ball(B)</span>: 숫자는 맞지만 위치가 틀림</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 추측 기록 -->
+                <div id="history" class="h-80 overflow-y-auto mb-4 p-2 bg-gray-900 rounded-lg">
+                    <!-- 추측 결과가 여기에 표시됩니다 -->
+                </div>
+
+                <!-- 메시지 영역 -->
+                <div id="message" class="text-center text-lg h-8 mb-4"></div>
+
+                <!-- 숫자 입력 영역 -->
+                <div id="input-area" class="flex justify-center mb-4">
+                    <input type="number" class="number-input" min="0" max="9" maxlength="1">
+                    <input type="number" class="number-input" min="0" max="9" maxlength="1">
+                    <input type="number" class="number-input" min="0" max="9" maxlength="1">
+                    <input type="number" class="number-input" min="0" max="9" maxlength="1">
+                </div>
+
+                <!-- 버튼 영역 -->
+                <div class="flex space-x-4">
+                    <button id="guess-button" class="w-full py-3 text-xl font-bold rounded-lg btn-primary">추측하기</button>
+                    <button id="new-game-button" class="w-full py-3 text-xl font-bold rounded-lg btn-secondary">새 게임</button>
+                </div>
+            </main>
+        </div>
+
+        <!-- Scoreboard Panel -->
+        <div id="scoreboard-panel" class="scoreboard-panel w-full max-w-md mx-auto p-6 rounded-xl shadow-2xl">
+            <header class="text-center mb-6">
+                <h1 class="text-4xl font-bold text-yellow-400">🏆 명예의 전당</h1>
+            </header>
+            <ol id="scoreboard-list" class="text-lg space-y-2">
+                <!-- 점수 기록이 여기에 표시됩니다 -->
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM 요소 ---
+        const numberInputs = document.querySelectorAll('.number-input');
+        const guessButton = document.getElementById('guess-button');
+        const newGameButton = document.getElementById('new-game-button');
+        const historyContainer = document.getElementById('history');
+        const messageEl = document.getElementById('message');
+        const scoreboardList = document.getElementById('scoreboard-list');
+
+        // --- 게임 설정 ---
+        const CODE_LENGTH = 4;
+        const DIGIT_MIN = 0;
+        const DIGIT_MAX = 9;
+        const SCOREBOARD_KEY = 'codeBreakerScores_v4'; // 데이터 구조 변경으로 버전 업데이트
+        const MAX_SCORES = 10;
+
+        // --- 게임 상태 변수 ---
+        let secretCode = [];
+        let guessCount = 0;
+        let isGameOver = false;
+
+        // --- 함수 ---
+
+        /**
+         * 새 게임을 시작하는 함수
+         */
+        function newGame() {
+            secretCode = [];
+            for (let i = 0; i < CODE_LENGTH; i++) {
+                const randomNumber = Math.floor(Math.random() * (DIGIT_MAX - DIGIT_MIN + 1)) + DIGIT_MIN;
+                secretCode.push(randomNumber);
+            }
+            console.log("비밀 코드:", secretCode);
+
+            guessCount = 0;
+            isGameOver = false;
+
+            historyContainer.innerHTML = '';
+            messageEl.textContent = `추측 횟수: ${guessCount}번`;
+            messageEl.classList.remove('text-red-400', 'text-green-400', 'text-yellow-400');
+            numberInputs.forEach(input => {
+                input.value = '';
+                input.disabled = false;
+            });
+            guessButton.disabled = false;
+            numberInputs[0].focus();
+        }
+
+        /**
+         * 플레이어의 추측을 처리하는 함수
+         */
+        function handleGuess() {
+            if (isGameOver) return;
+
+            const guess = Array.from(numberInputs).map(input => parseInt(input.value));
+            if (guess.some(isNaN)) {
+                showMessage("모든 칸에 숫자를 입력하세요.", "error");
+                return;
+            }
+            
+            guessCount++;
+            
+            let strikes = 0;
+            let balls = 0;
+            const codeCopy = [...secretCode];
+            const guessCopy = [...guess];
+
+            for (let i = 0; i < CODE_LENGTH; i++) {
+                if (guessCopy[i] === codeCopy[i]) {
+                    strikes++;
+                    guessCopy[i] = null;
+                    codeCopy[i] = null;
+                }
+            }
+            for (let i = 0; i < CODE_LENGTH; i++) {
+                if (guessCopy[i] !== null) {
+                    const ballIndex = codeCopy.indexOf(guessCopy[i]);
+                    if (ballIndex !== -1) {
+                        balls++;
+                        codeCopy[ballIndex] = null;
+                    }
+                }
+            }
+            
+            addHistory(guess, strikes, balls);
+
+            if (strikes === CODE_LENGTH) {
+                endGame(true);
+                return;
+            }
+
+            messageEl.textContent = `추측 횟수: ${guessCount}번`;
+            numberInputs.forEach(input => input.value = '');
+            numberInputs[0].focus();
+        }
+        
+        function addHistory(guess, strikes, balls) {
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item animate-pulse';
+            const guessText = guess.join(' ');
+            const feedbackText = `<span class="strike">${strikes}S</span> <span class="ball">${balls}B</span>`;
+            historyItem.innerHTML = `<div class="flex items-center"><span class="text-sm text-gray-400 mr-3">${String(guessCount).padStart(2, '0')}회</span><div class="font-mono">${guessText}</div></div><div class="font-bold">${feedbackText}</div>`;
+            historyContainer.prepend(historyItem);
+            setTimeout(() => historyItem.classList.remove('animate-pulse'), 500);
+        }
+
+        function endGame(didWin) {
+            isGameOver = true;
+            numberInputs.forEach(input => input.disabled = true);
+            guessButton.disabled = true;
+            if (didWin) {
+                showMessage(`🎉 정답! ${guessCount}번 만에 성공!`, "win");
+                saveScore(guessCount);
+            }
+        }
+        
+        function showMessage(text, type = "info") {
+            messageEl.textContent = text;
+            messageEl.classList.remove('text-red-400', 'text-green-400');
+            if (type === "error") messageEl.classList.add('text-red-400');
+            if (type === "win") messageEl.classList.add('text-green-400');
+            
+            if (type === "error") {
+                setTimeout(() => {
+                    if(!isGameOver) messageEl.textContent = `추측 횟수: ${guessCount}번`;
+                }, 2000);
+            }
+        }
+
+        /**
+         * 명예의 전당 점수를 불러와 표시하는 함수
+         */
+        function loadAndDisplayScores() {
+            const scores = JSON.parse(localStorage.getItem(SCOREBOARD_KEY)) || [];
+            scoreboardList.innerHTML = '';
+            if (scores.length === 0) {
+                scoreboardList.innerHTML = '<li class="text-gray-500 justify-center col-span-3">아직 기록이 없습니다.</li>';
+                return;
+            }
+            
+            scores.forEach((scoreData, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span class="rank">${index + 1}위</span>
+                    <span class="name">${scoreData.name}</span>
+                    <span class="score">${scoreData.score}번 만에 성공</span>`;
+                
+                li.addEventListener('click', () => handleNameEdit(li, index));
+                scoreboardList.appendChild(li);
+            });
+        }
+
+        /**
+         * 이름 수정을 처리하는 함수
+         */
+        function handleNameEdit(listItem, index) {
+            if (listItem.querySelector('input')) return; // 이미 수정 중이면 무시
+
+            const nameSpan = listItem.querySelector('.name');
+            const currentName = nameSpan.textContent;
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'scoreboard-input';
+            input.value = currentName === '이름 없음' ? '' : currentName;
+            input.placeholder = '이름 입력';
+
+            const save = () => {
+                const newName = input.value.trim();
+                saveName(index, newName);
+            };
+
+            input.addEventListener('blur', save);
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') input.blur();
+                if (e.key === 'Escape') loadAndDisplayScores(); // 취소하고 다시 그리기
+            });
+
+            nameSpan.replaceWith(input);
+            input.focus();
+            input.select();
+        }
+        
+        /**
+         * 수정된 이름을 저장하는 함수
+         */
+        function saveName(index, newName) {
+            const scores = JSON.parse(localStorage.getItem(SCOREBOARD_KEY)) || [];
+            if (scores[index]) {
+                scores[index].name = newName || '이름 없음';
+                localStorage.setItem(SCOREBOARD_KEY, JSON.stringify(scores));
+            }
+            loadAndDisplayScores(); // 화면 새로고침
+        }
+
+        /**
+         * 새로운 점수를 명예의 전당에 저장하는 함수
+         */
+        function saveScore(newScore) {
+            const scores = JSON.parse(localStorage.getItem(SCOREBOARD_KEY)) || [];
+            scores.push({ score: newScore, name: '이름 없음' });
+            scores.sort((a, b) => a.score - b.score);
+            const newScores = scores.slice(0, MAX_SCORES);
+            localStorage.setItem(SCOREBOARD_KEY, JSON.stringify(newScores));
+            loadAndDisplayScores();
+        }
+
+        // --- 이벤트 리스너 ---
+        newGameButton.addEventListener('click', newGame);
+        guessButton.addEventListener('click', handleGuess);
+
+        numberInputs.forEach((input, index) => {
+            input.addEventListener('keydown', (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleGuess();
+                }
+                if (e.key === "Backspace" && index > 0 && input.value === '') {
+                    numberInputs[index - 1].focus();
+                }
+            });
+            input.addEventListener('input', () => {
+                if (input.value && index < numberInputs.length - 1) {
+                    numberInputs[index + 1].focus();
+                }
+            });
+        });
+
+        // --- 초기 실행 ---
+        newGame();
+        loadAndDisplayScores();
+
+    </script>
+</body>
+</html>
+
