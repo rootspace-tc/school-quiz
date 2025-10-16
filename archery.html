@@ -19,10 +19,16 @@
         }
         .screen {
             width: 100%; height: 100%; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; transition: opacity 0.5s ease;
-            opacity: 1; position: absolute; top: 0; left: 0;
+            justify-content: center; align-items: center;
+            position: absolute; top: 0; left: 0;
         }
-        .hidden { opacity: 0; pointer-events: none; z-index: -1; }
+        /* ▼▼▼ [수정된 부분 1] ▼▼▼ */
+        /* 화면을 숨기는 방식을 opacity가 아닌 display: none으로 변경하여 안정성을 높였습니다. */
+        .hidden {
+            display: none;
+        }
+        /* ▲▲▲ [수정된 부분 1] ▲▲▲ */
+
         #setup-screen { background: linear-gradient(135deg, #4F5C68, #2C3A47); text-align: center; z-index: 100; }
         #setup-screen h1 { font-size: clamp(2.5rem, 8vw, 4rem); color: var(--gold); text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
         #setup-screen p { font-size: clamp(1rem, 4vw, 1.5rem); }
@@ -89,7 +95,7 @@
     <audio id="hit-high-audio"></audio><audio id="hit-low-audio"></audio><audio id="miss-audio"></audio>
 
     <script>
-             /* ================================================================== */
+         /* ================================================================== */
         /* --- 🎵 효과음 설정 (이곳에 Base64 코드를 넣어주세요) --- */
         /* ================================================================== */
 
@@ -151,13 +157,12 @@
             hard:   { radiusFactor: 1.0, concentration: 1.0 }
         };
 
-        // ▼▼▼▼▼ [수정된 부분] ▼▼▼▼▼
-        let isAudioInitialized = false; // 오디오가 초기화되었는지 확인하는 변수
+        // ▼▼▼▼▼ [수정된 부분 2] ▼▼▼▼▼
+        let isAudioInitialized = false; 
 
         function initAudio() {
-            if (isAudioInitialized) return; // 이미 초기화되었다면 다시 실행하지 않음
+            if (isAudioInitialized) return;
 
-            // 모든 오디오 소스를 여기서 한 번에 설정합니다.
             audio.bgm.src = BGM_BASE64;
             audio.aim.src = AIM_SOUND_BASE64;
             audio.woosh.src = WOOSH_SOUND_BASE64;
@@ -165,18 +170,15 @@
             audio.hitLow.src = HIT_LOW_BASE64;
             audio.miss.src = MISS_SOUND_BASE64;
             
-            // 모든 오디오를 로드해서 브라우저가 소리를 사용할 준비를 하도록 합니다.
             Object.values(audio).forEach(sound => sound.load());
             
             isAudioInitialized = true;
             console.log("오디오가 사용자의 첫 터치로 인해 성공적으로 초기화되었습니다.");
         }
 
-        // '게임 시작' 버튼을 눌렀을 때 오디오를 초기화하고 게임을 시작합니다.
         startButton.addEventListener('click', () => {
-            initAudio(); // 1. 오디오 초기화 함수를 가장 먼저 호출
+            initAudio(); // 오디오 초기화
 
-            // 2. 원래의 게임 시작 로직 실행
             const teamCount = parseInt(teamCountInput.value);
             if (teamCount > 0 && teamCount <= 8) {
                 initGame(teamCount);
@@ -186,7 +188,8 @@
                 alert('팀 수는 1팀에서 8팀까지만 가능합니다.');
             }
         });
-        // ▲▲▲▲▲ [수정된 부분] ▲▲▲▲▲
+        // ▲▲▲▲▲ [수정된 부분 2] ▲▲▲▲▲
+
 
         function initGame(numTeams) {
             teams = [];
@@ -316,9 +319,6 @@
             if (audio.bgm.paused) { audio.bgm.play().catch(()=>{}); bgmToggle.textContent = '🔊'; }
             else { audio.bgm.pause(); bgmToggle.textContent = '🎵'; }
         });
-        
-        // [수정] 페이지 로딩 시 바로 소리를 불러오던 코드를 삭제했습니다.
-        // loadSounds(); 
     </script>
 </body>
 </html>
