@@ -1,0 +1,282 @@
+<html lang="ko"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>내 프로그램 모음</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&amp;display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #f0f8ff;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* <<< 수정된 부분: 중앙 정렬에서 상단 정렬로 변경 */
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 1000px;
+            position: relative;
+            margin: 20px 0; /* <<< 추가된 부분: 상하 여백을 주어 보기 좋게 함 */
+        }
+        h1 {
+            color: #4a6fa5;
+            font-size: 2.8em;
+            margin-bottom: 30px; /* h1과 리스트 사이 간격 조정 */
+        }
+        #link-list {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        /* --- ✨ 글자 잘림 문제 해결 --- */
+        .link-item {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100px;
+            padding: 15px; /* 내부 여백 조정 */
+            border-radius: 15px;
+            text-decoration: none;
+            color: #333;
+            font-size: 1.5em;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            word-break: break-all; /* 긴 단어도 줄바꿈 처리 */
+            line-height: 1.4; /* 줄 간격 추가 */
+        }
+        .link-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+        }
+        #add-btn {
+            border: 3px dashed #ccc;
+            color: #aaa;
+            font-size: 3em;
+        }
+        #add-btn:hover {
+            background-color: #f8f9fa;
+            color: #888;
+            border-color: #aaa;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .modal-content h2 { margin-top: 0; }
+        .modal-content input {
+            width: 90%; padding: 10px;
+            margin-bottom: 15px; font-family: 'Jua', sans-serif;
+            font-size: 1em; border: 1px solid #ccc; border-radius: 8px;
+        }
+        .modal-buttons button {
+            font-family: 'Jua', sans-serif; font-size: 1em; padding: 10px 20px;
+            border-radius: 8px; border: none; cursor: pointer; margin: 0 5px;
+        }
+        #modal-save-btn, #action-goto-btn { background-color: #007bff; color: white; }
+        #modal-cancel-btn, #action-close-btn { background-color: #6c757d; color: white; }
+        #action-copy-btn { background-color: #17a2b8; color: white; }
+
+        .notification {
+            position: fixed; bottom: 30px; left: 50%;
+            transform: translateX(-50%); background-color: #28a745;
+            color: white; padding: 12px 25px; border-radius: 8px;
+            opacity: 0; transition: opacity 0.5s, transform 0.5s;
+            pointer-events: none;
+        }
+        .notification.show { opacity: 1; transform: translate(-50%, -10px); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 내 프로그램 바로가기 🚀</h1>
+        <ul id="link-list"></ul>
+    </div>
+
+    <div id="form-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2 id="modal-title">새 바로가기 추가</h2>
+            <input type="text" id="link-name-input" placeholder="아이콘 이름 (예: 야찌 게임)">
+            <input type="text" id="link-url-input" placeholder="인터넷 주소 (URL)">
+            <div class="modal-buttons">
+                <button id="modal-save-btn">추가</button>
+                <button id="modal-cancel-btn">취소</button>
+            </div>
+        </div>
+    </div>
+    <div id="action-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2 id="action-title">타이머</h2>
+            <div class="modal-buttons">
+                <button id="action-goto-btn">접속하기</button>
+                <button id="action-copy-btn">주소 복사하기</button>
+                <button id="action-close-btn">닫기</button>
+            </div>
+        </div>
+    </div>
+    <div class="notification" id="notification">바로가기가 추가되었습니다.</div>
+
+    <script>
+        const linkList = document.getElementById('link-list');
+        const formModal = document.getElementById('form-modal');
+        const actionModal = document.getElementById('action-modal');
+        const notification = document.getElementById('notification');
+        
+        let programs = [
+            {
+                "name": "야찌 게임",
+                "url": "https://htmlpreview.github.io/?https://raw.githubusercontent.com/rootspace-tc/school-quiz/main/yahtzee.html"
+            },
+            {
+                "name": "초등 상식 퀴즈(50문제)",
+                "url": "https://htmlpreview.github.io/?https://raw.githubusercontent.com/rootspace-tc/school-quiz/main/%EC%B4%88%EB%93%B1%EC%83%81%EC%8B%9D%ED%80%B4%EC%A6%88.html"
+            },
+            {
+                "name": "타일 매칭 게임",
+                "url": "https://htmlpreview.github.io/?https://raw.githubusercontent.com/rootspace-tc/school-quiz/refs/heads/main/matching.html"
+            },
+            {
+                "name": "밤하늘관찰퀴즈(4th)",
+                "url": "https://htmlpreview.github.io/?https://github.com/rootspace-tc/school-quiz/blob/main/4%ED%95%99%EB%85%84%20%EB%B0%A4%ED%95%98%EB%8A%98%EA%B4%80%EC%B0%B0.html"
+            },
+            {
+                "name": "도블(스마트폰 가능 버전)",
+                "url": "https://rootspace-tc.github.io/school-quiz/dobble%202.html"
+            },
+            {
+                "name": "타이머",
+                "url": "https://rootspace-tc.github.io/school-quiz/timer.html"
+            },
+            {
+                "name": "돼지주사위",
+                "url": "https://rootspace-tc.github.io/school-quiz/pigdice.html"
+            },
+            {
+                "name": "짝맞추기",
+                "url": "https://rootspace-tc.github.io/school-quiz/짝맞추기.html"
+            },
+            {
+                "name": "사다리",
+                "url": "https://rootspace-tc.github.io/school-quiz/사다리(최종).html"
+            },
+            {
+                "name": "방탈출",
+                "url": "https://rootspace-tc.github.io/school-quiz/escape.html"
+            },
+            {
+                "name": "배틀쉽",
+                "url": "https://rootspace-tc.github.io/school-quiz/battleship.html"
+            },
+            {
+                "name": "폭탄 피하기 ver.2",
+                "url": "https://rootspace-tc.github.io/school-quiz/tong-game%20ver.2.html"
+            },
+            {
+                "name": "팀 뽑기",
+                "url": "https://rootspace-tc.github.io/school-quiz/%ED%8C%80%20%EB%BD%91%EA%B8%B0.html"
+            },
+            {
+                "name": "사각형 점수 얻기",
+                "url": "https://rootspace-tc.github.io/school-quiz/사각형%20점수%20얻기.html"
+            },
+            {
+                "name": "학생 랜덤 뽑기",
+                "url": "https://rootspace-tc.github.io/school-quiz/뽑기(일반%20ver2).html"
+            },
+            {
+                "name": "초성,중성,종성 퀴즈",
+                "url": "https://rootspace-tc.github.io/school-quiz/글자숨바꼭질(입력방법변경).html"
+            }
+        ];
+        let currentActionUrl = '';
+        let currentActionIndex = -1;
+        const colors = ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff'];
+
+        function showNotification(message) {
+            notification.textContent = message;
+            notification.classList.add('show');
+            setTimeout(() => { notification.classList.remove('show'); }, 2000);
+        }
+
+        function renderLinks() {
+            linkList.innerHTML = '';
+            programs.forEach((program, index) => {
+                const listItem = document.createElement('li');
+                listItem.className = 'link-item';
+                listItem.textContent = program.name;
+                listItem.style.backgroundColor = colors[index % colors.length];
+                listItem.addEventListener('click', () => {
+                    document.getElementById('action-title').textContent = program.name;
+                    currentActionUrl = program.url;
+                    currentActionIndex = index;
+                    actionModal.style.display = 'flex';
+                });
+                linkList.appendChild(listItem);
+            });
+
+            const addButton = document.createElement('li');
+            addButton.id = 'add-btn';
+            addButton.className = 'link-item';
+            addButton.textContent = '+';
+            addButton.addEventListener('click', () => {
+                document.getElementById('modal-title').textContent = '새 바로가기 추가';
+                document.getElementById('link-name-input').value = '';
+                document.getElementById('link-url-input').value = '';
+                formModal.style.display = 'flex';
+            });
+            linkList.appendChild(addButton);
+        }
+        
+        // --- 이벤트 리스너 ---
+        document.getElementById('modal-save-btn').addEventListener('click', () => {
+            const name = document.getElementById('link-name-input').value.trim();
+            const url = document.getElementById('link-url-input').value.trim();
+            if (name && url) {
+                programs.push({ name, url });
+                renderLinks();
+                formModal.style.display = 'none';
+                showNotification('새 바로가기가 추가되었습니다!');
+            } else {
+                alert('이름과 주소를 모두 입력해주세요.');
+            }
+        });
+        document.getElementById('modal-cancel-btn').addEventListener('click', () => { formModal.style.display = 'none'; });
+        document.getElementById('action-goto-btn').addEventListener('click', () => {
+            if (currentActionUrl) { window.open(currentActionUrl, '_blank'); }
+            actionModal.style.display = 'none';
+        });
+        document.getElementById('action-copy-btn').addEventListener('click', () => {
+            if (currentActionUrl) { navigator.clipboard.writeText(currentActionUrl).then(() => { showNotification('주소가 클립보드에 복사되었습니다!'); }); }
+            actionModal.style.display = 'none';
+        });
+        document.getElementById('action-close-btn').addEventListener('click', () => { actionModal.style.display = 'none'; });
+
+        renderLinks();
+    </script>
+
+</body></html>
