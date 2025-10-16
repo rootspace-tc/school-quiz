@@ -139,14 +139,16 @@
             audio.hitHigh.src = HIT_HIGH_BASE64; audio.hitLow.src = HIT_LOW_BASE64; audio.miss.src = MISS_SOUND_BASE64;
         }
         startButton.addEventListener('click', () => {
-            const teamCount = parseInt(teamCountInput.value);
-            if (teamCount > 0 && teamCount <= 8) {
-                audio.bgm.play().catch(() => {}); audio.bgm.pause();
-                initGame(teamCount);
-                setupScreen.classList.add('hidden');
-                gameScreen.classList.remove('hidden');
-            } else { alert('팀 수는 1팀에서 8팀까지만 가능합니다.'); }
-        });
+    const teamCount = parseInt(teamCountInput.value);
+    if (teamCount > 0 && teamCount <= 8) {
+        // audio.bgm.play().catch(() => {}); audio.bgm.pause(); // <--- 스마트폰 오류를 일으키는 코드 삭제!
+        initGame(teamCount);
+        setupScreen.classList.add('hidden');
+        gameScreen.classList.remove('hidden');
+    } else { 
+        alert('팀 수는 1팀에서 8팀까지만 가능합니다.'); 
+    }
+});
         function initGame(numTeams) {
             teams = [];
             for (let i = 1; i <= numTeams; i++) {
