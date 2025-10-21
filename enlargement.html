@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>그림 확대 퀴즈</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        /* 기본 스타일 및 JUA 글꼴 적용 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Jua', sans-serif;
+        }
+
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden; /* 스크롤바 제거 */
+            background-color: #333;
+            color: white;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            transition: transform 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        input[type="text"], input[type="number"] {
+            padding: 10px;
+            font-size: 1.2rem;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        /* 1. 설정 페이지 */
+        #setup-page {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        #paste-area {
+            width: 80%;
+            max-width: 600px;
+            height: 300px;
+            border: 3px dashed #888;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 1.5rem;
+            background-color: #444;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative;
+        }
+        
+        #paste-area.has-image::after {
+            content: "이미지 변경: 다시 붙여넣기";
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        #setup-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 80%;
+            max-width: 600px;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .input-group label {
+            font-size: 1.2rem;
+            align-self: center;
+        }
+
+        #start-button {
+            background-color: #4CAF50;
+            color: white;
+            font-size: 1.5rem;
+            padding: 15px;
+        }
+
+        /* 2. 게임 페이지 */
+        #game-page {
+            width: 100%;
+            height: 100%;
+            display: none; /* 초기에는 숨김 */
+            position: relative;
+        }
+
+        /* 원본 이미지 컨테이너 (정답 공개 시 보임) */
+        #image-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: #000;
+            display: none; /* 평소에는 숨김 */
+            z-index: 10;
+        }
+
+        /* 정답 텍스트 (정답 공개 시 보임) */
+        #answer-display {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 3rem;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px 30px;
+            border-radius: 10px;
+            z-index: 11;
+            display: none; /* 평소에는 숨김 */
+        }
+
+        /* 그리드 컨테이너 */
+        #grid-container {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 20;
+        }
+
+        .grid-tile {
+            border: 1px solid #fff;
+            background-color: #2196F3; /* 기본 파란색 */
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.3s;
+        }
+        
+        .grid-tile:hover {
+            background-color: #1E88E5;
+        }
+
+        /* X 눌렀을 때 바뀌는 색 */
+        .grid-tile.opened {
+            background-color: #666; /* 확인한 타일 색 */
+        }
+
+        #restart-button {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: #f44336;
+            color: white;
+            z-index: 30; /* 항상 위에 있도록 */
+        }
+
+        /* 3. 확대 모달 */
+        #zoom-modal {
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: #000;
+            display: none; /* 초기 숨김 */
+            z-index: 100;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* 확대된 이미지를 그릴 캔버스 */
+        #zoom-canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* O, X 버튼 컨테이너 */
+        .modal-buttons {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 50px;
+            z-index: 101;
+        }
+
+        #correct-button, #incorrect-button {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            font-size: 4rem;
+            line-height: 100px;
+            text-align: center;
+            border: 5px solid white;
+        }
+
+        #correct-button {
+            background-color: #4CAF50; /* O */
+            color: white;
+        }
+
+        #incorrect-button {
+            background-color: #f44336; /* X */
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="setup-page">
+        <h1>그림 확대 퀴즈</h1>
+        
+        <div id="paste-area">
+            <span id="paste-prompt">여기에 이미지를 붙여넣으세요 (Ctrl+V)</span>
+        </div>
+        
+        <div id="setup-controls">
+            <input type="text" id="answer-input" placeholder="정답 이름 입력">
+            
+            <div class="input-group">
+                <label for="rows-input">세로:</label>
+                <input type="number" id="rows-input" value="4" min="1" max="20">
+                <label for="cols-input">가로:</label>
+                <input type="number" id="cols-input" value="5" min="1" max="20">
+            </div>
+            
+            <button id="start-button">문제 출제하기</button>
+        </div>
+    </div>
+
+    <div id="game-page">
+        <div id="image-container"></div>
+        <div id="answer-display"></div>
+
+        <div id="grid-container"></div>
+        
+        <button id="restart-button">다시하기</button>
+    </div>
+
+    <div id="zoom-modal">
+        <canvas id="zoom-canvas"></canvas>
+        
+        <div class="modal-buttons">
+            <button id="correct-button">O</button>
+            <button id="incorrect-button">X</button>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수
+        let pastedImage = null; // 붙여넣은 이미지 객체 (Image)
+        let answerText = "";
+        let gridRows = 4;
+        let gridCols = 5;
+        let currentClickedTile = null; // O/X 판별을 위해 현재 클릭한 타일 저장
+
+        // DOM 요소
+        const setupPage = document.getElementById('setup-page');
+        const gamePage = document.getElementById('game-page');
+        const pasteArea = document.getElementById('paste-area');
+        const pastePrompt = document.getElementById('paste-prompt');
+        const answerInput = document.getElementById('answer-input');
+        const rowsInput = document.getElementById('rows-input');
+        const colsInput = document.getElementById('cols-input');
+        const startButton = document.getElementById('start-button');
+        
+        const gridContainer = document.getElementById('grid-container');
+        const imageContainer = document.getElementById('image-container');
+        const answerDisplay = document.getElementById('answer-display');
+        const restartButton = document.getElementById('restart-button');
+        
+        const zoomModal = document.getElementById('zoom-modal');
+        const zoomCanvas = document.getElementById('zoom-canvas');
+        const correctButton = document.getElementById('correct-button');
+        const incorrectButton = document.getElementById('incorrect-button');
+
+        // --- 1. 설정 페이지 로직 ---
+
+        // 붙여넣기 이벤트 리스너
+        document.addEventListener('paste', (e) => {
+            // setup-page가 보일 때만 작동
+            if (setupPage.style.display === 'none') return;
+            
+            const items = e.clipboardData.files;
+            if (items.length > 0) {
+                const file = items[0];
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        // 이미지 객체 생성 및 저장
+                        pastedImage = new Image();
+                        pastedImage.src = event.target.result;
+                        
+                        // 미리보기
+                        pasteArea.style.backgroundImage = `url(${event.target.result})`;
+                        pastePrompt.style.display = 'none'; // 프롬프트 숨기기
+                        pasteArea.classList.add('has-image');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+
+        // '문제 출제하기' 버튼 클릭
+        startButton.addEventListener('click', () => {
+            answerText = answerInput.value;
+            gridRows = parseInt(rowsInput.value);
+            gridCols = parseInt(colsInput.value);
+
+            // 유효성 검사
+            if (!pastedImage) {
+                alert("먼저 이미지를 붙여넣어 주세요.");
+                return;
+            }
+            if (answerText.trim() === "") {
+                alert("정답 이름을 입력해 주세요.");
+                return;
+            }
+            if (isNaN(gridRows) || isNaN(gridCols) || gridRows < 1 || gridCols < 1) {
+                alert("가로, 세로 칸 수는 1 이상의 숫자여야 합니다.");
+                return;
+            }
+
+            // 게임 시작
+            startGame();
+        });
+
+        // --- 2. 게임 페이지 로직 ---
+
+        function startGame() {
+            // 페이지 전환
+            setupPage.style.display = 'none';
+            gamePage.style.display = 'block';
+
+            // 정답 화면 초기화 (숨기기)
+            imageContainer.style.display = 'none';
+            imageContainer.style.backgroundImage = `url(${pastedImage.src})`;
+            answerDisplay.style.display = 'none';
+            answerDisplay.textContent = answerText;
+
+            // 그리드 생성
+            createGrid();
+        }
+
+        // 그리드 생성 함수
+        function createGrid() {
+            gridContainer.innerHTML = ""; // 기존 그리드 초기화
+            gridContainer.style.display = "grid"; // 보이게 설정
+            gridContainer.style.gridTemplateRows = `repeat(${gridRows}, 1fr)`;
+            gridContainer.style.gridTemplateColumns = `repeat(${gridCols}, 1fr)`;
+
+            for (let i = 0; i < gridRows * gridCols; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'grid-tile';
+                tile.textContent = i + 1;
+                
+                // 타일의 위치 정보 저장
+                tile.dataset.row = Math.floor(i / gridCols);
+                tile.dataset.col = i % gridCols;
+
+                // 타일 클릭 이벤트
+                tile.addEventListener('click', () => {
+                    showZoomedImage(tile);
+                });
+                
+                gridContainer.appendChild(tile);
+            }
+        }
+
+        // '다시하기' 버튼
+        restartButton.addEventListener('click', () => {
+            // 상태 초기화
+            pastedImage = null;
+            answerText = "";
+            pasteArea.style.backgroundImage = 'none';
+            pastePrompt.style.display = 'block';
+            pasteArea.classList.remove('has-image');
+            answerInput.value = "";
+            rowsInput.value = "4";
+            colsInput.value = "5";
+
+            // 페이지 전환
+            gamePage.style.display = 'none';
+            setupPage.style.display = 'flex';
+        });
+
+        // --- 3. 확대 모달 로직 ---
+
+        // 타일 클릭 시 확대 이미지 표시
+        function showZoomedImage(tile) {
+            currentClickedTile = tile; // 현재 타일 저장
+            
+            const row = parseInt(tile.dataset.row);
+            const col = parseInt(tile.dataset.col);
+
+            const ctx = zoomCanvas.getContext('2d');
+            
+            // 캔버스 크기를 창 크기에 맞춤
+            zoomCanvas.width = window.innerWidth;
+            zoomCanvas.height = window.innerHeight;
+
+            // 원본 이미지에서 잘라낼 영역 계산
+            const sx = (pastedImage.width / gridCols) * col;
+            const sy = (pastedImage.height / gridRows) * row;
+            const sWidth = pastedImage.width / gridCols;
+            const sHeight = pastedImage.height / gridRows;
+
+            // 캔버스 전체에 그리기 (dx, dy, dWidth, dHeight)
+            // drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
+            ctx.drawImage(pastedImage, sx, sy, sWidth, sHeight, 0, 0, zoomCanvas.width, zoomCanvas.height);
+
+            // 모달 표시
+            zoomModal.style.display = 'flex';
+        }
+
+        // O (정답) 버튼 클릭
+        correctButton.addEventListener('click', () => {
+            zoomModal.style.display = 'none'; // 모달 닫기
+            gridContainer.style.display = 'none'; // 그리드 숨기기
+            
+            // 정답 화면 표시
+            imageContainer.style.display = 'block';
+            answerDisplay.style.display = 'block';
+        });
+
+        // X (오답) 버튼 클릭
+        incorrectButton.addEventListener('click', () => {
+            zoomModal.style.display = 'none'; // 모달 닫기
+            
+            // 클릭했던 타일 색상 변경
+            if (currentClickedTile) {
+                currentClickedTile.classList.add('opened');
+            }
+            currentClickedTile = null; // 현재 타일 선택 해제
+        });
+
+    </script>
+</body>
+</html>
