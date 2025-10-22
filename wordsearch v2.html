@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>손전등 숨은 단어 찾기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --handle-height: 20px;
+            --controls-height: 200px;
+        }
+
+        body {
+            font-family: 'Jua', sans-serif;
+            touch-action: none; /* iOS에서 스크롤 방지 */
+        }
+
+        #game-grid {
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        .grid-cell {
+            font-size: 1.5rem; /* 글자 크기 조정 */
+            padding: 2px; /* 셀 패딩 줄임 */
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+        
+        /* 어둠이 걷힌 셀 스타일 */
+        .revealed {
+            background-color: rgba(255, 255, 180, 0.3) !important;
+            color: white !important;
+        }
+
+        /* 손전등 비추는 영역만 보이도록 */
+        #game-area {
+            position: relative;
+            overflow: hidden;
+            background-color: black; /* 기본은 검은 배경 */
+        }
+
+        #game-grid-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: grid;
+            color: white; /* 밝은 상태의 글자색 */
+        }
+
+        #darkness-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            mask-image: radial-gradient(circle at var(--mouse-x) var(--mouse-y), transparent 0px, transparent var(--flashlight-inner-radius), black var(--flashlight-outer-radius));
+            -webkit-mask-image: radial-gradient(circle at var(--mouse-x) var(--mouse-y), transparent 0px, transparent var(--flashlight-inner-radius), black var(--flashlight-outer-radius));
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none;
+            z-index: 10;
+            opacity: 1; /* 기본적으로 어두움 */
+        }
+
+        /* 손전등 터치/클릭 시 */
+        #game-area.flashlight-mode #darkness-overlay {
+            opacity: 1; 
+            mask-image: radial-gradient(circle at var(--mouse-x) var(--mouse-y), transparent 0px, transparent var(--flashlight-inner-radius), black var(--flashlight-outer-radius));
+            -webkit-mask-image: radial-gradient(circle at var(--mouse-x) var(--mouse-y), transparent 0px, transparent var(--flashlight-inner-radius), black var(--flashlight-outer-radius));
+        }
+        
+        /* 전체 불 켜기 모드 */
+        #game-area.full-light-on #darkness-overlay {
+            opacity: 0;
+        }
+        
+        #game-timer {
+            text-shadow: 0 0 8px rgba(0,0,0,0.7);
+        }
+        
+        #times-up-message {
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+        }
+
+    </style>
+</head>
+<body class="bg-gray-900 text-white overflow-hidden h-screen w-screen flex flex-col">
+
+    <div id="setup-screen" class="flex flex-col items-center justify-center h-full w-full bg-gray-800 p-8">
+        <div class="w-full max-w-2xl bg-gray-700 p-8 rounded-2xl shadow-lg text-center">
+            <h1 class="text-5xl mb-6">숨은 단어 찾기 설정</h1>
+            
+            <div class="mb-4 text-left">
+                <label for="words-input" class="block text-xl mb-2">단어를 쉼표(,)로 구분하여 입력하세요:</label>
+                <textarea id="words-input" class="w-full h-32 p-3 bg-gray-800 text-white rounded-lg text-lg border-2 border-gray-600 focus:border-yellow-400 focus:outline-none" placeholder="예: 사과,바나나,여우,늑대"></textarea>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                <div class="flex-1 text-left">
+                    <label for="grid-size-input" class="block text-xl mb-2">판 크기 (가로 x 세로):</label>
+                    <input type="number" id="grid-size-input" value="10" min="5" max="30" class="w-full p-3 bg-gray-800 text-white rounded-lg text-lg border-2 border-gray-600 focus:border-yellow-400 focus:outline-none">
+                </div>
+                <div class="flex-1 text-left">
+                    <label class="block text-xl mb-2">난이도:</label>
+                    <div class="flex bg-gray-800 rounded-lg p-1 border-2 border-gray-600">
+                        <button id="difficulty-easy" class="flex-1 p-2 text-lg rounded-md bg-yellow-500 text-gray-900">쉬움</button>
+                        <button id="difficulty-hard" class="flex-1 p-2 text-lg rounded-md">어려움</button>
+                    </div>
+                </div>
+            </div>
+
+            <button id="start-game-btn" class="w-full mt-6 bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold text-2xl py-4 rounded-lg transition-transform duration-200 hover:scale-105">시작하기</button>
+        </div>
+    </div>
+
+    <div id="game-screen" class="hidden flex-col h-full w-full">
+        <div class="relative flex-shrink-0 p-3 bg-gray-800 shadow-lg flex flex-col sm:flex-row justify-between items-center gap-4 z-20">
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <input type="text" id="answer-input" class="w-full sm:w-64 p-2 text-lg bg-gray-700 rounded-md border-2 border-gray-600 focus:border-yellow-400 focus:outline-none" placeholder="정답 입력...">
+                <button id="submit-answer-btn" class="px-4 py-2 bg-yellow-500 text-gray-900 rounded-md text-lg hover:bg-yellow-400">입력</button>
+            </div>
+            
+            <div id="game-timer-container" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                <div id="game-timer" class="text-4xl font-bold text-yellow-300 hidden"></div>
+                <div id="times-up-message" class="text-5xl font-bold text-red-500 hidden">시간 끝!</div>
+            </div>
+
+            <div id="found-words-container" class="w-full sm:w-auto text-sm bg-gray-900 p-2 rounded-md h-16 overflow-y-auto flex flex-wrap gap-2 items-start content-start">
+                </div>
+        </div>
+
+        <div id="game-area" class="flex-1 relative overflow-hidden">
+            <div id="game-grid-container" class="grid text-white">
+                <div id="game-grid" class="contents">
+                    </div>
+            </div>
+            <div id="darkness-overlay" style="--mouse-x: 50%; --mouse-y: 50%; --flashlight-inner-radius: 0px; --flashlight-outer-radius: 0px;"></div>
+        </div>
+
+        <div id="controls-resizer" class="w-full bg-gray-600 cursor-row-resize flex justify-center items-center z-20" style="height: var(--handle-height);">
+            <div class="w-10 h-1 bg-gray-400 rounded-full"></div>
+        </div>
+        <div id="controls-panel" class="w-full bg-gray-800 p-4 flex flex-wrap justify-center items-center gap-x-6 gap-y-4 z-20" style="height: var(--controls-height);">
+            <div class="flex items-center gap-3">
+                <span class="text-xl">🔦 빛 크기:</span>
+                <div class="flex bg-gray-700 rounded-lg p-1">
+                    <button data-size="1" class="flashlight-size-btn p-2 w-12 text-lg rounded-md bg-yellow-500 text-gray-900">1</button>
+                    <button data-size="2" class="flashlight-size-btn p-2 w-12 text-lg rounded-md">2</button>
+                    <button data-size="3" class="flashlight-size-btn p-2 w-12 text-lg rounded-md">3</button>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="text-xl">⏱️ 유지 시간:</span>
+                <div class="flex bg-gray-700 rounded-lg p-1">
+                    <button data-duration="1" class="duration-btn p-2 w-12 text-lg rounded-md">1초</button>
+                    <button data-duration="3" class="duration-btn p-2 w-12 text-lg rounded-md bg-yellow-500 text-gray-900">3초</button>
+                    <button data-duration="5" class="duration-btn p-2 w-12 text-lg rounded-md">5초</button>
+                    <button data-duration="7" class="duration-btn p-2 w-12 text-lg rounded-md">7초</button>
+                    <button data-duration="10" class="duration-btn p-2 w-12 text-lg rounded-md">10초</button>
+                </div>
+            </div>
+             <button id="start-exploration-btn" class="px-6 py-2 bg-blue-500 text-white rounded-md text-xl hover:bg-blue-400 transition-colors">탐색 시작</button>
+             <button id="toggle-light-btn" class="px-6 py-2 bg-green-500 text-white rounded-md text-xl hover:bg-green-400 transition-colors">전체 불켜기</button>
+        </div>
+    </div>
+    
+    <div id="result-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+        <div id="modal-content" class="bg-gray-800 rounded-2xl p-8 shadow-2xl text-center max-w-lg w-full transform transition-all scale-95 opacity-0">
+            <div id="result-icon" class="text-8xl mb-4"></div>
+            <h2 id="result-word" class="text-4xl mb-2 font-bold"></h2>
+            <p id="result-definition" class="text-2xl text-gray-300 min-h-[6rem]"></p>
+            <button id="close-modal-btn" class="mt-6 w-full bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold text-xl py-3 rounded-lg">확인</button>
+        </div>
+    </div>
+
+
+    <script>
+        const setupScreen = document.getElementById('setup-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const startGameBtn = document.getElementById('start-game-btn');
+        const wordsInput = document.getElementById('words-input');
+        const gridSizeInput = document.getElementById('grid-size-input');
+        const difficultyEasyBtn = document.getElementById('difficulty-easy');
+        const difficultyHardBtn = document.getElementById('difficulty-hard');
+
+        const gameArea = document.getElementById('game-area');
+        const gameGridContainer = document.getElementById('game-grid-container');
+        const gameGrid = document.getElementById('game-grid'); 
+        const darknessOverlay = document.getElementById('darkness-overlay');
+        const answerInput = document.getElementById('answer-input');
+        const submitAnswerBtn = document.getElementById('submit-answer-btn');
+        const foundWordsContainer = document.getElementById('found-words-container');
+        const gameTimer = document.getElementById('game-timer');
+        const timesUpMessage = document.getElementById('times-up-message');
+
+        const controlsPanel = document.getElementById('controls-panel');
+        const controlsResizer = document.getElementById('controls-resizer');
+        const startExplorationBtn = document.getElementById('start-exploration-btn');
+        const toggleLightBtn = document.getElementById('toggle-light-btn');
+
+        const resultModal = document.getElementById('result-modal');
+        const modalContent = document.getElementById('modal-content');
+        const resultIcon = document.getElementById('result-icon');
+        const resultWord = document.getElementById('result-word');
+        const resultDefinition = document.getElementById('result-definition');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+
+        let gameState = {
+            words: [],
+            gridSize: 10,
+            difficulty: 'easy',
+            grid: [],
+            wordMap: {},
+            foundWords: [],
+            flashlightSize: 1,
+            flashlightDuration: 3000,
+            revealedCells: new Set(),
+            isGameActive: false,
+            gameTimerInterval: null,
+            isFullLightOn: false,
+        };
+
+        const commonElementaryChars = "학교선생님친구공부책읽기놀이터운동장급식도시락알림장숙제지우개연필색연필크레파스가위풀종이그림음악미술체육과학수학사회국어영어실험관찰탐구이야기동화만화게임컴퓨터스마트폰로봇미래꿈나무희망사랑행복가족부모님형누나동생언니오빠할아버지할머니사랑해요감사해요미안해요고마워요안녕하세요잘가요화이팅힘내세요파이팅재미있어요신나요즐거워요아름다운멋진예쁜따뜻한시원한높은낮은빠른느린큰작은많은적은밝은어두운새로운오래된반짝반짝빛나는푸른하얀노란빨간파란초록분홍보라검정주황금은색은빛무지개알록달록반짝이는새싹꽃나무산강바다하늘구름비바람눈별달해아침점심저녁밤새벽오전오후시분초하루일주일개월년봄여름가을겨울사계절과일채소곡식고기생선우유빵밥김치된장찌개라면피자치킨햄버거과자사탕초콜릿아이스크림쥬스물우산가방모자옷신발양말장갑시계전화기텔레비전컴퓨터냉장고자동차비행기배기차지하철버스자전거걷기뛰기앉기서기먹기마시기잠자기웃기울기말하기듣기쓰기그리기만들기생각하기배우기돕기지키기약속하기시작끝처음마지막가운데모두같이서로함께따로다시또그리고그러나그래서왜냐하면만약에만약에아니요네";
+        
+        // --- 설정 화면 로직 ---
+        difficultyEasyBtn.addEventListener('click', () => {
+            gameState.difficulty = 'easy';
+            difficultyEasyBtn.classList.add('bg-yellow-500', 'text-gray-900');
+            difficultyHardBtn.classList.remove('bg-yellow-500', 'text-gray-900');
+        });
+
+        difficultyHardBtn.addEventListener('click', () => {
+            gameState.difficulty = 'hard';
+            difficultyHardBtn.classList.add('bg-yellow-500', 'text-gray-900');
+            difficultyEasyBtn.classList.remove('bg-yellow-500', 'text-gray-900');
+        });
+
+        startGameBtn.addEventListener('click', () => {
+            const words = wordsInput.value.split(',').map(w => w.trim()).filter(w => w.length > 0);
+            const gridSize = parseInt(gridSizeInput.value, 10);
+
+            if (words.length === 0) {
+                // alert() 대신 모달이나 다른 UI 피드백을 사용하는 것이 좋지만,
+                // 기존 로직을 유지하기 위해 alert를 남겨둡니다. 
+                // 하지만 alert는 이 환경에서 작동하지 않을 수 있습니다.
+                // UI에 직접 메시지를 표시하는 것이 좋습니다.
+                console.warn('하나 이상의 단어를 입력해주세요.');
+                wordsInput.focus();
+                return;
+            }
+            if (isNaN(gridSize) || gridSize < 5 || gridSize > 30) {
+                console.warn('판 크기는 5에서 30 사이의 숫자여야 합니다.');
+                gridSizeInput.focus();
+                return;
+            }
+            gameState.words = words;
+            gameState.gridSize = gridSize;
+            setupScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            gameScreen.classList.add('flex');
+            initGame();
+        });
+
+        // --- 하단 패널 크기 조절 ---
+        let isResizing = false;
+        controlsResizer.addEventListener('mousedown', (e) => { isResizing = true; document.body.style.cursor = 'row-resize'; });
+        controlsResizer.addEventListener('touchstart', (e) => { isResizing = true; });
+        document.addEventListener('mouseup', () => { isResizing = false; document.body.style.cursor = 'default'; });
+        document.addEventListener('touchend', () => { isResizing = false; });
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            const newHeight = window.innerHeight - e.clientY;
+            const handleHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--handle-height'));
+            if (newHeight > 50 && newHeight < window.innerHeight * 0.5) {
+                document.documentElement.style.setProperty('--controls-height', `${newHeight - handleHeight}px`);
+            }
+        });
+        document.addEventListener('touchmove', (e) => {
+            if (!isResizing) return;
+            e.preventDefault();
+            const newHeight = window.innerHeight - e.touches[0].clientY;
+            const handleHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--handle-height'));
+            if (newHeight > 50 && newHeight < window.innerHeight * 0.5) {
+                document.documentElement.style.setProperty('--controls-height', `${newHeight - handleHeight}px`);
+            }
+        });
+
+        // --- 게임 초기화 ---
+        function initGame() {
+            gameState.foundWords = []; 
+            gameState.revealedCells = new Set();
+            gameState.isGameActive = false;
+            gameState.isFullLightOn = false;
+            clearInterval(gameState.gameTimerInterval);
+            
+            gameTimer.classList.add('hidden');
+            timesUpMessage.classList.add('hidden');
+            startExplorationBtn.disabled = false;
+            startExplorationBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            toggleLightBtn.disabled = false;
+            toggleLightBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            gameArea.classList.remove('full-light-on');
+            toggleLightBtn.textContent = '전체 불켜기';
+            toggleLightBtn.classList.replace('bg-red-500', 'bg-green-500');
+            
+            generateGrid();
+            renderGrid();
+            setupControls();
+            setupEventListeners();
+            foundWordsContainer.innerHTML = ''; 
+        }
+
+        // --- 그리드 생성 ---
+        function generateGrid() {
+            const { gridSize, words, difficulty } = gameState;
+            gameState.grid = Array.from({ length: gridSize }, () => Array(gridSize).fill(null));
+            gameState.wordMap = {};
+            const directions = [ { r: 0, c: 1 }, { r: 1, c: 0 }, { r: 1, c: 1 }, { r: 0, c: -1 }, { r: -1, c: 0 }, { r: -1, c: -1 }, { r: 1, c: -1 }, { r: -1, c: 1 }];
+            words.forEach(word => {
+                let placed = false;
+                let attempts = 0;
+                while (!placed && attempts < 100) {
+                    if (difficulty === 'easy') {
+                        const dir = directions[Math.floor(Math.random() * directions.length)];
+                        const startR = Math.floor(Math.random() * gridSize);
+                        const startC = Math.floor(Math.random() * gridSize);
+                        if (canPlaceWord(word, startR, startC, dir)) {
+                            const positions = [];
+                            for (let i = 0; i < word.length; i++) {
+                                const r = startR + i * dir.r;
+                                const c = startC + i * dir.c;
+                                gameState.grid[r][c] = word[i];
+                                positions.push({ r, c });
+                            }
+                            gameState.wordMap[word] = positions;
+                            placed = true;
+                        }
+                    } else { // 'hard'
+                        const emptyCells = [];
+                        for (let r = 0; r < gridSize; r++) { for (let c = 0; c < gridSize; c++) { if (gameState.grid[r][c] === null) emptyCells.push({ r, c }); } }
+                        if (emptyCells.length >= word.length) {
+                            const positions = [];
+                            for (let i = 0; i < word.length; i++) {
+                                const randIndex = Math.floor(Math.random() * emptyCells.length);
+                                const { r, c } = emptyCells.splice(randIndex, 1)[0];
+                                gameState.grid[r][c] = word[i];
+                                positions.push({ r, c });
+                            }
+                            gameState.wordMap[word] = positions;
+                            placed = true;
+                        }
+                    }
+                    attempts++;
+                }
+                if (!placed) console.warn(`'${word}' 단어를 배치하지 못했습니다.`);
+            });
+            fillEmptyCellsWithCommonChars();
+        }
+        
+        function canPlaceWord(word, startR, startC, dir) {
+            const { gridSize } = gameState;
+            for (let i = 0; i < word.length; i++) {
+                const r = startR + i * dir.r;
+                const c = startC + i * dir.c;
+                if (r < 0 || r >= gridSize || c < 0 || c >= gridSize || (gameState.grid[r][c] !== null && gameState.grid[r][c] !== word[i])) { return false; }
+            }
+            return true;
+        }
+
+        function fillEmptyCellsWithCommonChars() {
+            for (let r = 0; r < gameState.gridSize; r++) { 
+                for (let c = 0; c < gameState.gridSize; c++) {
+                    if (gameState.grid[r][c] === null) { 
+                        gameState.grid[r][c] = commonElementaryChars[Math.floor(Math.random() * commonElementaryChars.length)]; 
+                    }
+                }
+            }
+        }
+
+        // --- 그리드 렌더링 ---
+        function renderGrid() {
+            const { gridSize, grid } = gameState;
+            gameGrid.innerHTML = '';
+            gameGridContainer.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            gameGridContainer.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+            for (let r = 0; r < gridSize; r++) { for (let c = 0; c < gridSize; c++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell flex items-center justify-center';
+                cell.textContent = grid[r][c];
+                cell.dataset.r = r; cell.dataset.c = c;
+                gameGrid.appendChild(cell);
+            }}
+        }
+
+        // --- 컨트롤 설정 ---
+        function setupControls() {
+            document.querySelectorAll('.flashlight-size-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    if (gameState.isGameActive) return;
+                    gameState.flashlightSize = parseInt(e.target.dataset.size);
+                    document.querySelectorAll('.flashlight-size-btn').forEach(b => b.classList.remove('bg-yellow-500', 'text-gray-900'));
+                    e.target.classList.add('bg-yellow-500', 'text-gray-900');
+                });
+            });
+            document.querySelectorAll('.duration-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    if (gameState.isGameActive) return;
+                    gameState.flashlightDuration = parseInt(e.target.dataset.duration) * 1000;
+                    document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('bg-yellow-500', 'text-gray-900'));
+                    e.target.classList.add('bg-yellow-500', 'text-gray-900');
+                });
+            });
+        }
+        
+        // --- 이벤트 리스너 ---
+        function setupEventListeners() {
+            gameArea.addEventListener('mousedown', handlePointerDown);
+            gameArea.addEventListener('mousemove', handlePointerMove);
+            document.addEventListener('mouseup', handlePointerUp);
+            gameArea.addEventListener('touchstart', handlePointerDown, { passive: false });
+            gameArea.addEventListener('touchmove', handlePointerMove, { passive: false });
+            document.addEventListener('touchend', handlePointerUp);
+            submitAnswerBtn.addEventListener('click', checkAnswer);
+            answerInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAnswer(); });
+            closeModalBtn.addEventListener('click', hideModal);
+            startExplorationBtn.addEventListener('click', startGameTimer);
+            toggleLightBtn.addEventListener('click', toggleFullLight);
+        }
+
+        // --- 타이머 및 게임 시작 ---
+        function startGameTimer() {
+            if (gameState.isGameActive || gameState.isFullLightOn) return;
+            gameState.isGameActive = true;
+            
+            startExplorationBtn.disabled = true;
+            startExplorationBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            toggleLightBtn.disabled = true;
+            toggleLightBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            let timeLeft = gameState.flashlightDuration / 1000;
+            gameTimer.textContent = `${timeLeft}초`;
+            gameTimer.classList.remove('hidden');
+
+            gameState.gameTimerInterval = setInterval(() => {
+                timeLeft--;
+                gameTimer.textContent = `${timeLeft}초`;
+                if (timeLeft <= 0) {
+                    clearInterval(gameState.gameTimerInterval);
+                    gameState.isGameActive = false;
+                    isPointerDown = false; // 마우스 상태 초기화
+                    gameTimer.classList.add('hidden');
+                    timesUpMessage.classList.remove('hidden');
+                    gameArea.classList.remove('flashlight-mode');
+                    
+                    // 손전등 불빛(마스크)을 완전히 끄도록 초기화
+                    darknessOverlay.style.setProperty('--flashlight-inner-radius', `0px`);
+                    darknessOverlay.style.setProperty('--flashlight-outer-radius', `0px`);
+
+                    // 2초 후 다음 라운드를 위해 리셋
+                    setTimeout(() => {
+                        timesUpMessage.classList.add('hidden');
+                        startExplorationBtn.disabled = false;
+                        startExplorationBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        toggleLightBtn.disabled = false;
+                        toggleLightBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }, 2000);
+                }
+            }, 1000);
+        }
+
+        // --- 손전등 로직 ---
+        let isPointerDown = false;
+        const handlePointerMove = (e) => {
+            if (!isPointerDown || !gameState.isGameActive || gameState.isFullLightOn) return;
+            const rect = gameArea.getBoundingClientRect();
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+            updateFlashlightMask(clientX - rect.left, clientY - rect.top);
+        };
+        const handlePointerDown = (e) => {
+            if (!gameState.isGameActive || gameState.isFullLightOn) return;
+            isPointerDown = true;
+            gameArea.classList.add('flashlight-mode');
+            const rect = gameArea.getBoundingClientRect();
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+            updateFlashlightMask(clientX - rect.left, clientY - rect.top);
+        };
+        const handlePointerUp = (e) => {
+            if (!gameState.isGameActive || gameState.isFullLightOn) return;
+            isPointerDown = false;
+            gameArea.classList.remove('flashlight-mode');
+        };
+
+        function updateFlashlightMask(x, y) {
+            const innerRadius = 20 + (gameState.flashlightSize - 1) * 15; // 20, 35, 50
+            const outerRadius = innerRadius + 40; 
+            darknessOverlay.style.setProperty('--mouse-x', `${x}px`);
+            darknessOverlay.style.setProperty('--mouse-y', `${y}px`);
+            darknessOverlay.style.setProperty('--flashlight-inner-radius', `${innerRadius}px`);
+            darknessOverlay.style.setProperty('--flashlight-outer-radius', `${outerRadius}px`);
+        }
+
+        function toggleFullLight() {
+            if (gameState.isGameActive) return; // 탐색 중에는 변경 불가
+            gameState.isFullLightOn = !gameState.isFullLightOn;
+
+            if (gameState.isFullLightOn) {
+                gameArea.classList.add('full-light-on');
+                toggleLightBtn.textContent = '불끄기';
+                toggleLightBtn.classList.replace('bg-green-500', 'bg-red-500');
+            } else {
+                gameArea.classList.remove('full-light-on');
+                toggleLightBtn.textContent = '전체 불켜기';
+                toggleLightBtn.classList.replace('bg-red-500', 'bg-green-500');
+            }
+        }
+        
+        // --- 보너스 단어 로직 (8방향 탐색) ---
+        function isWordOnGrid(word) {
+            const { gridSize, grid } = gameState;
+            const directions = [
+                { r: 0, c: 1 }, { r: 0, c: -1 }, { r: 1, c: 0 }, { r: -1, c: 0 },
+                { r: 1, c: 1 }, { r: 1, c: -1 }, { r: -1, c: 1 }, { r: -1, c: -1 }
+            ];
+
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
+                    if (grid[r][c] === word[0]) {
+                        for (const dir of directions) {
+                            let found = true;
+                            let path = [{r, c}];
+                            for (let i = 1; i < word.length; i++) {
+                                const nextR = r + i * dir.r;
+                                const nextC = c + i * dir.c;
+
+                                if (nextR < 0 || nextR >= gridSize || nextC < 0 || nextC >= gridSize || grid[nextR][nextC] !== word[i]) {
+                                    found = false;
+                                    break;
+                                }
+                                path.push({r: nextR, c: nextC});
+                            }
+                            if (found) {
+                                if (!gameState.wordMap[word]) {
+                                    gameState.wordMap[word] = path;
+                                }
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        // --- ★ [재수정됨] 실시간 사전 검색 기능 (프록시 제거) ---
+        async function fetchWordDefinition(word) {
+            
+            // ★ [수정] 프록시 없이 위키낱말사전 API로 직접 요청합니다.
+            const encodedWord = encodeURIComponent(word);
+            const apiUrl = `https://ko.wiktionary.org/api/rest_v1/page/definition/${encodedWord}`;
+
+            try {
+                // ★ [수정] 프록시 없이 API URL만 사용합니다.
+                const response = await fetch(apiUrl); 
+
+                if (!response.ok) {
+                    // API 서버에서 404나 500 등을 반환하는 경우
+                    console.error("API call failed (response not ok):", response.status);
+                    if (response.status === 404) {
+                        // 404는 단어를 못 찾은 것
+                        return { success: false, definition: null };
+                    }
+                    return { success: false, definition: `사전 검색 중 오류가 발생했어요. (오류 코드: ${response.status})` };
+                }
+                
+                // 텍스트를 JSON으로 파싱
+                const data = await response.json();
+                
+                const definitionEntry = data.ko?.[0]; // 한국어 정의를 찾습니다.
+                if (definitionEntry && definitionEntry.definitions?.[0]) {
+                    let definition = definitionEntry.definitions[0].definition;
+                    // HTML 태그 제거 및 공백 정리
+                    definition = definition.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
+                    // 첫 번째 문장만 가져오기
+                    const firstSentence = definition.split('.')[0];
+                    return { success: true, definition: firstSentence + '.' };
+                } else {
+                    // API 호출은 성공했으나, 정의가 없거나 404 JSON을 반환한 경우
+                    if (data.title === "Page Not Found" || data.type === "https://mediawiki.org/wiki/HyperSwitch/errors/not_found") {
+                        return { success: false, definition: null }; // 단어 없음
+                    }
+                    return { success: false, definition: null }; // 기타 이유로 정의 없음
+                }
+
+            } catch(error) {
+                // 'Failed to fetch' (네트워크 오류, **CORS 오류**, 프록시 서버 문제 등)
+                console.error("Error fetching definition (fetch failed):", error); 
+                // 이 오류는 CORS나 네트워크 연결 문제일 가능성이 가장 높습니다.
+                return { success: false, definition: "네트워크 연결 또는 CORS 설정을 확인해주세요." };
+            }
+        }
+
+
+        // --- 정답 확인 로직 (기존과 동일) ---
+        async function checkAnswer() {
+            const answer = answerInput.value.trim();
+            if (!answer || gameState.foundWords.includes(answer)) {
+                answerInput.value = ''; return;
+            }
+            
+            submitAnswerBtn.textContent = '검색중...';
+            submitAnswerBtn.disabled = true;
+
+            const definitionResult = await fetchWordDefinition(answer);
+            
+            submitAnswerBtn.textContent = '입력';
+            submitAnswerBtn.disabled = false;
+
+            const isUserWord = gameState.words.includes(answer);
+            
+            if (isUserWord) {
+                // 내가 낸 문제
+                const definition = definitionResult.success ? definitionResult.definition : "내가 낸 문제예요! (사전 뜻은 찾지 못했어요)";
+                showModal('O', `정답!`, answer, definition, 'red');
+                gameState.foundWords.push(answer);
+                revealWordInGrid(answer);
+                addFoundWordChip(answer, 'red');
+            } else if (definitionResult.success) {
+                // 보너스 단어 (내가 낸 문제는 아니지만, 사전에 있고 판 위에 있음)
+                if (isWordOnGrid(answer)) {
+                    showModal('O', '보너스!', answer, definitionResult.definition, 'blue');
+                    gameState.foundWords.push(answer);
+                    revealWordInGrid(answer);
+                    addFoundWordChip(answer, 'blue');
+                } else {
+                    // 사전에 있지만 판 위에 없음
+                    showModal('X', '오답!', answer, "단어는 있지만, 판 위에서 찾을 수 없어요.");
+                }
+            } else {
+                // 사전에 없는 단어 (404 또는 API 오류)
+                const reason = definitionResult.definition || "사전에서 뜻을 찾을 수 없어요.";
+                showModal
