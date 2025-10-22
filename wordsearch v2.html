@@ -24,7 +24,6 @@
             -ms-user-select: none;
         }
 
-        /* ★ [수정됨] 글자 크기, 패딩을 JS로 제어하기 위해 CSS에서 제거 */
         .grid-cell {
             transition: background-color 0.5s ease, color 0.5s ease;
         }
@@ -48,6 +47,7 @@
             height: 100%;
             display: grid;
             color: white;
+            /* ★ [수정됨] gap은 JS에서 동적으로 제어합니다. */
         }
 
         #darkness-overlay {
@@ -158,6 +158,7 @@
             <div class="w-10 h-1 bg-gray-400 rounded-full"></div>
         </div>
         
+        <!-- ★ [수정됨] 컨트롤 패널 (글자 크기, 셀 여백) -->
         <div id="controls-panel" class="w-full bg-gray-800 p-4 flex flex-wrap justify-center items-center gap-x-6 gap-y-4 z-20" style="height: var(--controls-height);">
             <div class="flex items-center gap-3">
                 <span class="text-xl">🔦 빛 크기:</span>
@@ -178,20 +179,22 @@
                 </div>
             </div>
             
+            <!-- ★ [수정됨] 글자 크기 (기본값 변경) -->
             <div class="flex items-center gap-3">
                 <span class="text-sm">글자 크기:</span>
                 <div class="flex bg-gray-700 rounded-lg p-1">
-                    <button data-fontsize="1.25" class="spacing-btn p-1 w-10 text-sm rounded-md">작게</button>
-                    <button data-fontsize="1.5" class="spacing-btn p-1 w-10 text-sm rounded-md bg-yellow-500 text-gray-900">보통</button>
-                    <button data-fontsize="1.75" class="spacing-btn p-1 w-10 text-sm rounded-md">크게</button>
+                    <button data-fontsize="1.5" class="spacing-btn p-1 w-10 text-sm rounded-md">작게</button>
+                    <button data-fontsize="1.75" class="spacing-btn p-1 w-10 text-sm rounded-md bg-yellow-500 text-gray-900">보통</button>
+                    <button data-fontsize="2.0" class="spacing-btn p-1 w-10 text-sm rounded-md">크게</button>
                 </div>
             </div>
+            <!-- ★ [수정됨] 셀 여백(Gap) 조절 (Padding -> Gap) -->
             <div class="flex items-center gap-3">
-                <span class="text-sm">셀 간격:</span>
+                <span class="text-sm">셀 여백:</span>
                 <div class="flex bg-gray-700 rounded-lg p-1">
-                    <button data-padding="1" class="spacing-btn p-1 w-10 text-sm rounded-md">좁게</button>
-                    <button data-padding="2" class="spacing-btn p-1 w-10 text-sm rounded-md bg-yellow-500 text-gray-900">보통</button>
-                    <button data-padding="4" class="spacing-btn p-1 w-10 text-sm rounded-md">넓게</button>
+                    <button data-gap="1" class="spacing-btn p-1 w-10 text-sm rounded-md bg-yellow-500 text-gray-900">좁게</button>
+                    <button data-gap="5" class="spacing-btn p-1 w-10 text-sm rounded-md">보통</button>
+                    <button data-gap="10" class="spacing-btn p-1 w-10 text-sm rounded-md">넓게</button>
                 </div>
             </div>
             
@@ -240,7 +243,6 @@
         const resultDefinition = document.getElementById('result-definition');
         const closeModalBtn = document.getElementById('close-modal-btn');
         
-        // ★ [추가됨] 동적 스타일 태그 참조
         const dynamicGridStyles = document.getElementById('dynamic-grid-styles');
 
         let gameState = {
@@ -254,9 +256,9 @@
             isGameActive: false,
             gameTimerInterval: null,
             isFullLightOn: false,
-            // ★ [추가됨] 간격 상태 추가
-            gridFontSize: 1.5, // rem
-            gridCellPadding: 2, // px
+            // ★ [수정됨] 글자 크기, 셀 여백 상태 변경
+            gridFontSize: 1.75, // rem (기본값 "크게" -> "보통"으로 변경)
+            gridGap: 1, // px
         };
 
         const commonElementaryChars = "학교선생님친구공부책읽기놀이터운동장급식도시락알림장숙제지우개연필색연필크레파스가위풀종이그림음악미술체육과학수학사회국어영어실험관찰탐구이야기동화만화게임컴퓨터스마트폰로봇미래꿈나무희망사랑행복가족부모님형누나동생언니오빠할아버지할머니사랑해요감사해요미안해요고마워요안녕하세요잘가요화이팅힘내세요파이팅재미있어요신나요즐거워요아름다운멋진예쁜따뜻한시원한높은낮은빠른느린큰작은많은적은밝은어두운새로운오래된반짝반짝빛나는푸른하얀노란빨간파란초록분홍보라검정주황금은색은빛무지개알록달록반짝이는새싹꽃나무산강바다하늘구름비바람눈별달해아침점심저녁밤새벽오전오후시분초하루일주일개월년봄여름가을겨울사계절과일채소곡식고기생선우유빵밥김치된장찌개라면피자치킨햄버거과자사탕초콜릿아이스크림쥬스물우산가방모자옷신발양말장갑시계전화기텔레비전컴퓨터냉장고자동차비행기배기차지하철버스자전거걷기뛰기앉기서기먹기마시기잠자기웃기울기말하기듣기쓰기그리기만들기생각하기배우기돕기지키기약속하기시작끝처음마지막가운데모두같이서로함께따로다시또그리고그러나그래서왜냐하면만약에만약에아니요네";
@@ -420,7 +422,6 @@
             gameGridContainer.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
             gameGridContainer.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
             
-            // ★ [추가됨] 렌더링 시 현재 간격 스타일 적용
             updateGridStyles();
             
             for (let r = 0; r < gridSize; r++) { for (let c = 0; c < gridSize; c++) {
@@ -432,14 +433,16 @@
             }}
         }
 
-        // --- ★ [추가됨] 간격 조절 스타일 업데이트 함수 ---
+        // --- ★ [수정됨] 간격 조절 스타일 업데이트 함수 (Padding -> Gap) ---
         function updateGridStyles() {
+            // 글자 크기
             dynamicGridStyles.innerHTML = `
                 .grid-cell {
                     font-size: ${gameState.gridFontSize}rem;
-                    padding: ${gameState.gridCellPadding}px;
                 }
             `;
+            // 셀 여백(Gap)
+            gameGridContainer.style.gap = `${gameState.gridGap}px`;
         }
 
         // --- 컨트롤 설정 ---
@@ -463,7 +466,7 @@
                 });
             });
             
-            // ★ [추가됨] 글자 크기
+            // ★ [수정됨] 글자 크기 (기본값 버튼 변경)
             document.querySelectorAll('[data-fontsize]').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     gameState.gridFontSize = parseFloat(e.target.dataset.fontsize);
@@ -472,12 +475,12 @@
                     e.target.classList.add('bg-yellow-500', 'text-gray-900');
                 });
             });
-            // ★ [추가됨] 셀 간격
-            document.querySelectorAll('[data-padding]').forEach(btn => {
+            // ★ [수정됨] 셀 여백(Gap) (Padding -> Gap)
+            document.querySelectorAll('[data-gap]').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    gameState.gridCellPadding = parseInt(e.target.dataset.padding);
+                    gameState.gridGap = parseInt(e.target.dataset.gap);
                     updateGridStyles();
-                    document.querySelectorAll('[data-padding]').forEach(b => b.classList.remove('bg-yellow-500', 'text-gray-900'));
+                    document.querySelectorAll('[data-gap]').forEach(b => b.classList.remove('bg-yellow-500', 'text-gray-900'));
                     e.target.classList.add('bg-yellow-500', 'text-gray-900');
                 });
             });
@@ -497,7 +500,6 @@
             startExplorationBtn.addEventListener('click', startGameTimer);
             toggleLightBtn.addEventListener('click', toggleFullLight);
 
-            // ★ [수정됨] '뒤로 가기' 버튼 리스너 (다시 확인)
             document.getElementById('back-to-setup-btn').addEventListener('click', () => {
                 clearInterval(gameState.gameTimerInterval);
                 gameState.isGameActive = false;
@@ -645,7 +647,8 @@
                     console.error("Function/API error:", functionResult.error || `HTTP Status: ${response.status}`);
                     return { 
                         success: false, 
-                        definition: functionResult.error || `사전 서버 오류 발생 (Code: ${response.status}). Netlify Function 상태를 확인해주세요.` 
+                        // ★ [수정됨] 404 오류 메시지를 사용자에게 바로 표시
+                        definition: functionResult.error ? functionResult.error.details : `사전 서버 오류 발생 (Code: ${response.status})`
                     };
                 }
                 
@@ -679,7 +682,7 @@
 
             const isUserWord = gameState.words.includes(answer);
             
-            // API 호출 성공, 뜻도 찾음 (국어사전에 등재됨)
+            // API 호출 성공, 뜻도 찾음 (백과사전에 등재됨)
             if (definitionResult.success && definitionResult.definition) {
                 if (isUserWord) {
                     // 내가 낸 문제
@@ -699,7 +702,7 @@
                     }
                 }
             } 
-            // API 호출 성공, 뜻 없음 (국어사전에 등재 안 됨)
+            // API 호출 성공, 뜻 없음 (백과사전에 정확히 일치하는 단어 없음)
             else if (definitionResult.success && !definitionResult.definition) {
                  if (isUserWord) {
                     // 내가 낸 문제 (하지만 사전 등재어가 아님)
@@ -709,12 +712,12 @@
                     addFoundWordChip(answer, 'red');
                  } else {
                     // 사전에 없는 단어
-                    showModal('X', '오답!', answer, "국어사전에서 뜻을 찾을 수 없어요.");
+                    showModal('X', '오답!', answer, "백과사전에서 정확히 일치하는 항목을 찾을 수 없어요.");
                  }
             }
-            // API 호출 실패
+            // API 호출 실패 (404, 500 등)
             else {
-                const reason = definitionResult.definition;
+                const reason = definitionResult.definition; // API 오류 메시지
                 showModal('X', '오류!', answer, reason);
             }
 
