@@ -24,10 +24,10 @@ exports.handler = async (event, context) => {
         };
     }
 
-    // 3. ★★★ [수정됨] 네이버 API 호출 (백과사전 -> '국어사전' API로 변경) ★★★
+    // 3. ★★★ [수정됨] 네이버 API 호출 (404 오류로 인해 '백과사전' API로 복귀) ★★★
     const encodedWord = encodeURIComponent(word);
-    // 엔드포인트를 encyc.json 에서 kordict.json 으로 변경
-    const apiUrl = `https://openapi.naver.com/v1/search/kordict.json?query=${encodedWord}`;
+    // kordict.json (종료됨) -> encyc.json (작동함)
+    const apiUrl = `https://openapi.naver.com/v1/search/encyc.json?query=${encodedWord}`;
 
     try {
         const response = await fetch(apiUrl, {
@@ -47,15 +47,15 @@ exports.handler = async (event, context) => {
 
         const data = await response.json();
         
-        // 4. 데이터 가공 및 반환 (정확도 향상 로직은 그대로 유지)
+        // 4. 데이터 가공 및 반환 (정확도 향상 로직)
         let definition = null;
         if (data.items && data.items.length > 0) {
             
-            // 검색된 항목들(data.items) 중에서
+            // 검색된 항목들 중에서
             // 제목(title)이 검색어(word)와 정확히 일치하는 항목을 찾습니다.
             const foundItem = data.items.find(item => {
                 const cleanTitle = item.title.replace(/<[^>]*>?/gm, '').trim();
-                // "사과(沙果)" 또는 "사과 (과일)" 처럼 괄호가 있는 경우, 괄호 앞부분만 비교
+                // "사과 (과일)" 처럼 괄호가 있는 경우, 괄호 앞부분만 비교
                 const titleMain = cleanTitle.split(/[\(\s（]/)[0].trim();
                 
                 // 제목과 검색어가 정확히 같은지 확인
@@ -65,8 +65,9 @@ exports.handler = async (event, context) => {
             // 정확히 일치하는 항목(foundItem)을 찾은 경우에만,
             if (foundItem) {
                 // 해당 항목의 설명을 가져옵니다.
-                let rawDefinition = foundItem.definition.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
-                definition = rawDefinition; // 국어사전은 정의가 짧으므로 첫 문장만 자르지 않음
+                let rawDefinition = foundItem.description.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
+                // 백과사전은 설명이 길 수 있으므로 첫 문장만 사용
+                definition = rawDefinition.split('.')[0] + '.';
             }
         }
 
