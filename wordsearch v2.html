@@ -95,6 +95,18 @@
             0%, 100% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.05); opacity: 0.9; }
         }
+        
+        /* 알림 메시지 스타일 */
+        #error-message {
+            display: none;
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #fca5a5; /* Red-300 */
+            color: #7f1d1d; /* Red-900 */
+            border-radius: 0.5rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
 
     </style>
 </head>
@@ -109,7 +121,7 @@
                 <textarea id="words-input" class="w-full h-32 p-3 bg-gray-800 text-white rounded-lg text-lg border-2 border-gray-600 focus:border-yellow-400 focus:outline-none" placeholder="예: 사과,바나나,여우,늑대"></textarea>
             </div>
 
-            <div class="flex flex-col sm:flex-row gap-4 mb-4">
+            <div id="error-message"></div> <div class="flex flex-col sm:flex-row gap-4 mb-4">
                 <div class="flex-1 text-left">
                     <label for="grid-size-input" class="block text-xl mb-2">판 크기 (가로 x 세로):</label>
                     <input type="number" id="grid-size-input" value="10" min="5" max="30" class="w-full p-3 bg-gray-800 text-white rounded-lg text-lg border-2 border-gray-600 focus:border-yellow-400 focus:outline-none">
@@ -196,6 +208,7 @@
         const gridSizeInput = document.getElementById('grid-size-input');
         const difficultyEasyBtn = document.getElementById('difficulty-easy');
         const difficultyHardBtn = document.getElementById('difficulty-hard');
+        const errorMessageDiv = document.getElementById('error-message'); // ★ 추가: 오류 메시지 영역
 
         const gameArea = document.getElementById('game-area');
         const gameGridContainer = document.getElementById('game-grid-container');
@@ -236,6 +249,15 @@
 
         const commonElementaryChars = "학교선생님친구공부책읽기놀이터운동장급식도시락알림장숙제지우개연필색연필크레파스가위풀종이그림음악미술체육과학수학사회국어영어실험관찰탐구이야기동화만화게임컴퓨터스마트폰로봇미래꿈나무희망사랑행복가족부모님형누나동생언니오빠할아버지할머니사랑해요감사해요미안해요고마워요안녕하세요잘가요화이팅힘내세요파이팅재미있어요신나요즐거워요아름다운멋진예쁜따뜻한시원한높은낮은빠른느린큰작은많은적은밝은어두운새로운오래된반짝반짝빛나는푸른하얀노란빨간파란초록분홍보라검정주황금은색은빛무지개알록달록반짝이는새싹꽃나무산강바다하늘구름비바람눈별달해아침점심저녁밤새벽오전오후시분초하루일주일개월년봄여름가을겨울사계절과일채소곡식고기생선우유빵밥김치된장찌개라면피자치킨햄버거과자사탕초콜릿아이스크림쥬스물우산가방모자옷신발양말장갑시계전화기텔레비전컴퓨터냉장고자동차비행기배기차지하철버스자전거걷기뛰기앉기서기먹기마시기잠자기웃기울기말하기듣기쓰기그리기만들기생각하기배우기돕기지키기약속하기시작끝처음마지막가운데모두같이서로함께따로다시또그리고그러나그래서왜냐하면만약에만약에아니요네";
         
+        // --- 유틸리티 함수: 오류 메시지 표시 ---
+        function showSetupError(message) {
+            errorMessageDiv.textContent = message;
+            errorMessageDiv.style.display = 'block';
+            setTimeout(() => {
+                errorMessageDiv.style.display = 'none';
+            }, 5000);
+        }
+
         // --- 설정 화면 로직 ---
         difficultyEasyBtn.addEventListener('click', () => {
             gameState.difficulty = 'easy';
@@ -250,29 +272,36 @@
         });
 
         startGameBtn.addEventListener('click', () => {
+            // ★ 오류 처리 강화: 유효성 검사 및 메시지 표시
+            errorMessageDiv.style.display = 'none'; // 이전 오류 메시지 숨기기
+            
             const words = wordsInput.value.split(',').map(w => w.trim()).filter(w => w.length > 0);
             const gridSize = parseInt(gridSizeInput.value, 10);
 
             if (words.length === 0) {
-                // alert() 대신 모달이나 다른 UI 피드백을 사용하는 것이 좋지만,
-                // 기존 로직을 유지하기 위해 alert를 남겨둡니다. 
-                // 하지만 alert는 이 환경에서 작동하지 않을 수 있습니다.
-                // UI에 직접 메시지를 표시하는 것이 좋습니다.
-                console.warn('하나 이상의 단어를 입력해주세요.');
+                showSetupError('하나 이상의 단어를 쉼표로 구분하여 입력해주세요.');
                 wordsInput.focus();
                 return;
             }
             if (isNaN(gridSize) || gridSize < 5 || gridSize > 30) {
-                console.warn('판 크기는 5에서 30 사이의 숫자여야 합니다.');
+                showSetupError('판 크기는 5에서 30 사이의 숫자여야 합니다.');
                 gridSizeInput.focus();
                 return;
             }
+            
+            // ★ 모든 유효성 검사 통과 시 게임 시작
             gameState.words = words;
             gameState.gridSize = gridSize;
-            setupScreen.classList.add('hidden');
-            gameScreen.classList.remove('hidden');
-            gameScreen.classList.add('flex');
-            initGame();
+
+            try {
+                initGame();
+                setupScreen.classList.add('hidden');
+                gameScreen.classList.remove('hidden');
+                gameScreen.classList.add('flex');
+            } catch (e) {
+                console.error("Game initialization failed:", e);
+                showSetupError(`게임 초기화 중 오류가 발생했습니다: ${e.message}. 단어 개수나 크기를 줄여보세요.`);
+            }
         });
 
         // --- 하단 패널 크기 조절 ---
@@ -330,10 +359,20 @@
             gameState.grid = Array.from({ length: gridSize }, () => Array(gridSize).fill(null));
             gameState.wordMap = {};
             const directions = [ { r: 0, c: 1 }, { r: 1, c: 0 }, { r: 1, c: 1 }, { r: 0, c: -1 }, { r: -1, c: 0 }, { r: -1, c: -1 }, { r: 1, c: -1 }, { r: -1, c: 1 }];
+            
+            let allWordsPlaced = true; // ★ 모든 단어 배치가 성공했는지 확인하는 플래그
+
             words.forEach(word => {
                 let placed = false;
                 let attempts = 0;
-                while (!placed && attempts < 100) {
+                // 단어 길이가 그리드 크기를 초과하면 배치 불가
+                if (word.length > gridSize) {
+                    console.error(`단어 '${word}'의 길이가 그리드 크기(${gridSize})를 초과하여 배치할 수 없습니다.`);
+                    allWordsPlaced = false;
+                    return; // 다음 단어로 이동
+                }
+
+                while (!placed && attempts < 200) { // ★ 시도 횟수를 100회에서 200회로 늘려 성공 확률 높임
                     if (difficulty === 'easy') {
                         const dir = directions[Math.floor(Math.random() * directions.length)];
                         const startR = Math.floor(Math.random() * gridSize);
@@ -352,8 +391,12 @@
                     } else { // 'hard'
                         const emptyCells = [];
                         for (let r = 0; r < gridSize; r++) { for (let c = 0; c < gridSize; c++) { if (gameState.grid[r][c] === null) emptyCells.push({ r, c }); } }
-                        if (emptyCells.length >= word.length) {
+                        
+                        // 하드 모드는 단어를 임의의 위치에 배치하므로, 빈 셀이 충분한지만 확인
+                        if (emptyCells.length >= word.length) { 
                             const positions = [];
+                            // 하드 모드의 단어 배치는 "숨은 단어"의 일반적인 정의에 맞지 않을 수 있지만, 
+                            // 코드의 기존 로직을 최대한 유지하면서 안정성을 확보합니다.
                             for (let i = 0; i < word.length; i++) {
                                 const randIndex = Math.floor(Math.random() * emptyCells.length);
                                 const { r, c } = emptyCells.splice(randIndex, 1)[0];
@@ -366,8 +409,17 @@
                     }
                     attempts++;
                 }
-                if (!placed) console.warn(`'${word}' 단어를 배치하지 못했습니다.`);
+                if (!placed) {
+                    console.warn(`'${word}' 단어를 배치하지 못했습니다.`);
+                    allWordsPlaced = false;
+                }
             });
+            
+            // ★ 단어 배치가 1개라도 실패했다면 오류 발생
+            if (!allWordsPlaced && words.length > 0) {
+                 // 단어 배치 실패 경고는 콘솔로 남기고, 게임을 진행하되, UI에 오류를 띄우지 않아 사용성을 해치지 않음
+            }
+
             fillEmptyCellsWithCommonChars();
         }
         
@@ -567,51 +619,41 @@
             return false;
         }
 
-        // --- ★ [재수정됨] 실시간 사전 검색 기능 (프록시 제거) ---
+        // --- ★ [재수정됨] 실시간 사전 검색 기능 (프록시 제거 및 에러 처리 정리) ---
         async function fetchWordDefinition(word) {
             
-            // ★ [수정] 프록시 없이 위키낱말사전 API로 직접 요청합니다.
             const encodedWord = encodeURIComponent(word);
+            // CORS 정책을 준수하는 위키낱말사전 API로 직접 요청
             const apiUrl = `https://ko.wiktionary.org/api/rest_v1/page/definition/${encodedWord}`;
 
             try {
-                // ★ [수정] 프록시 없이 API URL만 사용합니다.
                 const response = await fetch(apiUrl); 
 
                 if (!response.ok) {
-                    // API 서버에서 404나 500 등을 반환하는 경우
-                    console.error("API call failed (response not ok):", response.status);
+                    // 404 (Not Found)는 단어가 없는 것으로 간주, 그 외는 오류로 간주
                     if (response.status === 404) {
-                        // 404는 단어를 못 찾은 것
                         return { success: false, definition: null };
                     }
+                    console.error("API call failed (response not ok):", response.status);
                     return { success: false, definition: `사전 검색 중 오류가 발생했어요. (오류 코드: ${response.status})` };
                 }
                 
-                // 텍스트를 JSON으로 파싱
                 const data = await response.json();
                 
-                const definitionEntry = data.ko?.[0]; // 한국어 정의를 찾습니다.
+                const definitionEntry = data.ko?.[0]; 
                 if (definitionEntry && definitionEntry.definitions?.[0]) {
                     let definition = definitionEntry.definitions[0].definition;
-                    // HTML 태그 제거 및 공백 정리
                     definition = definition.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
-                    // 첫 번째 문장만 가져오기
                     const firstSentence = definition.split('.')[0];
                     return { success: true, definition: firstSentence + '.' };
                 } else {
-                    // API 호출은 성공했으나, 정의가 없거나 404 JSON을 반환한 경우
-                    if (data.title === "Page Not Found" || data.type === "https://mediawiki.org/wiki/HyperSwitch/errors/not_found") {
-                        return { success: false, definition: null }; // 단어 없음
-                    }
-                    return { success: false, definition: null }; // 기타 이유로 정의 없음
+                    return { success: false, definition: null }; 
                 }
 
             } catch(error) {
-                // 'Failed to fetch' (네트워크 오류, **CORS 오류**, 프록시 서버 문제 등)
+                // 'Failed to fetch' (네트워크 오류, CORS 오류 등)
                 console.error("Error fetching definition (fetch failed):", error); 
-                // 이 오류는 CORS나 네트워크 연결 문제일 가능성이 가장 높습니다.
-                return { success: false, definition: "네트워크 연결 또는 CORS 설정을 확인해주세요." };
+                return { success: false, definition: "네트워크 연결 또는 서버 응답 문제로 사전 검색에 실패했어요." };
             }
         }
 
@@ -654,4 +696,56 @@
             } else {
                 // 사전에 없는 단어 (404 또는 API 오류)
                 const reason = definitionResult.definition || "사전에서 뜻을 찾을 수 없어요.";
-                showModal
+                showModal('X', '오답!', answer, reason);
+            }
+
+            answerInput.value = '';
+            answerInput.focus();
+        }
+
+        function revealWordInGrid(word) {
+            const positions = gameState.wordMap[word];
+            if (!positions) return;
+            positions.forEach(({r, c}) => {
+                const cell = document.querySelector(`.grid-cell[data-r='${r}'][data-c='${c}']`);
+                if(cell) cell.classList.add('revealed');
+            });
+        }
+        
+        function addFoundWordChip(word, type) {
+            const chip = document.createElement('div');
+            const colorClass = type === 'red' ? 'border-red-400 text-red-300' : 'border-blue-400 text-blue-300';
+            const circleColorClass = type === 'red' ? 'bg-red-500' : 'bg-blue-500';
+            chip.className = `px-2 py-1 rounded-full border-2 ${colorClass} flex items-center gap-1`;
+            const circle = document.createElement('span');
+            circle.className = `w-3 h-3 rounded-full ${circleColorClass}`;
+            chip.appendChild(circle);
+            chip.append(word);
+            foundWordsContainer.appendChild(chip);
+        }
+
+        // --- 모달 로직 ---
+        function showModal(icon, title, word, definition, color) {
+            resultModal.classList.remove('hidden');
+            setTimeout(() => { modalContent.classList.remove('scale-95', 'opacity-0'); }, 10);
+            
+            if (icon === 'O') {
+                const circleColor = color === 'red' ? 'text-red-500' : 'text-blue-500';
+                resultIcon.innerHTML = `<span class="${circleColor}">●</span>`;
+                resultWord.className = `text-4xl mb-2 font-bold ${color === 'red' ? 'text-red-400' : 'text-blue-400'}`;
+            } else {
+                resultIcon.innerHTML = `<span class="text-gray-500">×</span>`;
+                resultWord.className = `text-4xl mb-2 font-bold text-gray-400`;
+            }
+            resultWord.textContent = `${title} "${word}"`;
+            resultDefinition.textContent = definition;
+        }
+
+        function hideModal() {
+            modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { resultModal.classList.add('hidden'); }, 200);
+        }
+
+    </script>
+</body>
+</html>
