@@ -612,46 +612,39 @@
             return false;
         }
 
-        // --- ★ [최종 수정됨] 실시간 사전 검색 기능 (allorigins 프록시 적용) ---
+        // --- ★ [최종 수정됨] 안전한 Netlify Function 호출 방식 적용 ---
         async function fetchWordDefinition(word) {
             
-            // ★ CORS 문제를 해결하기 위해 프록시 서버를 사용합니다.
-            const proxyUrl = 'https://api.allorigins.win/raw?url=';
-            const encodedWord = encodeURIComponent(word);
-            const targetUrl = `https://ko.wiktionary.org/api/rest_v1/page/definition/${encodedWord}`;
-
+            // Netlify Function의 엔드포인트는 /netlify/함수명 입니다.
+            // GitHub Pages에 배포된 게임이 Netlify Function을 호출할 수 있습니다.
+            const functionUrl = '/.netlify/functions/dictionary';
+            
             try {
-                // 프록시를 통해 위키낱말사전 API로 요청합니다.
-                const response = await fetch(proxyUrl + encodeURIComponent(targetUrl)); 
+                // Netlify Function 호출
+                const response = await fetch(`${functionUrl}?word=${encodeURIComponent(word)}`); 
 
-                if (!response.ok) {
-                    console.error("API call failed (response not ok):", response.status);
-                    
-                    // 404 (Not Found)는 단어가 없는 것으로 간주
-                    if (response.status === 404) {
-                        return { success: false, definition: null };
-                    }
-                    // 그 외 오류 (501 등)는 프록시 또는 API 문제로 간주
-                    return { success: false, definition: `사전 검색 중 오류가 발생했어요. (오류 코드: ${response.status})` };
+                // 함수에서 반환되는 JSON 응답을 처리
+                const functionResult = await response.json();
+                
+                if (!response.ok || functionResult.error) {
+                    console.error("Function/API error:", functionResult.error || `HTTP Status: ${response.status}`);
+                    return { 
+                        success: false, 
+                        definition: functionResult.error || `사전 서버 오류 발생 (Code: ${response.status}). Netlify Function 상태를 확인해주세요.` 
+                    };
                 }
                 
-                // 텍스트를 JSON으로 파싱
-                const data = await response.json();
-                
-                const definitionEntry = data.ko?.[0]; 
-                if (definitionEntry && definitionEntry.definitions?.[0]) {
-                    let definition = definitionEntry.definitions[0].definition;
-                    definition = definition.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
-                    const firstSentence = definition.split('.')[0];
-                    return { success: true, definition: firstSentence + '.' };
+                // 성공적인 경우, 함수가 가공한 정의를 가져옵니다.
+                if (functionResult.definition) {
+                    return { success: true, definition: functionResult.definition };
                 } else {
-                    return { success: false, definition: null }; 
+                    return { success: false, definition: null }; // 정의를 찾지 못함
                 }
 
             } catch(error) {
-                // 'Failed to fetch' (네트워크 연결 끊김, 프록시 서버 접속 불가 등)
+                // 'Failed to fetch' (네트워크 연결 끊김, Netlify Function 경로 오류 등)
                 console.error("Error fetching definition (fetch failed):", error); 
-                return { success: false, definition: `네트워크 연결 또는 프록시 서버 문제로 검색에 실패했어요.` };
+                return { success: false, definition: `네트워크 연결 또는 함수 경로 문제로 검색에 실패했어요.` };
             }
         }
 
