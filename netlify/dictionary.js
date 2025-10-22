@@ -32,7 +32,7 @@ exports.handler = async (event, context) => {
         const response = await fetch(apiUrl, {
             headers: {
                 'X-Naver-Client-Id': CLIENT_ID,
-                'X-Naver-Client-Secret': SECRET,
+                'X-Naver-Client-Secret': CLIENT_SECRET,
             }
         });
 
