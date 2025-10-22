@@ -208,7 +208,7 @@
         const gridSizeInput = document.getElementById('grid-size-input');
         const difficultyEasyBtn = document.getElementById('difficulty-easy');
         const difficultyHardBtn = document.getElementById('difficulty-hard');
-        const errorMessageDiv = document.getElementById('error-message'); // ★ 추가: 오류 메시지 영역
+        const errorMessageDiv = document.getElementById('error-message');
 
         const gameArea = document.getElementById('game-area');
         const gameGridContainer = document.getElementById('game-grid-container');
@@ -272,8 +272,7 @@
         });
 
         startGameBtn.addEventListener('click', () => {
-            // ★ 오류 처리 강화: 유효성 검사 및 메시지 표시
-            errorMessageDiv.style.display = 'none'; // 이전 오류 메시지 숨기기
+            errorMessageDiv.style.display = 'none'; 
             
             const words = wordsInput.value.split(',').map(w => w.trim()).filter(w => w.length > 0);
             const gridSize = parseInt(gridSizeInput.value, 10);
@@ -289,7 +288,6 @@
                 return;
             }
             
-            // ★ 모든 유효성 검사 통과 시 게임 시작
             gameState.words = words;
             gameState.gridSize = gridSize;
 
@@ -360,19 +358,18 @@
             gameState.wordMap = {};
             const directions = [ { r: 0, c: 1 }, { r: 1, c: 0 }, { r: 1, c: 1 }, { r: 0, c: -1 }, { r: -1, c: 0 }, { r: -1, c: -1 }, { r: 1, c: -1 }, { r: -1, c: 1 }];
             
-            let allWordsPlaced = true; // ★ 모든 단어 배치가 성공했는지 확인하는 플래그
+            let allWordsPlaced = true; 
 
             words.forEach(word => {
                 let placed = false;
                 let attempts = 0;
-                // 단어 길이가 그리드 크기를 초과하면 배치 불가
                 if (word.length > gridSize) {
                     console.error(`단어 '${word}'의 길이가 그리드 크기(${gridSize})를 초과하여 배치할 수 없습니다.`);
                     allWordsPlaced = false;
-                    return; // 다음 단어로 이동
+                    return; 
                 }
 
-                while (!placed && attempts < 200) { // ★ 시도 횟수를 100회에서 200회로 늘려 성공 확률 높임
+                while (!placed && attempts < 200) { 
                     if (difficulty === 'easy') {
                         const dir = directions[Math.floor(Math.random() * directions.length)];
                         const startR = Math.floor(Math.random() * gridSize);
@@ -392,11 +389,8 @@
                         const emptyCells = [];
                         for (let r = 0; r < gridSize; r++) { for (let c = 0; c < gridSize; c++) { if (gameState.grid[r][c] === null) emptyCells.push({ r, c }); } }
                         
-                        // 하드 모드는 단어를 임의의 위치에 배치하므로, 빈 셀이 충분한지만 확인
                         if (emptyCells.length >= word.length) { 
                             const positions = [];
-                            // 하드 모드의 단어 배치는 "숨은 단어"의 일반적인 정의에 맞지 않을 수 있지만, 
-                            // 코드의 기존 로직을 최대한 유지하면서 안정성을 확보합니다.
                             for (let i = 0; i < word.length; i++) {
                                 const randIndex = Math.floor(Math.random() * emptyCells.length);
                                 const { r, c } = emptyCells.splice(randIndex, 1)[0];
@@ -415,7 +409,6 @@
                 }
             });
             
-            // ★ 단어 배치가 1개라도 실패했다면 오류 발생
             if (!allWordsPlaced && words.length > 0) {
                  // 단어 배치 실패 경고는 콘솔로 남기고, 게임을 진행하되, UI에 오류를 띄우지 않아 사용성을 해치지 않음
             }
@@ -619,25 +612,30 @@
             return false;
         }
 
-        // --- ★ [재수정됨] 실시간 사전 검색 기능 (프록시 제거 및 에러 처리 정리) ---
+        // --- ★ [최종 수정됨] 실시간 사전 검색 기능 (allorigins 프록시 적용) ---
         async function fetchWordDefinition(word) {
             
+            // ★ CORS 문제를 해결하기 위해 프록시 서버를 사용합니다.
+            const proxyUrl = 'https://api.allorigins.win/raw?url=';
             const encodedWord = encodeURIComponent(word);
-            // CORS 정책을 준수하는 위키낱말사전 API로 직접 요청
-            const apiUrl = `https://ko.wiktionary.org/api/rest_v1/page/definition/${encodedWord}`;
+            const targetUrl = `https://ko.wiktionary.org/api/rest_v1/page/definition/${encodedWord}`;
 
             try {
-                const response = await fetch(apiUrl); 
+                // 프록시를 통해 위키낱말사전 API로 요청합니다.
+                const response = await fetch(proxyUrl + encodeURIComponent(targetUrl)); 
 
                 if (!response.ok) {
-                    // 404 (Not Found)는 단어가 없는 것으로 간주, 그 외는 오류로 간주
+                    console.error("API call failed (response not ok):", response.status);
+                    
+                    // 404 (Not Found)는 단어가 없는 것으로 간주
                     if (response.status === 404) {
                         return { success: false, definition: null };
                     }
-                    console.error("API call failed (response not ok):", response.status);
+                    // 그 외 오류 (501 등)는 프록시 또는 API 문제로 간주
                     return { success: false, definition: `사전 검색 중 오류가 발생했어요. (오류 코드: ${response.status})` };
                 }
                 
+                // 텍스트를 JSON으로 파싱
                 const data = await response.json();
                 
                 const definitionEntry = data.ko?.[0]; 
@@ -651,9 +649,9 @@
                 }
 
             } catch(error) {
-                // 'Failed to fetch' (네트워크 오류, CORS 오류 등)
+                // 'Failed to fetch' (네트워크 연결 끊김, 프록시 서버 접속 불가 등)
                 console.error("Error fetching definition (fetch failed):", error); 
-                return { success: false, definition: "네트워크 연결 또는 서버 응답 문제로 사전 검색에 실패했어요." };
+                return { success: false, definition: `네트워크 연결 또는 프록시 서버 문제로 검색에 실패했어요.` };
             }
         }
 
