@@ -26,8 +26,9 @@
 
         .grid-cell {
             transition: background-color 0.5s ease, color 0.5s ease;
+            /* ★ 글자 크기와 자간은 JS에서 제어 */
         }
-        
+
         .revealed {
             background-color: rgba(255, 255, 180, 0.3) !important;
             color: white !important;
@@ -47,7 +48,7 @@
             height: 100%;
             display: grid;
             color: white;
-            /* ★ [수정됨] gap은 JS에서 동적으로 제어합니다. */
+            gap: 1px; /* 셀 사이 기본 간격은 작게 유지 */
         }
 
         #darkness-overlay {
@@ -66,29 +67,29 @@
         }
 
         #game-area.flashlight-mode #darkness-overlay {
-            opacity: 1; 
+            opacity: 1;
             mask-image: radial-gradient(circle at var(--mouse-x) var(--mouse-y), transparent 0px, transparent var(--flashlight-inner-radius), black var(--flashlight-outer-radius));
             -webkit-mask-image: radial-gradient(circle at var(--mouse-x) var(--mouse-y), transparent 0px, transparent var(--flashlight-inner-radius), black var(--flashlight-outer-radius));
         }
-        
+
         #game-area.full-light-on #darkness-overlay {
             opacity: 0;
         }
-        
+
         #game-timer {
             text-shadow: 0 0 8px rgba(0,0,0,0.7);
         }
-        
+
         #times-up-message {
             text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
             animation: pulse 1.5s infinite;
         }
-        
+
         @keyframes pulse {
             0%, 100% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.05); opacity: 0.9; }
         }
-        
+
         #error-message {
             display: none;
             margin-top: 1rem;
@@ -101,22 +102,22 @@
         }
 
     </style>
-    
+
     <style id="dynamic-grid-styles"></style>
-    
+
     </head><body class="bg-gray-900 text-white overflow-hidden h-screen w-screen flex flex-col">
 
     <div id="setup-screen" class="flex flex-col items-center justify-center h-full w-full bg-gray-800 p-8">
         <div class="w-full max-w-2xl bg-gray-700 p-8 rounded-2xl shadow-lg text-center">
             <h1 class="text-5xl mb-6">숨은 단어 찾기 설정</h1>
-            
+
             <div class="mb-4 text-left">
                 <label for="words-input" class="block text-xl mb-2">단어를 쉼표(,)로 구분하여 입력하세요:</label>
                 <textarea id="words-input" class="w-full h-32 p-3 bg-gray-800 text-white rounded-lg text-lg border-2 border-gray-600 focus:border-yellow-400 focus:outline-none" placeholder="예: 사과,바나나,여우,늑대"></textarea>
             </div>
 
             <div id="error-message"></div>
-            
+
             <div class="mb-4">
                 <div class="w-full text-left">
                     <label for="grid-size-input" class="block text-xl mb-2">판 크기 (가로 x 세로):</label>
@@ -130,13 +131,13 @@
 
     <div id="game-screen" class="hidden flex-col h-full w-full">
         <div class="relative flex-shrink-0 p-3 bg-gray-800 shadow-lg flex flex-col sm:flex-row justify-between items-center gap-4 z-20">
-            
+
             <div class="flex items-center gap-3 w-full sm:w-auto">
                 <button id="back-to-setup-btn" class="px-3 py-2 bg-gray-600 text-white rounded-md text-lg hover:bg-gray-500" title="설정으로 돌아가기">&lt;</button>
                 <input type="text" id="answer-input" class="w-full sm:w-64 p-2 text-lg bg-gray-700 rounded-md border-2 border-gray-600 focus:border-yellow-400 focus:outline-none" placeholder="정답 입력...">
                 <button id="submit-answer-btn" class="px-4 py-2 bg-yellow-500 text-gray-900 rounded-md text-lg hover:bg-yellow-400">입력</button>
             </div>
-            
+
             <div id="game-timer-container" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
                 <div id="game-timer" class="text-4xl font-bold text-yellow-300 hidden"></div>
                 <div id="times-up-message" class="text-5xl font-bold text-red-500 hidden">시간 끝!</div>
@@ -157,8 +158,8 @@
         <div id="controls-resizer" class="w-full bg-gray-600 cursor-row-resize flex justify-center items-center z-20" style="height: var(--handle-height);">
             <div class="w-10 h-1 bg-gray-400 rounded-full"></div>
         </div>
-        
-        <!-- ★ [수정됨] 컨트롤 패널 (글자 크기, 셀 여백) -->
+
+        <!-- ★ [수정됨] 컨트롤 패널 (글자 간격 조절 추가) -->
         <div id="controls-panel" class="w-full bg-gray-800 p-4 flex flex-wrap justify-center items-center gap-x-6 gap-y-4 z-20" style="height: var(--controls-height);">
             <div class="flex items-center gap-3">
                 <span class="text-xl">🔦 빛 크기:</span>
@@ -178,31 +179,27 @@
                     <button data-duration="10" class="duration-btn p-2 w-12 text-lg rounded-md">10초</button>
                 </div>
             </div>
-            
-            <!-- ★ [수정됨] 글자 크기 (기본값 변경) -->
-            <div class="flex items-center gap-3">
+
+            <!-- 글자 크기 (+ / -) -->
+            <div class="flex items-center gap-2">
                 <span class="text-sm">글자 크기:</span>
-                <div class="flex bg-gray-700 rounded-lg p-1">
-                    <button data-fontsize="1.5" class="spacing-btn p-1 w-10 text-sm rounded-md">작게</button>
-                    <button data-fontsize="1.75" class="spacing-btn p-1 w-10 text-sm rounded-md bg-yellow-500 text-gray-900">보통</button>
-                    <button data-fontsize="2.0" class="spacing-btn p-1 w-10 text-sm rounded-md">크게</button>
-                </div>
+                <button id="fontsize-minus" class="p-1 w-8 text-lg rounded-md bg-gray-700 hover:bg-gray-600">-</button>
+                <span id="fontsize-display" class="w-12 text-center text-sm"></span>
+                <button id="fontsize-plus" class="p-1 w-8 text-lg rounded-md bg-gray-700 hover:bg-gray-600">+</button>
             </div>
-            <!-- ★ [수정됨] 셀 여백(Gap) 조절 (Padding -> Gap) -->
-            <div class="flex items-center gap-3">
-                <span class="text-sm">셀 여백:</span>
-                <div class="flex bg-gray-700 rounded-lg p-1">
-                    <button data-gap="1" class="spacing-btn p-1 w-10 text-sm rounded-md bg-yellow-500 text-gray-900">좁게</button>
-                    <button data-gap="5" class="spacing-btn p-1 w-10 text-sm rounded-md">보통</button>
-                    <button data-gap="10" class="spacing-btn p-1 w-10 text-sm rounded-md">넓게</button>
-                </div>
+            <!-- ★ [수정됨] 글자 간격(Letter Spacing) (+ / -) (셀 여백 제거) -->
+            <div class="flex items-center gap-2">
+                <span class="text-sm">글자 간격:</span>
+                <button id="letterspacing-minus" class="p-1 w-8 text-lg rounded-md bg-gray-700 hover:bg-gray-600">-</button>
+                <span id="letterspacing-display" class="w-10 text-center text-sm"></span>
+                <button id="letterspacing-plus" class="p-1 w-8 text-lg rounded-md bg-gray-700 hover:bg-gray-600">+</button>
             </div>
-            
+
              <button id="start-exploration-btn" class="px-6 py-2 bg-blue-500 text-white rounded-md text-xl hover:bg-blue-400 transition-colors">탐색 시작</button>
              <button id="toggle-light-btn" class="px-6 py-2 bg-green-500 text-white rounded-md text-xl hover:bg-green-400 transition-colors">전체 불켜기</button>
         </div>
     </div>
-    
+
     <div id="result-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
         <div id="modal-content" class="bg-gray-800 rounded-2xl p-8 shadow-2xl text-center max-w-lg w-full transform transition-all scale-95 opacity-0">
             <div id="result-icon" class="text-8xl mb-4"></div>
@@ -223,7 +220,7 @@
 
         const gameArea = document.getElementById('game-area');
         const gameGridContainer = document.getElementById('game-grid-container');
-        const gameGrid = document.getElementById('game-grid'); 
+        const gameGrid = document.getElementById('game-grid');
         const darknessOverlay = document.getElementById('darkness-overlay');
         const answerInput = document.getElementById('answer-input');
         const submitAnswerBtn = document.getElementById('submit-answer-btn');
@@ -242,8 +239,12 @@
         const resultWord = document.getElementById('result-word');
         const resultDefinition = document.getElementById('result-definition');
         const closeModalBtn = document.getElementById('close-modal-btn');
-        
+
         const dynamicGridStyles = document.getElementById('dynamic-grid-styles');
+
+        const fontsizeDisplay = document.getElementById('fontsize-display');
+        // ★ [수정됨] 글자 간격 표시용 span
+        const letterspacingDisplay = document.getElementById('letterspacing-display');
 
         let gameState = {
             words: [],
@@ -256,13 +257,13 @@
             isGameActive: false,
             gameTimerInterval: null,
             isFullLightOn: false,
-            // ★ [수정됨] 글자 크기, 셀 여백 상태 변경
-            gridFontSize: 1.75, // rem (기본값 "크게" -> "보통"으로 변경)
-            gridGap: 1, // px
+            // ★ [수정됨] 글자 크기, 글자 간격 상태 추가 (gap 제거)
+            gridFontSize: 1.75, // rem
+            gridLetterSpacing: 0, // px
         };
 
         const commonElementaryChars = "학교선생님친구공부책읽기놀이터운동장급식도시락알림장숙제지우개연필색연필크레파스가위풀종이그림음악미술체육과학수학사회국어영어실험관찰탐구이야기동화만화게임컴퓨터스마트폰로봇미래꿈나무희망사랑행복가족부모님형누나동생언니오빠할아버지할머니사랑해요감사해요미안해요고마워요안녕하세요잘가요화이팅힘내세요파이팅재미있어요신나요즐거워요아름다운멋진예쁜따뜻한시원한높은낮은빠른느린큰작은많은적은밝은어두운새로운오래된반짝반짝빛나는푸른하얀노란빨간파란초록분홍보라검정주황금은색은빛무지개알록달록반짝이는새싹꽃나무산강바다하늘구름비바람눈별달해아침점심저녁밤새벽오전오후시분초하루일주일개월년봄여름가을겨울사계절과일채소곡식고기생선우유빵밥김치된장찌개라면피자치킨햄버거과자사탕초콜릿아이스크림쥬스물우산가방모자옷신발양말장갑시계전화기텔레비전컴퓨터냉장고자동차비행기배기차지하철버스자전거걷기뛰기앉기서기먹기마시기잠자기웃기울기말하기듣기쓰기그리기만들기생각하기배우기돕기지키기약속하기시작끝처음마지막가운데모두같이서로함께따로다시또그리고그러나그래서왜냐하면만약에만약에아니요네";
-        
+
         function showSetupError(message) {
             errorMessageDiv.textContent = message;
             errorMessageDiv.style.display = 'block';
@@ -272,8 +273,8 @@
         }
 
         startGameBtn.addEventListener('click', () => {
-            errorMessageDiv.style.display = 'none'; 
-            
+            errorMessageDiv.style.display = 'none';
+
             const words = wordsInput.value.split(',').map(w => w.trim()).filter(w => w.length > 0);
             const gridSize = parseInt(gridSizeInput.value, 10);
 
@@ -287,7 +288,7 @@
                 gridSizeInput.focus();
                 return;
             }
-            
+
             gameState.words = words;
             gameState.gridSize = gridSize;
 
@@ -328,12 +329,12 @@
 
         // --- 게임 초기화 ---
         function initGame() {
-            gameState.foundWords = []; 
+            gameState.foundWords = [];
             gameState.revealedCells = new Set();
             gameState.isGameActive = false;
             gameState.isFullLightOn = false;
             clearInterval(gameState.gameTimerInterval);
-            
+
             gameTimer.classList.add('hidden');
             timesUpMessage.classList.add('hidden');
             startExplorationBtn.disabled = false;
@@ -343,12 +344,12 @@
             gameArea.classList.remove('full-light-on');
             toggleLightBtn.textContent = '전체 불켜기';
             toggleLightBtn.classList.replace('bg-red-500', 'bg-green-500');
-            
+
             generateGrid();
             renderGrid();
             setupControls();
             setupEventListeners();
-            foundWordsContainer.innerHTML = ''; 
+            foundWordsContainer.innerHTML = '';
         }
 
         // --- 그리드 생성 ---
@@ -357,8 +358,8 @@
             gameState.grid = Array.from({ length: gridSize }, () => Array(gridSize).fill(null));
             gameState.wordMap = {};
             const directions = [ { r: 0, c: 1 }, { r: 1, c: 0 }, { r: 1, c: 1 }, { r: 0, c: -1 }, { r: -1, c: 0 }, { r: -1, c: -1 }, { r: 1, c: -1 }, { r: -1, c: 1 }];
-            
-            let allWordsPlaced = true; 
+
+            let allWordsPlaced = true;
 
             words.forEach(word => {
                 let placed = false;
@@ -366,10 +367,10 @@
                 if (word.length > gridSize) {
                     console.error(`단어 '${word}'의 길이가 그리드 크기(${gridSize})를 초과하여 배치할 수 없습니다.`);
                     allWordsPlaced = false;
-                    return; 
+                    return;
                 }
 
-                while (!placed && attempts < 200) { 
+                while (!placed && attempts < 200) {
                     const dir = directions[Math.floor(Math.random() * directions.length)];
                     const startR = Math.floor(Math.random() * gridSize);
                     const startC = Math.floor(Math.random() * gridSize);
@@ -391,10 +392,10 @@
                     allWordsPlaced = false;
                 }
             });
-            
+
             fillEmptyCellsWithCommonChars();
         }
-        
+
         function canPlaceWord(word, startR, startC, dir) {
             const { gridSize } = gameState;
             for (let i = 0; i < word.length; i++) {
@@ -406,10 +407,10 @@
         }
 
         function fillEmptyCellsWithCommonChars() {
-            for (let r = 0; r < gameState.gridSize; r++) { 
+            for (let r = 0; r < gameState.gridSize; r++) {
                 for (let c = 0; c < gameState.gridSize; c++) {
-                    if (gameState.grid[r][c] === null) { 
-                        gameState.grid[r][c] = commonElementaryChars[Math.floor(Math.random() * commonElementaryChars.length)]; 
+                    if (gameState.grid[r][c] === null) {
+                        gameState.grid[r][c] = commonElementaryChars[Math.floor(Math.random() * commonElementaryChars.length)];
                     }
                 }
             }
@@ -421,9 +422,9 @@
             gameGrid.innerHTML = '';
             gameGridContainer.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
             gameGridContainer.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
-            
+
             updateGridStyles();
-            
+
             for (let r = 0; r < gridSize; r++) { for (let c = 0; c < gridSize; c++) {
                 const cell = document.createElement('div');
                 cell.className = 'grid-cell flex items-center justify-center';
@@ -433,20 +434,28 @@
             }}
         }
 
-        // --- ★ [수정됨] 간격 조절 스타일 업데이트 함수 (Padding -> Gap) ---
+        // --- ★ [수정됨] 간격 조절 스타일 업데이트 함수 (Gap -> Letter Spacing) ---
         function updateGridStyles() {
-            // 글자 크기
             dynamicGridStyles.innerHTML = `
                 .grid-cell {
                     font-size: ${gameState.gridFontSize}rem;
+                    letter-spacing: ${gameState.gridLetterSpacing}px; /* 글자 간격 적용 */
                 }
             `;
-            // 셀 여백(Gap)
-            gameGridContainer.style.gap = `${gameState.gridGap}px`;
+            // gameGridContainer의 gap 설정 제거
         }
 
-        // --- 컨트롤 설정 ---
+        // --- 컨트롤 값 표시 업데이트 ---
+        function updateControlDisplays() {
+            fontsizeDisplay.textContent = `${gameState.gridFontSize.toFixed(1)}rem`;
+            // ★ [수정됨] 글자 간격 값 표시
+            letterspacingDisplay.textContent = `${gameState.gridLetterSpacing}px`;
+        }
+
+        // --- ★ [수정됨] 컨트롤 설정 (글자 간격 +/- 버튼) ---
         function setupControls() {
+            updateControlDisplays(); // 초기 값 표시
+
             // 빛 크기
             document.querySelectorAll('.flashlight-size-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
@@ -465,27 +474,34 @@
                     e.target.classList.add('bg-yellow-500', 'text-gray-900');
                 });
             });
-            
-            // ★ [수정됨] 글자 크기 (기본값 버튼 변경)
-            document.querySelectorAll('[data-fontsize]').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    gameState.gridFontSize = parseFloat(e.target.dataset.fontsize);
-                    updateGridStyles();
-                    document.querySelectorAll('[data-fontsize]').forEach(b => b.classList.remove('bg-yellow-500', 'text-gray-900'));
-                    e.target.classList.add('bg-yellow-500', 'text-gray-900');
-                });
+
+            // 글자 크기 +
+            document.getElementById('fontsize-plus').addEventListener('click', () => {
+                gameState.gridFontSize = Math.min(3.0, gameState.gridFontSize + 0.1);
+                updateGridStyles();
+                updateControlDisplays();
             });
-            // ★ [수정됨] 셀 여백(Gap) (Padding -> Gap)
-            document.querySelectorAll('[data-gap]').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    gameState.gridGap = parseInt(e.target.dataset.gap);
-                    updateGridStyles();
-                    document.querySelectorAll('[data-gap]').forEach(b => b.classList.remove('bg-yellow-500', 'text-gray-900'));
-                    e.target.classList.add('bg-yellow-500', 'text-gray-900');
-                });
+            // 글자 크기 -
+            document.getElementById('fontsize-minus').addEventListener('click', () => {
+                gameState.gridFontSize = Math.max(0.5, gameState.gridFontSize - 0.1);
+                updateGridStyles();
+                updateControlDisplays();
+            });
+
+            // 글자 간격 +
+            document.getElementById('letterspacing-plus').addEventListener('click', () => {
+                gameState.gridLetterSpacing = Math.min(10, gameState.gridLetterSpacing + 1); // 최대 10px
+                updateGridStyles();
+                updateControlDisplays();
+            });
+            // 글자 간격 -
+            document.getElementById('letterspacing-minus').addEventListener('click', () => {
+                gameState.gridLetterSpacing = Math.max(-5, gameState.gridLetterSpacing - 1); // 최소 -5px (글자가 겹칠 수 있음)
+                updateGridStyles();
+                updateControlDisplays();
             });
         }
-        
+
         // --- 이벤트 리스너 ---
         function setupEventListeners() {
             gameArea.addEventListener('mousedown', handlePointerDown);
@@ -503,7 +519,7 @@
             document.getElementById('back-to-setup-btn').addEventListener('click', () => {
                 clearInterval(gameState.gameTimerInterval);
                 gameState.isGameActive = false;
-                
+
                 gameScreen.classList.add('hidden');
                 gameScreen.classList.remove('flex');
                 setupScreen.classList.remove('hidden');
@@ -514,7 +530,7 @@
         function startGameTimer() {
             if (gameState.isGameActive || gameState.isFullLightOn) return;
             gameState.isGameActive = true;
-            
+
             startExplorationBtn.disabled = true;
             startExplorationBtn.classList.add('opacity-50', 'cursor-not-allowed');
             toggleLightBtn.disabled = true;
@@ -534,7 +550,7 @@
                     gameTimer.classList.add('hidden');
                     timesUpMessage.classList.remove('hidden');
                     gameArea.classList.remove('flashlight-mode');
-                    
+
                     darknessOverlay.style.setProperty('--flashlight-inner-radius', `0px`);
                     darknessOverlay.style.setProperty('--flashlight-outer-radius', `0px`);
 
@@ -575,7 +591,7 @@
 
         function updateFlashlightMask(x, y) {
             const innerRadius = 20 + (gameState.flashlightSize - 1) * 15; // 20, 35, 50
-            const outerRadius = innerRadius + 40; 
+            const outerRadius = innerRadius + 40;
             darknessOverlay.style.setProperty('--mouse-x', `${x}px`);
             darknessOverlay.style.setProperty('--mouse-y', `${y}px`);
             darknessOverlay.style.setProperty('--flashlight-inner-radius', `${innerRadius}px`);
@@ -596,7 +612,7 @@
                 toggleLightBtn.classList.replace('bg-red-500', 'bg-green-500');
             }
         }
-        
+
         // --- 보너스 단어 로직 ---
         function isWordOnGrid(word) {
             const { gridSize, grid } = gameState;
@@ -636,22 +652,21 @@
 
         // --- Netlify Function 호출 ---
         async function fetchWordDefinition(word) {
-            
+
             const functionUrl = '/.netlify/functions/dictionary';
-            
+
             try {
-                const response = await fetch(`${functionUrl}?word=${encodeURIComponent(word)}`); 
+                const response = await fetch(`${functionUrl}?word=${encodeURIComponent(word)}`);
                 const functionResult = await response.json();
-                
+
                 if (!response.ok || functionResult.error) {
                     console.error("Function/API error:", functionResult.error || `HTTP Status: ${response.status}`);
-                    return { 
-                        success: false, 
-                        // ★ [수정됨] 404 오류 메시지를 사용자에게 바로 표시
-                        definition: functionResult.error ? functionResult.error.details : `사전 서버 오류 발생 (Code: ${response.status})`
+                    return {
+                        success: false,
+                        definition: functionResult.details || `사전 서버 오류 발생 (Code: ${response.status})`
                     };
                 }
-                
+
                 if (functionResult.definition) {
                     return { success: true, definition: functionResult.definition };
                 } else {
@@ -659,7 +674,7 @@
                 }
 
             } catch(error) {
-                console.error("Error fetching definition (fetch failed):", error); 
+                console.error("Error fetching definition (fetch failed):", error);
                 return { success: false, definition: `네트워크 연결 또는 함수 경로 문제로 검색에 실패했어요.` };
             }
         }
@@ -671,27 +686,24 @@
             if (!answer || gameState.foundWords.includes(answer)) {
                 answerInput.value = ''; return;
             }
-            
+
             submitAnswerBtn.textContent = '검색중...';
             submitAnswerBtn.disabled = true;
 
             const definitionResult = await fetchWordDefinition(answer);
-            
+
             submitAnswerBtn.textContent = '입력';
             submitAnswerBtn.disabled = false;
 
             const isUserWord = gameState.words.includes(answer);
-            
-            // API 호출 성공, 뜻도 찾음 (백과사전에 등재됨)
+
             if (definitionResult.success && definitionResult.definition) {
                 if (isUserWord) {
-                    // 내가 낸 문제
                     showModal('O', `정답!`, answer, definitionResult.definition, 'red');
                     gameState.foundWords.push(answer);
                     revealWordInGrid(answer);
                     addFoundWordChip(answer, 'red');
                 } else {
-                    // 보너스 단어
                     if (isWordOnGrid(answer)) {
                         showModal('O', '보너스!', answer, definitionResult.definition, 'blue');
                         gameState.foundWords.push(answer);
@@ -701,23 +713,19 @@
                         showModal('X', '오답!', answer, "단어는 사전에 있지만, 판 위에서 찾을 수 없어요.");
                     }
                 }
-            } 
-            // API 호출 성공, 뜻 없음 (백과사전에 정확히 일치하는 단어 없음)
+            }
             else if (definitionResult.success && !definitionResult.definition) {
                  if (isUserWord) {
-                    // 내가 낸 문제 (하지만 사전 등재어가 아님)
                     showModal('O', `정답!`, answer, "내가 낸 문제예요! (사전 뜻은 찾지 못했어요)", 'red');
                     gameState.foundWords.push(answer);
                     revealWordInGrid(answer);
                     addFoundWordChip(answer, 'red');
                  } else {
-                    // 사전에 없는 단어
                     showModal('X', '오답!', answer, "백과사전에서 정확히 일치하는 항목을 찾을 수 없어요.");
                  }
             }
-            // API 호출 실패 (404, 500 등)
             else {
-                const reason = definitionResult.definition; // API 오류 메시지
+                const reason = definitionResult.definition;
                 showModal('X', '오류!', answer, reason);
             }
 
@@ -733,7 +741,7 @@
                 if(cell) cell.classList.add('revealed');
             });
         }
-        
+
         function addFoundWordChip(word, type) {
             const chip = document.createElement('div');
             const colorClass = type === 'red' ? 'border-red-400 text-red-300' : 'border-blue-400 text-blue-300';
@@ -750,7 +758,7 @@
         function showModal(icon, title, word, definition, color) {
             resultModal.classList.remove('hidden');
             setTimeout(() => { modalContent.classList.remove('scale-95', 'opacity-0'); }, 10);
-            
+
             if (icon === 'O') {
                 const circleColor = color === 'red' ? 'text-red-500' : 'text-blue-500';
                 resultIcon.innerHTML = `<span class="${circleColor}">●</span>`;
@@ -769,3 +777,4 @@
         }
 
     </script></body></html>
+
