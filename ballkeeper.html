@@ -202,6 +202,7 @@
             padding: 1rem 2rem;
             background: rgba(0,0,0,0.3);
             border-radius: 20px;
+            pointer-events: none; /* 클릭/터치 이벤트가 캔버스로 통과하도록 함 */
         }
 
         /* 게임 오버 화면 */
@@ -571,7 +572,7 @@
                 animationFrameId = requestAnimationFrame(gameLoop);
             }
 
-            // 게임 상태 업데이트 - 위쪽 경계 충돌 제거됨
+            // 게임 상태 업데이트 - 위쪽 경계 충돌 제거
             function update(dt, currentTime) {
                 manageObstacles(currentTime);
                 manageNewBalls(currentTime);
@@ -592,7 +593,7 @@
                         playBounceSound();
                     }
 
-                    // 위쪽 경계 충돌 제거됨 <<<<<<<<<<<<<<< 수정됨
+                    // 위쪽 경계 충돌 로직 제거됨 <<<<<<<<<<<<<<< 수정됨
 
                     // 아래쪽 게임 오버
                     if (ball.y - ball.r > canvas.height) {
