@@ -8,13 +8,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     
     <style>
+        /* =================================== */
+        /* 기본 및 레이아웃 (Overcooked 테마) */
+        /* =================================== */
         html, body {
             width: 100%;
             height: 100%;
             margin: 0;
             font-family: 'Jua', sans-serif;
             overflow: hidden;
-            background-color: #f0f8ff; /* AliceBlue 배경 */
+            background-color: #EADCB9; /* [디자인] 따뜻한 주방 벽 색상 */
+            /* [디자인] 바닥 타일 패턴 */
+            background-image: 
+                linear-gradient(rgba(100, 100, 100, 0.1) 2px, transparent 2px),
+                linear-gradient(90deg, rgba(100, 100, 100, 0.1) 2px, transparent 2px);
+            background-size: 30px 30px;
         }
 
         #game-container {
@@ -23,25 +31,27 @@
             display: grid;
             grid-template-rows: auto 1fr;
             box-sizing: border-box;
-            display: none; /* [FIX] 시작 시 none */
+            display: none; 
             opacity: 0;
             transition: opacity 0.5s;
         }
 
         #game-container.visible {
-            display: grid; /* [FIX] visible시 grid */
+            display: grid; 
             opacity: 1;
         }
-
-        /* --- 인트로 화면 --- */
+        
+        /* =================================== */
+        /* 모달 (인트로 / 게임 오버) */
+        /* =================================== */
         #intro-screen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex; /* [FIX] display: flex */
+            background: rgba(45, 52, 54, 0.9); /* [디자인] 어두운 오버레이 */
+            display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
@@ -53,13 +63,14 @@
 
         #intro-screen.hidden {
             opacity: 0;
-            display: none; /* [FIX] display: none */
+            display: none;
             pointer-events: none;
         }
 
         #intro-screen h1 {
-            font-size: 3em;
-            text-shadow: 2px 2px 4px #000;
+            font-size: 3.5em;
+            text-shadow: 3px 3px 0px #2c3e50; /* [디자인] 입체 텍스트 */
+            color: #ecf0f1;
         }
 
         #intro-screen label {
@@ -73,6 +84,8 @@
             text-align: center;
             margin-left: 10px;
             font-family: 'Jua', sans-serif;
+            border: 3px solid #7f8c8d;
+            border-radius: 5px;
         }
         
         #difficulty-selector {
@@ -83,522 +96,65 @@
         }
         #difficulty-selector label {
             margin-top: 0;
+            font-size: 1.5em;
         }
         .difficulty-btn {
             font-size: 1.2em;
             font-family: 'Jua', sans-serif;
-            padding: 8px 15px;
+            padding: 10px 20px;
             cursor: pointer;
-            border: 2px solid #fff;
-            background-color: transparent;
+            border: 3px solid #fff;
+            background-color: #95a5a6;
             color: white;
             border-radius: 8px;
-            transition: background-color 0.3s, color 0.3s;
+            transition: background-color 0.2s, color 0.2s, transform 0.2s;
+            box-shadow: 0 4px #7f8c8d; /* [디자인] 버튼 입체감 */
         }
         .difficulty-btn:hover {
-            background-color: rgba(255, 255, 255, 0.2);
+            background-color: #bdc3c7;
+            transform: translateY(-2px);
         }
         .difficulty-btn.active {
-            background-color: #fff;
-            color: #333;
+            background-color: #e67e22; /* [디자인] 활성 버튼 (주황) */
+            color: #fff;
             font-weight: bold;
+            border-color: #d35400;
+            box-shadow: 0 4px #d35400;
         }
 
 
         #start-button {
-            font-size: 2em;
+            font-size: 2.5em;
             font-family: 'Jua', sans-serif;
-            padding: 15px 30px;
+            padding: 15px 40px;
             margin-top: 30px;
             cursor: pointer;
-            background-color: #4CAF50;
+            background-color: #2ecc71; /* [디자인] 시작 버튼 (초록) */
             color: white;
             border: none;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            transition: background-color 0.3s;
+            border-radius: 12px;
+            box-shadow: 0 6px #27ae60; /* [디자인] 입체감 */
+            transition: all 0.1s;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
         #start-button:hover {
-            background-color: #45a049;
+            background-color: #27ae60;
+            transform: translateY(2px);
+            box-shadow: 0 4px #27ae60;
         }
-
-        /* --- 상단 UI: 주문 및 점수 --- */
-        #top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            padding: 10px;
-            background: #333;
-            color: white;
-        }
-
-        #order-list {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .order-card {
-            background: #fff;
-            color: #333;
-            border-radius: 8px;
-            padding: 10px;
-            width: 150px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            transition: transform 0.2s, background-color 0.2s, border-color 0.2s; /* [개선] 트랜지션 추가 */
-            border: 2px solid transparent; /* [개선] 피드백을 위한 테두리 공간 */
-        }
-        .order-card.drop-hover {
-            transform: scale(1.05);
-            background: #e0ffe0;
-        }
-
-        .order-card h4 {
-            margin: 0 0 5px 0;
-            border-bottom: 1px solid #ccc;
-        }
-
-        .order-card ul {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 5px 0;
-            font-size: 0.9em;
-        }
-
-        .order-timer {
-            width: 100%;
-            height: 10px;
-            background: #e0e0e0;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-
-        .order-timer-bar {
-            height: 100%;
-            background: #4CAF50;
-            transition: width 0.1s linear;
-        }
-
-        #score-board {
-            font-size: 1.5em;
-            text-align: right;
-            min-width: 200px;
-            display: flex; /* [추가] BGM 버튼 배치를 위해 flex로 변경 */
-            flex-direction: column; /* [추가] 세로 정렬 */
-            align-items: flex-end; /* [추가] 우측 정렬 */
-        }
-        #miss-count {
-            color: #ff6b6b;
-            font-weight: bold;
-        }
-
-        /* [추가] BGM 버튼 스타일 */
-        #bgm-toggle-btn {
-            font-family: 'Jua', sans-serif;
-            font-size: 0.8em;
-            cursor: pointer;
-            background: #555;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 5px 10px;
-            margin-top: 5px;
-        }
-        #bgm-toggle-btn:hover {
-            background: #777;
-        }
-
-
-        /* --- 하단 UI: 주방 --- */
-        #kitchen-area {
-            display: grid;
-            grid-template-columns: 150px 1fr 300px; 
-            grid-template-rows: 1fr 260px; /* [FIX] 하단 높이 260px */
-            gap: 10px;
-            padding: 10px;
-            height: 100%;
-            box-sizing: border-box;
-        }
-
-        /* --- 1. 재료 보관소 --- */
-        #storage-area {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            grid-row: 1 / span 2; 
-        }
-
-        /* --- 2. 중앙 작업 공간 (손질) --- */
-        #work-area {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            background: rgba(0, 0, 0, 0.05);
-            border-radius: 10px;
-            padding: 10px;
-            grid-row: 1 / 2; 
-            grid-column: 2 / 3; 
+        #start-button:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px #27ae60;
         }
         
-        .prep-station { grid-column: span 1; }
-
-        /* --- 3. 요리 공간 (그릴, 튀김기) --- */
-        #cooking-area {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            grid-row: 1 / span 2; 
-            grid-column: 3 / 4;
-        }
-        
-        /* --- 4 & 5. 하단 중앙 (조립대 + 기타) --- */
-        #bottom-work-area {
-            grid-row: 2 / 3;
-            grid-column: 2 / 3;
-            display: grid;
-            grid-template-columns: 2fr 1fr; /* [FIX] 조립대 2 | 기타 1 비율 */
-            gap: 10px;
-            min-height: 0; 
-        }
-
-        /* 4. 조립대 영역 */
-        #assembly-area {
-            display: grid;
-            grid-template-columns: 1fr 1fr; /* 조립대 2개 */
-            gap: 10px;
-            background: rgba(0, 0, 0, 0.05);
-            border-radius: 10px;
-            padding: 10px;
-            min-height: 0;
-        }
-
-        /* 5. 기타 영역 (쓰레기통 제거됨) */
-        #extra-area {
-            display: flex;
-            flex-direction: column; 
-            gap: 10px;
-            min-height: 0;
-        }
-        
-        #dish-return-station, #dish-wash-station {
-            flex-grow: 1; 
-            min-height: 0; 
-        }
-
-        #dish-return-station { 
-            background-color: #fffacd; 
-            flex-grow: 1; /* [FIX] 반납 1 */
-        }
-        #dish-wash-station { 
-            background-color: #add8e6; 
-            flex-grow: 2; /* [FIX] 설거지 공간 2 */
-        }
-        
-
-        /* --- 아이템 (공통) --- */
-        .item {
-            width: 80px;
-            height: 80px;
-            border: 2px solid #555;
-            border-radius: 50%; /* 동그라미 */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 40px;
-            cursor: grab;
-            position: absolute; 
-            background: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            box-sizing: border-box;
-            user-select: none;
-            transition: transform 0.1s, box-shadow 0.1s;
-        }
-        
-        .item[data-draggable="false"] {
-            cursor: not-allowed;
-            opacity: 0.8;
-        }
-        
-        .item.dragging {
-            transform: scale(1.15);
-            opacity: 0.8;
-            z-index: 1000;
-            pointer-events: none; /* [FIX] 서빙을 위해 드래그 중인 아이템 통과 */
-        }
-        
-        /* [수정] 접시 디자인 (크기 240px) */
-        .item[data-type="plate"] {
-            background-color: #f0f0f0;
-            border-radius: 50%;
-            width: 240px; /* [수정] 크기 200px -> 240px */ 
-            height: 240px;
-            font-size: 14px;
-            padding: 20px; /* [수정] 패딩 15px -> 20px */
-            box-sizing: border-box;
-            
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 2.5fr 1.5fr; 
-            grid-template-areas: 
-                "burger burger"
-                "fries onion";
-            gap: 10px; /* [수정] 갭 5px -> 10px */
-            align-items: stretch;
-            justify-content: stretch;
-        }
-
-        /* 빵 아이템 - 패티 슬롯을 포함 */
-        .item[data-type="bun"] {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative; 
-        }
-        
-        .bun-slot {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            background: rgba(0, 0, 0, 0.1);
-            border: 1px dashed #fff;
-            border-radius: 5px;
-            z-index: 1; 
-            cursor: inherit; /* [수정] 부모(빵)의 커서를 상속받도록 수정 */
-        }
-        .item[data-type="bun"] > span {
-            position: relative;
-            z-index: 0;
-            font-size: 40px; 
-        }
-
-        /* 접시 내부의 슬롯 스타일 */
-        .plate-slot-internal {
-            width: 100%;
-            height: 100%;
-            box-sizing: border-box;
-            position: relative;
-            background: rgba(0, 0, 0, 0.05);
-            border: 1px dashed #888;
-            border-radius: 50%; 
-            cursor: inherit; /* [수정] 부모(접시)의 커서를 상속받도록 수정 */
-        }
-        
-        /* [FIX] 접시 내부 아이템 크기 조절 */
-        .plate-slot-internal .item {
-            width: 80%; /* 80%로 크기 조절 */
-            height: 80%;
-            font-size: 20px; 
-            margin: auto; 
-            position: relative; /* [FIX] static 대신 relative */
-            left: 0;
-            top: 0;
-        }
-        
-        .plate-slot-internal.burger-slot .item {
-            font-size: 35px; /* 햄버거는 크게 */
-            width: 90%;
-            height: 90%;
-        }
-        
-        .burger-slot { grid-area: burger; }
-        .fries-slot { grid-area: fries; }
-        .onion-slot { grid-area: onion; }
-
-        
-        .item[data-type="plate"][data-state="dirty"] {
-            display: flex; /* 더러운 텍스트 중앙 정렬 */
-            justify-content: center;
-            align-items: center;
-            background-color: #d2b48c;
-        }
-        .item[data-type="plate"][data-state="dirty"] .dirty-text {
-            color: #8B4513;
-            font-size: 1.2em;
-            font-weight: bold;
-            width: 100%;
-            text-align: center;
-        }
-
-        /* 작업대 (공통) */
-        .station {
-            border: 3px dashed #a0a0a0;
-            border-radius: 15px;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.7);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            box-sizing: border-box;
-            position: relative;
-            min-height: 100px;
-            overflow: hidden; /* [추가] 가상 요소가 밖으로 나가지 않도록 */
-        }
-        
-        /* [추가] 스테이션 자식 요소들이 배경 이모지보다 위에 오도록 */
-        .station > * {
-            position: relative;
-            z-index: 2;
-        }
-
-        /* [추가] 스테이션 배경 테마 */
-        .station::before {
-            content: '';
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 100px;
-            opacity: 0.1;
-            z-index: 1;
-            line-height: 1;
-        }
-        
-        .prep-station::before {
-            content: '🔪'; /* 도마 */
-        }
-        
-        #grill-station::before {
-            content: '🍳'; /* 후라이팬 */
-        }
-        
-        /* [추가] 튀김기 공통 클래스 */
-        .fryer-station {
-            /* 튀김기 공통 스타일 (필요하다면) */
-        }
-        
-        .fryer-station::before {
-             content: '🔥'; /* 튀김기 */
-        }
-        
-        /* [추가] 조리대 클래스 */
-        .assembly-station::before {
-             content: '👨‍🍳'; /* 조리대 */
-        }
-        
-        #dish-wash-station::before {
-            content: '💧'; /* 싱크대 */
-        }
-
-
-        /* 재료 보관소 버튼 스타일 */
-        .storage-item {
-            cursor: pointer;
-            width: 100%;
-            padding: 10px;
-            font-size: 1.5em;
-            text-align: center;
-            border-radius: 8px;
-            background: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: background-color 0.2s, transform 0.2s;
-        }
-        .storage-item:hover {
-            background-color: #f1f1f1;
-            transform: scale(1.02);
-        }
-
-        /* 아이템 슬롯 (아이템이 장착되는 공간) */
-        .item-slot {
-            width: 90px;
-            height: 90px;
-            border: 2px dashed #888;
-            border-radius: 50%; 
-            background: rgba(0,0,0,0.05);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-        }
-        
-        .item-slot .item {
-            position: static; 
-            cursor: grab;
-            box-shadow: none;
-        }
-        .item-slot .item[data-draggable="false"] {
-            cursor: not-allowed;
-        }
-        
-        .item-slot.drop-hover, .item-slot.plate-slot-internal.drop-hover, .item-slot.bun-slot.drop-hover {
-            background: rgba(144, 238, 144, 0.5); 
-            border-style: solid;
-        }
-        
-        /* [수정] 조립대 위 접시 슬롯 (크기 250px) */
-        .item-slot.plate-slot { 
-            width: 250px; /* [수정] 210px -> 250px */
-            height: 250px;
-        }
-        
-        .item-slot.plate-slot .item[data-type="plate"] {
-            position: static;
-            cursor: grab;
-        }
-
-
-        /* 작업 버튼 (손질, 설거지) */
-        .prep-button, .wash-button {
-            width: 80%;
-            padding: 8px;
-            font-size: 1em;
-            font-family: 'Jua', sans-serif;
-            margin-top: 10px;
-            cursor: pointer;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 5px;
-        }
-        .prep-button:disabled, .wash-button:disabled {
-            background-color: #95a5a6;
-            cursor: not-allowed;
-        }
-        
-        /* 요리 타이머 */
-        .cook-timer {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #333;
-            background: rgba(255, 255, 255, 0.8);
-            padding: 2px 5px;
-            border-radius: 5px;
-            display: none; /* 시작 시 숨김 */
-        }
-        
-        .item.cooked-ready {
-            box-shadow: 0 0 15px 5px #ffd700; 
-        }
-        
-        #message-box {
-            position: fixed;
-            bottom: -100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #333;
-            color: white;
-            padding: 15px 30px;
-            border-radius: 10px;
-            font-size: 1.2em;
-            z-index: 20000;
-            transition: bottom 0.5s ease-in-out;
-        }
-        #message-box.show {
-            bottom: 20px;
-        }
-
-        /* [수정] 게임 오버 화면 */
         #game-over-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: none; /* 시작 시 숨김 */
+            background: rgba(231, 76, 60, 0.85); /* [디자인] 게임 오버 (붉은색) */
+            display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
@@ -613,21 +169,588 @@
             opacity: 1;
         }
         #game-over-overlay h2 {
-            font-size: 3em;
-            text-shadow: 2px 2px 4px #000;
+            font-size: 4em;
+            text-shadow: 3px 3px 0px #c0392b; /* [디자인] 입체 텍스트 */
             margin: 0;
         }
         #game-over-overlay p {
-            font-size: 1.5em;
+            font-size: 1.8em;
             margin-top: 20px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
         }
 
-        /* [추가] BGM 오디오 숨기기 */
+        /* =================================== */
+        /* 상단 UI (주문 및 점수) */
+        /* =================================== */
+        #top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 10px 15px;
+            background: #e67e22; /* [디자인] 주황색 상단 바 */
+            color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            border-bottom: 5px solid #d35400;
+            z-index: 1000;
+        }
+
+        #order-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .order-card {
+            background: #fffacd; /* [디자인] 티켓 색상 */
+            color: #34495e;
+            border-radius: 5px;
+            padding: 10px;
+            width: 150px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.15);
+            transition: transform 0.2s, background-color 0.2s, border-color 0.2s;
+            border: 2px solid #ccc; 
+            border-bottom: 4px solid #aaa;
+        }
+        .order-card.drop-hover {
+            transform: scale(1.05);
+            background: #c8e6c9; /* [디자인] 드롭 시 초록빛 */
+        }
+
+        .order-card h4 {
+            margin: 0 0 5px 0;
+            border-bottom: 2px dashed #95a5a6;
+            font-size: 1.1em;
+        }
+
+        .order-card ul {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 5px 0;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .order-timer {
+            width: 100%;
+            height: 12px;
+            background: #ecf0f1;
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid #bdc3c7;
+        }
+
+        .order-timer-bar {
+            height: 100%;
+            background: #2ecc71; /* [디자인] 선명한 초록 */
+            transition: width 0.1s linear, background-color 0.3s;
+        }
+        
+        /* [디자인] 타이머 바 색상 변경 (기능 JS에 이미 구현됨) */
+        .order-timer-bar.warning { background-color: #f1c40f; }
+        .order-timer-bar.danger { background-color: #e74c3c; }
+
+
+        #score-board {
+            font-size: 1.8em;
+            text-align: right;
+            min-width: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.4); /* [디자인] 텍스트 그림자 */
+        }
+        #miss-count {
+            color: #f1c40f; /* [디자인] 노란색으로 강조 */
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        #bgm-toggle-btn {
+            font-family: 'Jua', sans-serif;
+            font-size: 0.8em;
+            cursor: pointer;
+            background: #d35400;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            margin-top: 5px;
+            box-shadow: 0 2px #a04000;
+            transition: all 0.1s;
+        }
+        #bgm-toggle-btn:hover {
+            background: #e67e22;
+        }
+        #bgm-toggle-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px #a04000;
+        }
+
+
+        /* =================================== */
+        /* 주방 (Overcooked 카운터 테마) */
+        /* =================================== */
+        #kitchen-area {
+            display: grid;
+            grid-template-columns: 150px 1fr 300px; 
+            grid-template-rows: 1fr 350px;
+            gap: 10px;
+            padding: 10px;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        /* --- 작업대 (공통) --- */
+        .station {
+            border: 5px solid #a07e56; /* [디자인] 어두운 나무 테두리 */
+            border-radius: 10px;
+            padding: 15px;
+            background: #d2b48c; /* [디자인] 나무 카운터 색상 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            position: relative;
+            min-height: 100px;
+            overflow: hidden;
+            box-shadow: 0 6px #8b5a2b, 0 8px 10px rgba(0,0,0,0.3); /* [디자인] 입체감 */
+        }
+        
+        .station > * {
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* [디자인] 스테이션 제목 */
+        .station h4 {
+            margin: 0 0 10px 0;
+            padding: 3px 10px;
+            background: rgba(0,0,0,0.15);
+            border-radius: 5px;
+            color: #fff;
+            text-shadow: 1px 1px 1px #555;
+            font-size: 1.1em;
+        }
+
+        /* [디자인] 스테이션 배경 테마 */
+        .station::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 100px;
+            opacity: 0.1;
+            z-index: 1;
+            line-height: 1;
+            color: #5d4037;
+        }
+        
+        .prep-station::before { content: '🔪'; }
+        #grill-station::before { content: '🍳'; }
+        .fryer-station::before { content: '🔥'; }
+        .assembly-station::before { content: '👨‍🍳'; }
+        #dish-wash-station::before { content: '💧'; }
+        #dish-return-station::before { content: '🍽️'; }
+
+
+        /* --- 1. 재료 보관소 --- */
+        #storage-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            grid-row: 1 / span 2; 
+        }
+
+        /* [디자인] 재료 보관소 버튼 스타일 */
+        .storage-item {
+            cursor: pointer;
+            width: 100%;
+            padding: 10px;
+            font-size: 1.5em;
+            text-align: center;
+            border-radius: 10px;
+            background: #e9ecef; /* [디자인] 밝은 회색 버튼 */
+            box-shadow: 0 4px #868e96; /* [디자인] 입체감 */
+            transition: all 0.1s;
+            border: 3px solid #adb5bd;
+            color: #343a40;
+        }
+        .storage-item:hover {
+            background-color: #f1f3f5;
+            transform: translateY(-2px);
+            box-shadow: 0 6px #868e96;
+        }
+        .storage-item:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px #868e96;
+        }
+
+        /* --- 2. 중앙 작업 공간 (손질) --- */
+        #work-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            background: #bdc3c7; /* [디자인] 타일 바닥 */
+            border-radius: 10px;
+            padding: 10px;
+            grid-row: 1 / 2; 
+            grid-column: 2 / 3; 
+        }
+        .prep-station { grid-column: span 1; }
+
+        /* --- 3. 요리 공간 (그릴, 튀김기) --- */
+        #cooking-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            grid-row: 1 / span 2; 
+            grid-column: 3 / 4;
+        }
+        
+        /* [디자인] 그릴, 튀김기 색상 */
+        #grill-station { background-color: #95a5a6; border-color: #606d76; box-shadow: 0 6px #495057;}
+        .fryer-station { background-color: #e67e22; border-color: #d35400; box-shadow: 0 6px #a04000;}
+
+        
+        /* --- 4 & 5. 하단 중앙 (조립대 + 기타) --- */
+        #bottom-work-area {
+            grid-row: 2 / 3;
+            grid-column: 2 / 3;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 10px;
+            min-height: 0; 
+        }
+
+        /* 4. 조립대 영역 */
+        #assembly-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* 조립대 2개 */
+            gap: 10px;
+            background: #bdc3c7; /* [디자인] 타일 바닥 */
+            border-radius: 10px;
+            padding: 10px;
+            min-height: 0;
+        }
+
+        /* 5. 기타 영역 */
+        #extra-area {
+            display: flex;
+            flex-direction: column; 
+            gap: 10px;
+            min-height: 0;
+        }
+        
+        #dish-return-station, #dish-wash-station {
+            flex-grow: 1; 
+            min-height: 0; 
+        }
+        
+        #dish-return-station { 
+            background-color: #fffacd; /* [디자인] 반납 (티켓색) */
+            flex-grow: 1;
+            border-color: #f0e68c;
+            box-shadow: 0 6px #dabd17;
+             /* [FIX P2] 반납된 접시 스타일 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start; /* 위에서부터 쌓이도록 */
+            padding-top: 40px; /* 제목 아래부터 */
+            gap: 5px; /* 접시 간격 */
+            overflow-y: auto; /* 넘치면 스크롤 */
+        }
+        #dish-return-station > .item { /* [FIX P2] 내부 접시 스타일 */
+            position: static !important; /* static으로 고정 */
+            margin-bottom: -60px; /* 겹쳐 보이게 */
+        }
+
+        #dish-wash-station { 
+            background-color: #3498db; /* [디자인] 설거지 (파랑) */
+            flex-grow: 1;
+            border-color: #2980b9;
+            box-shadow: 0 6px #216a94;
+        }
+        
+
+        /* =================================== */
+        /* 아이템 (공통) */
+        /* =================================== */
+        .item {
+            width: 80px;
+            height: 80px;
+            border: 4px solid #495057; /* [디자인] 두꺼운 테두리 */
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            cursor: grab;
+            position: absolute; 
+            background: #fff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2); /* [디자인] 그림자 */
+            box-sizing: border-box;
+            user-select: none;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        
+        .item[data-draggable="false"] {
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+        
+        .item.dragging {
+            transform: scale(1.15);
+            opacity: 0.8;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        
+        /* [디자인] 접시 */
+        .item[data-type="plate"] {
+            background-color: #ffffff; /* [디자인] 흰색 접시 */
+            border-radius: 50%;
+            width: 240px; 
+            height: 240px;
+            font-size: 14px;
+            padding: 20px;
+            box-sizing: border-box;
+            border: 5px solid #ced4da; /* [디자인] 접시 테두리 */
+            
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 2.5fr 1.5fr; 
+            grid-template-areas: 
+                "burger burger"
+                "fries onion";
+            gap: 10px;
+            align-items: stretch;
+            justify-content: stretch;
+        }
+        
+        /* [디자인] 더러운 접시 */
+        .item[data-type="plate"][data-state="dirty"] {
+            display: flex; 
+            justify-content: center;
+            align-items: center;
+            background-color: #a1887f; /* [디자인] 흙색 */
+            border-color: #795548;
+            width: 80px; /* [FIX P2] 더러운 접시 크기 조정 */
+            height: 80px;
+            padding: 0;
+            cursor: grab; /* [FIX P2] 드래그 가능 커서 */
+        }
+        .item[data-type="plate"][data-state="dirty"] .dirty-text {
+            color: #4e342e;
+            font-size: 1.2em; /* 크기 조정 */
+            font-weight: bold;
+            width: 100%;
+            text-align: center;
+        }
+
+
+        /* 빵 아이템 - 패티 슬롯 */
+        .item[data-type="bun"] {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative; 
+        }
+        
+        .bun-slot {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.1);
+            border: 2px dashed #777; /* [디자인] 슬롯 강조 */
+            border-radius: 5px;
+            z-index: 1; 
+            cursor: inherit;
+        }
+        .item[data-type="bun"] > span {
+            position: relative;
+            z-index: 0;
+            font-size: 40px; 
+        }
+
+        /* 접시 내부의 슬롯 스타일 */
+        .plate-slot-internal {
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            position: relative;
+            background: rgba(0, 0, 0, 0.05);
+            border: 2px dashed #999; /* [디자인] 슬롯 강조 */
+            border-radius: 50%; 
+            cursor: inherit;
+        }
+        
+        .plate-slot-internal .item {
+            width: 80%;
+            height: 80%;
+            font-size: 20px; 
+            margin: auto; 
+            position: relative;
+            left: 0;
+            top: 0;
+            border-width: 3px; /* [디자인] 내부 아이템 테두리 */
+        }
+        
+        .plate-slot-internal.burger-slot .item {
+            font-size: 35px;
+            width: 90%;
+            height: 90%;
+        }
+        
+        .burger-slot { grid-area: burger; }
+        .fries-slot { grid-area: fries; }
+        .onion-slot { grid-area: onion; }
+
+
+        /* =================================== */
+        /* 슬롯 및 버튼 */
+        /* =================================== */
+
+        /* 아이템 슬롯 (아이템이 장착되는 공간) */
+        .item-slot {
+            width: 90px;
+            height: 90px;
+            border: 3px dashed #7f8c8d; /* [디자인] 슬롯 강조 */
+            border-radius: 50%; 
+            background: rgba(0,0,0,0.1); /* [디자인] 슬롯 배경 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            transition: background-color 0.2s;
+        }
+        
+        .item-slot .item {
+            position: static; 
+            cursor: grab;
+            box-shadow: none;
+        }
+        .item-slot .item[data-draggable="false"] {
+            cursor: not-allowed;
+        }
+        
+        /* [디자인] 드롭 강조 */
+        .item-slot.drop-hover, .item-slot.plate-slot-internal.drop-hover, .item-slot.bun-slot.drop-hover {
+            background: rgba(46, 204, 113, 0.5); 
+            border-style: solid;
+            border-color: #27ae60;
+        }
+        
+        /* 조립대 위 접시 슬롯 */
+        .item-slot.plate-slot { 
+            width: 250px;
+            height: 250px;
+            background: rgba(0,0,0,0.15); /* [디자인] 큰 슬롯 */
+            border-width: 4px;
+        }
+        
+        .item-slot.plate-slot .item[data-type="plate"] {
+            position: static;
+            cursor: grab;
+        }
+
+
+        /* 작업 버튼 (손질, 설거지) */
+        .prep-button, .wash-button {
+            width: 80%;
+            padding: 10px;
+            font-size: 1.1em;
+            font-family: 'Jua', sans-serif;
+            margin-top: 10px;
+            cursor: pointer;
+            background-color: #2980b9; /* [디자인] 파란 버튼 */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px #216a94; /* [디자인] 입체감 */
+            transition: all 0.1s;
+        }
+        .prep-button:disabled, .wash-button:disabled {
+            background-color: #95a5a6;
+            box-shadow: 0 4px #7f8c8d;
+            cursor: not-allowed;
+            color: #ecf0f1;
+        }
+        .prep-button:not(:disabled):hover, .wash-button:not(:disabled):hover {
+            background-color: #3498db;
+        }
+        .prep-button:not(:disabled):active, .wash-button:not(:disabled):active {
+            transform: translateY(2px);
+            box-shadow: 0 2px #216a94;
+        }
+        
+        /* [디자인] 설거지 버튼 색상 */
+        .wash-button {
+            background-color: #16a085;
+            box-shadow: 0 4px #117a65;
+        }
+        .wash-button:not(:disabled):hover {
+            background-color: #1abc9c;
+        }
+        .wash-button:not(:disabled):active {
+            transform: translateY(2px);
+            box-shadow: 0 2px #117a65;
+        }
+        
+
+        /* =================================== */
+        /* 효과 및 메시지 */
+        /* =================================== */
+        
+        /* 요리 타이머 */
+        .cook-timer {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #fff;
+            background: rgba(44, 62, 80, 0.8); /* [디자인] 어두운 배경 */
+            padding: 2px 8px;
+            border-radius: 5px;
+            display: none;
+            border: 2px solid #fff;
+            transition: color 0.3s; /* [추가] 색상 변경 트랜지션 */
+        }
+        
+        /* [디자인] 요리 완료 강조 */
+        .item.cooked-ready {
+            box-shadow: 0 0 15px 7px #f1c40f, 0 0 5px 2px #f1c40f inset; 
+            border-color: #f1c40f;
+        }
+        
+        #message-box {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #34495e; /* [디자인] */
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.5em; /* [디자인] 크게 */
+            z-index: 20000;
+            transition: bottom 0.5s ease-in-out;
+            border: 4px solid #ecf0f1; /* [디자인] 테두리 */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        }
+        #message-box.show {
+            bottom: 20px;
+        }
+
         #bgm-audio {
             display: none;
         }
 
     </style>
+
 </head>
 <body>
 
