@@ -99,27 +99,39 @@
             padding: 1rem;
             border-radius: 10px;
         }
+        
+        /* 커스텀 설정 항목 스타일 */
+        .setting-item {
+            margin-bottom: 0.5rem;
+        }
+        .setting-item:last-child {
+            margin-bottom: 0;
+        }
 
         #custom-difficulty-settings label {
             font-size: 1.2rem;
             margin-right: 0.5rem;
         }
 
-        #custom-bounce-height {
+        /* 입력 필드 공통 스타일 */
+        #custom-bounce-height, #custom-gravity {
             font-size: 1.2rem;
             padding: 0.4rem;
-            width: 70px;
+            width: 80px; /* 너비 살짝 늘림 */
             text-align: center;
             border: 2px solid #ddd;
             background: rgba(255, 255, 255, 0.1);
             color: white;
             border-radius: 5px;
-            appearance: textfield; /* 스피너 숨기기 (일부 브라우저) */
-            -moz-appearance: textfield; /* Firefox 스피너 숨기기 */
+            appearance: textfield; 
+            -moz-appearance: textfield;
         }
-         /* Chrome, Safari, Edge, Opera 에서 스피너 숨기기 */
+         
+        /* Chrome, Safari, Edge, Opera 에서 스피너 숨기기 */
         #custom-bounce-height::-webkit-outer-spin-button,
-        #custom-bounce-height::-webkit-inner-spin-button {
+        #custom-bounce-height::-webkit-inner-spin-button,
+        #custom-gravity::-webkit-outer-spin-button,
+        #custom-gravity::-webkit-inner-spin-button {
             -webkit-appearance: none;
             margin: 0;
         }
@@ -314,10 +326,20 @@
                 <button class="difficulty-btn" data-difficulty="easy">쉬움</button>
                 <button class="difficulty-btn active" data-difficulty="medium">보통</button>
                 <button class="difficulty-btn" data-difficulty="hard">어려움</button>
-                <button class="difficulty-btn" data-difficulty="custom">커스텀</button> </div>
+                <button class="difficulty-btn" data-difficulty="custom">커스텀</button> 
+            </div>
+            
             <div id="custom-difficulty-settings" style="display: none;">
-                <label for="custom-bounce-height">튕기는 높이 (1~30): </label>
-                <input type="number" id="custom-bounce-height" min="1" max="30" value="4"> </div>
+                <div class="setting-item">
+                    <label for="custom-bounce-height">튕기는 높이 (1~30): </label>
+                    <input type="number" id="custom-bounce-height" min="1" max="30" value="4"> 
+                </div>
+                <div class="setting-item">
+                    <label for="custom-gravity">중력 세기 (0.01~2.00): </label>
+                    <input type="number" id="custom-gravity" min="0.01" max="2.00" step="0.01" value="0.08">
+                </div>
+            </div>
+            
             <button id="start-button" class="start-btn">시작하기</button>
         </div>
 
@@ -381,6 +403,7 @@
             const difficultyButtons = document.querySelectorAll('.difficulty-btn');
             const customSettingsDiv = document.getElementById('custom-difficulty-settings');
             const customBounceHeightInput = document.getElementById('custom-bounce-height');
+            const customGravityInput = document.getElementById('custom-gravity'); // 중력 입력 필드
             const canvas = document.getElementById('game-canvas');
             const ctx = canvas.getContext('2d');
             const scoreDisplay = document.getElementById('score-display');
@@ -448,12 +471,24 @@
             let lastTime = 0;
             let animationFrameId = null;
 
-            // 게임 설정 (난이도별)
+            // 게임 설정 (난이도별) - gravity 속성 추가
             const difficultySettings = {
-                easy: { bounceHeight: 8, newBallInterval: 30000, obstacleInterval: 15000 },
-                medium: { bounceHeight: 6, newBallInterval: 20000, obstacleInterval: 10000 },
-                hard: { bounceHeight: 4, newBallInterval: 10000, obstacleInterval: 5000 },
-                custom: { bounceHeight: 4, newBallInterval: 10000, obstacleInterval: 5000 }
+                easy: {
+                    bounceHeight: 8, newBallInterval: 30000, obstacleInterval: 15000,
+                    gravity: 0.08 // 기본 중력
+                },
+                medium: {
+                    bounceHeight: 6, newBallInterval: 20000, obstacleInterval: 10000,
+                    gravity: 0.08 // 기본 중력
+                },
+                hard: {
+                    bounceHeight: 4, newBallInterval: 10000, obstacleInterval: 5000,
+                    gravity: 0.08 // 기본 중력
+                },
+                custom: {
+                    bounceHeight: 4, newBallInterval: 10000, obstacleInterval: 5000,
+                    gravity: 0.08 // 커스텀 기본 중력
+                }
             };
 
             // 타이머 변수
@@ -461,8 +496,8 @@
             let nextObstacleTime = 0;
             let newBallWarningActive = false;
 
-            // 물리 상수 - GRAVITY 수정됨
-            const GRAVITY = 0.08; // 중력 감소 (0.125 -> 0.08)
+            // 물리 상수 - 전역 GRAVITY 제거
+            // const GRAVITY = 0.08; // << 제거
             const BALL_ELASTICITY = 0.8;
             const WALL_ELASTICITY = 0.6;
             const OBSTACLE_LIFETIME = 1000;
@@ -501,17 +536,32 @@
             // 게임 시작 버튼
             startButton.addEventListener('click', startCountdown);
 
-            // 카운트다운 시작 - 유효성 검사 범위 수정됨
+            // 카운트다운 시작 - 중력 유효성 검사 추가
             function startCountdown() {
                 if (difficulty === 'custom') {
                     let customHeight = parseInt(customBounceHeightInput.value);
-                    // 유효성 검사 (1~30 사이로 수정)
+                    let customGravity = parseFloat(customGravityInput.value); // 중력 값 읽기
+
+                    // 높이 유효성 검사
                     if (isNaN(customHeight) || customHeight < 1 || customHeight > 30) {
                         alert('튕기는 높이는 1에서 30 사이의 숫자를 입력해주세요.');
                         customBounceHeightInput.value = difficultySettings.custom.bounceHeight;
                         return;
                     }
-                    settings = { ...difficultySettings.custom, bounceHeight: customHeight };
+                    
+                    // 중력 유효성 검사 (0.01 ~ 2.00)
+                    if (isNaN(customGravity) || customGravity < 0.01 || customGravity > 2.00) {
+                        alert('중력 세기는 0.01에서 2.00 사이의 숫자를 입력해주세요.');
+                        customGravityInput.value = difficultySettings.custom.gravity;
+                        return;
+                    }
+                    
+                    // 커스텀 설정 복사 후 값 적용
+                    settings = { 
+                        ...difficultySettings.custom, 
+                        bounceHeight: customHeight,
+                        gravity: customGravity // 중력 설정 적용
+                    };
                 } else {
                     settings = difficultySettings[difficulty];
                 }
@@ -572,13 +622,13 @@
                 animationFrameId = requestAnimationFrame(gameLoop);
             }
 
-            // 게임 상태 업데이트 - 위쪽 경계 충돌 제거
+            // 게임 상태 업데이트 - settings.gravity 사용
             function update(dt, currentTime) {
                 manageObstacles(currentTime);
                 manageNewBalls(currentTime);
 
                 balls.forEach((ball, index) => {
-                    ball.vy += GRAVITY * dt; // 중력 적용 (감소된 값 사용)
+                    ball.vy += settings.gravity * dt; // <<<<<<<<<<<<<<< 수정됨 (전역 GRAVITY 대신 settings.gravity 사용)
                     ball.x += ball.vx * dt;
                     ball.y += ball.vy * dt;
 
@@ -592,8 +642,6 @@
                         ball.vx *= -WALL_ELASTICITY;
                         playBounceSound();
                     }
-
-                    // 위쪽 경계 충돌 로직 제거됨 <<<<<<<<<<<<<<< 수정됨
 
                     // 아래쪽 게임 오버
                     if (ball.y - ball.r > canvas.height) {
@@ -722,7 +770,7 @@
             }
 
 
-            // 캔버스 클릭 이벤트 - 터치 범위 수정됨
+            // 캔버스 클릭 이벤트 - 터치 범위 1.4배 유지
             canvas.addEventListener('click', (e) => {
                 if (gameState !== 'playing') return;
                 const rect = canvas.getBoundingClientRect();
@@ -732,8 +780,7 @@
                 for (let i = balls.length - 1; i >= 0; i--) {
                     const ball = balls[i];
                     const distance = Math.hypot(clickX - ball.x, clickY - ball.y);
-                    // 반응 면적 40% 증가 (1.1 -> 1.4)
-                    if (distance < (ball.r * 1.4)) { // <<<<<<<<<<<<<<< 수정됨
+                    if (distance < (ball.r * 1.4)) { // 40% 넓은 터치 범위
                         clickedBall = ball;
                         break;
                     }
