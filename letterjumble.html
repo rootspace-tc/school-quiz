@@ -66,10 +66,13 @@
 
         /* 게임 화면 스크롤 및 배치 수정 */
         #game-screen {
+            display: flex; /* flexbox 사용 */
+            flex-direction: column; /* 세로 방향 정렬 */
             justify-content: flex-start; /* 내용을 위에서부터 배치 */
             overflow-y: auto; /* 세로 스크롤 허용 */
             padding-top: 10px;  /* 상단 여백 조정 */
             padding-bottom: 20px; /* 하단 여백 추가 */
+            height: 95vh; /* 높이 고정 (내부 스크롤 위함) */
         }
 
 
@@ -155,16 +158,13 @@
             align-items: center;
             gap: 10px; /* 간격 조정 */
             margin: 0 auto 20px auto; /* 중앙 정렬 및 아래쪽 여백 */
-            /* position: absolute; 제거 */
-            /* top: 20px; 제거 */
-            /* left: 50%; 제거 */
-            /* transform: translateX(-50%); 제거 */
             position: sticky; /* 스크롤 시 상단 고정 */
             top: -10px; /* sticky 위치 조정 (game-screen padding-top 고려) */
             background-color: #f0f7ff; /* 배경색 지정 (sticky 요소가 다른 내용을 가리지 않도록) */
             z-index: 10; /* 다른 요소 위에 오도록 */
             padding-top: 15px; /* 내부 여백 추가 */
             padding-bottom: 10px;
+            flex-shrink: 0; /* 헤더 높이가 줄어들지 않도록 설정 */
         }
 
 
@@ -221,6 +221,7 @@
             padding: 15px; /* 패딩 조정 */
             margin: 0 auto 20px auto; /* 중앙 정렬 및 아래쪽 여백 */
             transition: all 0.3s ease;
+            flex-shrink: 0; /* 영역 높이가 줄어들지 않도록 설정 */
         }
 
         /* 글자를 내려놓는 목표 영역 */
@@ -235,6 +236,8 @@
             padding: 10px;
             margin: 0 auto 20px auto; /* 중앙 정렬 및 아래쪽 여백 */
             transition: all 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+            /* flex-grow: 1; 제거 - 내용만큼만 커지도록 */
+            flex-shrink: 0; /* 영역 높이가 줄어들지 않도록 설정 */
         }
 
         /* 드래그 가능한 글자 타일 */
@@ -349,14 +352,15 @@
             min-width: 0;
         }
 
-        /* 게임 하단 버튼 컨트롤 */
+        /* 게임 하단 버튼 컨트롤 (수정: 하단 고정 강화) */
         #game-controls {
             display: flex;
             gap: 15px;
-            /* margin-top: auto; 제거 */
+            margin-top: auto; /* *** 여기가 핵심 수정 사항 *** */
             padding-top: 15px; /* 위쪽 여백 추가 */
             padding-bottom: 5px; /* 아래쪽 여백 추가 */
             justify-content: center; /* 버튼 중앙 정렬 */
+            flex-shrink: 0; /* 버튼 영역 높이가 줄어들지 않도록 설정 */
         }
 
 
@@ -485,6 +489,10 @@
 
         scrambledArea.addEventListener('dragover', handleDragOver);
         scrambledArea.addEventListener('drop', handleDrop);
+        // dropArea에도 dragover, drop 이벤트 리스너 추가 (빈 공간 드롭 처리)
+        dropArea.addEventListener('dragover', handleDragOver);
+        dropArea.addEventListener('drop', handleDrop);
+
 
         // 화면 전환 함수
         function showScreen(screenId) {
@@ -518,6 +526,8 @@
         function nextProblem() {
             currentProblemIndex++;
             if (currentProblemIndex < problems.length) {
+                // 게임 화면 스크롤 맨 위로 이동
+                gameScreen.scrollTop = 0;
                 setupProblem(currentProblemIndex);
             } else {
                 showScreen('end');
@@ -527,24 +537,56 @@
         // 게임 재시작
         function restartGame() {
             showScreen('setup');
+            // 입력 필드 초기화 (선택적)
+            // sentenceInput.value = '';
         }
 
         // --- 효과음 재생 함수 ---
         function playDropSound() {
-            audioDrop.currentTime = 0;
-            audioDrop.play().catch(e => console.log("효과음 재생 실패"));
+            // 오디오 파일 로딩 확인 및 에러 처리 추가
+            if (audioDrop.readyState >= 2) { // HAVE_CURRENT_DATA or more
+                 audioDrop.currentTime = 0;
+                 audioDrop.play().catch(e => console.error("Drop sound playback failed:", e));
+            } else {
+                 console.warn("Drop sound not ready for playback.");
+                 // 필요하다면 로드 완료 후 재생하도록 리스너 추가
+                 audioDrop.addEventListener('canplaythrough', () => {
+                     audioDrop.play().catch(e => console.error("Drop sound playback failed after load:", e));
+                 }, { once: true }); // 한 번만 실행되도록
+            }
         }
         function playCorrectSound() {
-            audioCorrect.currentTime = 0;
-            audioCorrect.play().catch(e => console.log("효과음 재생 실패"));
+             if (audioCorrect.readyState >= 2) {
+                audioCorrect.currentTime = 0;
+                audioCorrect.play().catch(e => console.error("Correct sound playback failed:", e));
+             } else {
+                 console.warn("Correct sound not ready for playback.");
+                  audioCorrect.addEventListener('canplaythrough', () => {
+                     audioCorrect.play().catch(e => console.error("Correct sound playback failed after load:", e));
+                 }, { once: true });
+             }
         }
         function playIncorrectSound() {
-            audioIncorrect.currentTime = 0;
-            audioIncorrect.play().catch(e => console.log("효과음 재생 실패"));
+             if (audioIncorrect.readyState >= 2) {
+                audioIncorrect.currentTime = 0;
+                audioIncorrect.play().catch(e => console.error("Incorrect sound playback failed:", e));
+             } else {
+                 console.warn("Incorrect sound not ready for playback.");
+                  audioIncorrect.addEventListener('canplaythrough', () => {
+                     audioIncorrect.play().catch(e => console.error("Incorrect sound playback failed after load:", e));
+                 }, { once: true });
+             }
         }
         function playResetSound() {
-            audioReset.currentTime = 0;
-            audioReset.play().catch(e => console.log("효과음 재생 실패"));
+             if (audioReset.readyState >= 2) {
+                audioReset.currentTime = 0;
+                audioReset.play().catch(e => console.error("Reset sound playback failed:", e));
+             } else {
+                 console.warn("Reset sound not ready for playback.");
+                  audioReset.addEventListener('canplaythrough', () => {
+                     audioReset.play().catch(e => console.error("Reset sound playback failed after load:", e));
+                 }, { once: true });
+             }
         }
 
 
@@ -573,9 +615,9 @@
             correctSentence = problems[index]; // 문장만 할당
 
             scrambledArea.innerHTML = '';
-            scrambledArea.style.display = 'flex';
+            scrambledArea.style.display = 'flex'; // 항상 flex로 유지 (성공 후 none 처리)
             dropArea.innerHTML = '';
-            dropArea.classList.remove('success');
+            dropArea.classList.remove('success'); // 성공 클래스 제거
 
             // 버튼 상태 초기화
             checkButton.style.display = 'inline-block';
@@ -586,7 +628,7 @@
             problemCounter.textContent = `문제 ${index + 1} / ${problems.length}`;
 
             // 힌트 영역 초기화 (수정)
-            hintDisplay.textContent = ''; // 텍스트 지우기
+            // hintDisplay.textContent = ''; // 사용자가 직접 입력하므로 초기화하지 않음
             hintDisplay.style.display = 'block'; // 항상 보이게
 
             let characters = correctSentence.split('');
@@ -602,9 +644,10 @@
             shuffledCharacters.forEach(char => {
                 const tile = document.createElement('div');
                 tile.className = 'char-tile';
-                tile.draggable = true;
+                tile.draggable = true; // 드래그 가능하게
                 tile.textContent = char === ' ' ? '␣' : char;
                 tile.dataset.char = char;
+                tile.style.cursor = 'grab'; // 커서 모양 초기화
 
                 tile.addEventListener('dragstart', handleDragStart);
                 tile.addEventListener('dragend', handleDragEnd);
@@ -638,19 +681,32 @@
         // '어려움' 난이도용 추가 글자 생성
         function generateDummyChars(count, excludeChars) {
             const commonWords = ['대한민국', '사랑', '희망', '가족', '친구', '행복', '컴퓨터', '인공지능', '바다', '하늘', '감사', '존중', '배려', '나눔', '성실', '최선', '도전'];
-            const firstChars = commonWords.map(word => word[0]);
+            const firstChars = commonWords.map(word => word[0]).filter(char => char >= '가' && char <= '힣'); // 한글 초성만
 
             const dummies = new Set();
             const excludeSet = new Set(excludeChars);
 
-            let shuffledFirstChars = shuffleArray([...firstChars]);
+            let availableChars = firstChars.filter(char => !excludeSet.has(char));
+            if (availableChars.length === 0) { // 제외할 문자와 겹치지 않는 초성이 없으면 전체 초성 사용
+                availableChars = firstChars;
+            }
 
-            for(const char of shuffledFirstChars){
-                if(dummies.size >= count) break;
-                if(!excludeSet.has(char)){
-                    dummies.add(char);
+            let shuffledAvailableChars = shuffleArray([...availableChars]);
+
+            while (dummies.size < count && shuffledAvailableChars.length > 0) {
+                 // 중복되지 않게 추가 (Set이 자동으로 처리)
+                 dummies.add(shuffledAvailableChars.pop() || firstChars[Math.floor(Math.random() * firstChars.length)]); // 만약 pop할게 없으면 랜덤 추가
+            }
+             // 그래도 부족하면 랜덤 한글 추가 (거의 발생하지 않음)
+            while (dummies.size < count) {
+                const randomCharCode = 0xAC00 + Math.floor(Math.random() * (0xD7A3 - 0xAC00 + 1));
+                const randomChar = String.fromCharCode(randomCharCode);
+                if (!excludeSet.has(randomChar)) {
+                    dummies.add(getChosung(randomChar));
                 }
             }
+
+
             return Array.from(dummies);
         }
 
@@ -658,30 +714,36 @@
         function handleDragStart(e) {
             draggedElement = e.target;
             e.dataTransfer.effectAllowed = 'move';
-            setTimeout(() => e.target.classList.add('dragging'), 0);
+            // 약간 투명하게 + 크기 살짝 키우기
+            setTimeout(() => {
+                if (draggedElement) draggedElement.classList.add('dragging');
+            }, 0);
         }
 
         function handleDragEnd(e) {
-            e.target.classList.remove('dragging');
+            // 스타일 원래대로
+             if (e.target) e.target.classList.remove('dragging');
             draggedElement = null;
         }
 
         function handleDragOver(e) {
-            e.preventDefault();
+            e.preventDefault(); // 필수: drop 이벤트를 발생시키기 위함
             e.dataTransfer.dropEffect = 'move';
         }
 
         function handleDragEnter(e) {
-            const target = e.target.closest('.drop-target, #scrambled-area'); // scrambled-area도 포함
-            if (target && target.id !== 'scrambled-area') { // drop-target만 hovered
-                target.classList.add('hovered');
+             e.preventDefault(); // dragleave가 바로 발생하는 것을 방지
+            const dropTarget = e.target.closest('.drop-target');
+            if (dropTarget) {
+                dropTarget.classList.add('hovered');
             }
         }
 
         function handleDragLeave(e) {
-            const target = e.target.closest('.drop-target, #scrambled-area');
-             if (target && target.id !== 'scrambled-area') {
-                target.classList.remove('hovered');
+             const dropTarget = e.target.closest('.drop-target');
+             // relatedTarget 체크: 하위 요소로 들어갈 때 leave 이벤트 방지
+             if (dropTarget && !dropTarget.contains(e.relatedTarget)) {
+                dropTarget.classList.remove('hovered');
             }
         }
 
@@ -691,31 +753,33 @@
             if (!draggedElement) return;
 
              // 드롭 존 요소 찾기
-            const dropZone = e.currentTarget;
-            let dropTargetCell = e.target.closest('.drop-target'); // 타겟 셀 찾기
+            const dropZone = e.currentTarget; // 이벤트를 등록한 요소 (scrambledArea 또는 dropArea)
+            let dropTargetCell = e.target.closest('.drop-target'); // 실제 드롭 위치에 가장 가까운 타겟 셀
+
+             // 드롭한 위치의 hovered 스타일 제거 (cell 또는 area 모두 가능성 있음)
+             if(dropTargetCell) dropTargetCell.classList.remove('hovered');
+             else if (e.target.classList.contains('drop-target')) e.target.classList.remove('hovered');
+
 
             // 1. 드롭 존이 섞인 영역(#scrambled-area)인 경우
             if (dropZone.id === 'scrambled-area') {
-                 // 드롭 타겟 셀 위가 아니라면 그냥 추가
-                 if (!dropTargetCell) {
+                 // 드롭 위치가 drop-area 내부의 타겟 셀이 *아닌* 경우에만 scrambledArea에 추가
+                 if (!e.target.closest('#drop-area .drop-target')) {
                      dropZone.appendChild(draggedElement);
-                     playDropSound();
-                     return;
+                     playDropSound(); // 또는 playResetSound() - 위치 복귀 느낌
                  }
-                 // 만약 scrambled-area 내의 다른 타일 위에 드롭하려고 했다면 (무시)
-                 // 또는 drop-target 셀 위에 드롭하려고 했다면 (drop target 핸들러에서 처리)
-                 // 여기서는 특별한 처리를 하지 않음 (버블링으로 drop target 핸들러가 처리)
+                 // 타겟 셀 위에 놓으려 했다면 drop 이벤트가 dropArea 또는 dropTarget으로 버블링되므로 여기서 처리 안 함
                  return;
             }
 
             // 2. 드롭 존이 드롭 영역(#drop-area) 또는 그 안의 타겟 셀(.drop-target)인 경우
+            // (currentTarget이 dropArea 또는 dropTargetCell일 수 있음)
             if (dropZone.id === 'drop-area' || dropTargetCell) {
-                // 정확한 타겟 셀을 다시 확인 (drop-area에 직접 드롭될 수도 있음)
-                dropTargetCell = e.target.closest('.drop-target');
 
-                if (dropTargetCell) {
-                    dropTargetCell.classList.remove('hovered'); // hovered 스타일 제거
+                 // 정확한 타겟 셀 다시 확인 (dropArea에 직접 드롭 시 e.target이 dropArea일 수 있음)
+                 dropTargetCell = e.target.closest('.drop-target');
 
+                if (dropTargetCell) { // 타겟 셀 위에 정확히 드롭
                     // 2a. 드롭한 칸이 비어있는 경우
                     if (!dropTargetCell.querySelector('.char-tile')) {
                         dropTargetCell.dataset.hint = '';
@@ -726,34 +790,37 @@
                     // 2b. 드롭한 칸에 이미 타일이 있는 경우 (삽입/재정렬)
                     else {
                         reorderTiles(draggedElement, dropTargetCell);
-                        // reorderTiles 내부에서 playDropSound() 호출됨
                     }
                 }
-                // 2c. drop-area의 빈 공간에 드롭한 경우 (마지막 칸에 추가)
-                else if (dropZone.id === 'drop-area') {
-                    const lastEmptyTarget = Array.from(dropZone.querySelectorAll('.drop-target')).find(t => !t.querySelector('.char-tile'));
-                    if (lastEmptyTarget) {
+                // 2c. drop-area의 빈 공간(타겟 셀 사이 등)에 드롭한 경우
+                else if (e.currentTarget.id === 'drop-area') {
+                    // 가장 마지막 빈칸 찾기
+                    const lastEmptyTarget = Array.from(dropArea.querySelectorAll('.drop-target')).find(t => !t.querySelector('.char-tile'));
+                    if (lastEmptyTarget) { // 빈칸이 있으면 거기에 추가
                         lastEmptyTarget.appendChild(draggedElement);
                         playDropSound();
-                    } else {
-                        // 빈 칸이 없으면 scrambled-area로 이동
+                    } else { // 빈칸 없으면 scrambled-area로 돌려보냄
                         scrambledArea.appendChild(draggedElement);
-                        playResetSound(); // 위치 변경 실패 느낌
+                        playResetSound(); // 잘못 놓았다는 느낌
                     }
                 }
             }
-             // 다른 영역에 드롭한 경우 (예: 헤더 등) - 무시하거나 scrambled-area로 돌려보냄
-            else {
-                 scrambledArea.appendChild(draggedElement);
-                 playResetSound(); // 위치 변경 실패 느낌
-            }
+             // 3. 그 외 영역 (헤더 등) - scrambled-area로 돌려보냄
+             else {
+                  scrambledArea.appendChild(draggedElement);
+                  playResetSound();
+             }
+
+             // 드래그 중 스타일 최종 제거 (handleDragEnd가 호출되지 않을 경우 대비)
+             if (draggedElement) draggedElement.classList.remove('dragging');
+             draggedElement = null; // 드래그 요소 초기화
         }
 
         /**
          * 힌트 요청 (드롭 타겟 클릭) 핸들러
          */
         function handleHintClick(e) {
-            const target = e.currentTarget;
+            const target = e.currentTarget; // 이벤트 리스너가 부착된 요소 (.drop-target)
 
             // 1. 타겟에 이미 타일이 있으면 힌트 표시 안 함
             if (target.querySelector('.char-tile')) {
@@ -766,7 +833,9 @@
             }
 
             // 3. 정답 문장에서 해당 인덱스의 글자 가져오기
-            const charIndex = target.dataset.index;
+            const charIndex = parseInt(target.dataset.index, 10); // 숫자로 변환
+            if (isNaN(charIndex) || charIndex < 0 || charIndex >= correctSentence.length) return; // 유효하지 않은 인덱스면 종료
+
             const correctChar = correctSentence[charIndex];
 
             // 4. 초성 힌트 계산
@@ -777,12 +846,12 @@
             target.dataset.hint = hintText;
             target.classList.add('hint-active');
 
-            // 6. 1초 후에 힌트 제거
+            // 6. 1초 후에 힌트 제거 (타일이 그 사이에 들어오지 않았다면)
             setTimeout(() => {
-                if (!target.querySelector('.char-tile')) {
+                if (!target.querySelector('.char-tile')) { // 타일이 여전히 없다면 힌트 내용 제거
                     target.dataset.hint = '';
                 }
-                target.classList.remove('hint-active');
+                target.classList.remove('hint-active'); // 클래스는 항상 제거
             }, 1000);
         }
 
@@ -790,72 +859,93 @@
         function reorderTiles(draggedTile, targetCell) {
             const allTargets = Array.from(dropArea.querySelectorAll('.drop-target'));
             const toIndex = allTargets.indexOf(targetCell);
+            if (toIndex === -1) return; // 타겟 셀을 못 찾으면 종료
 
-            // 현재 drop-area에 있는 타일들의 배열을 생성 (수정: null 값 제거)
-            let currentTiles = allTargets.map(t => t.querySelector('.char-tile')).filter(Boolean);
-
-            const fromIndex = currentTiles.indexOf(draggedTile);
-
-            // 1. 배열에서 드래그한 타일 제거
-            if (fromIndex > -1) {
-                currentTiles.splice(fromIndex, 1);
-            }
-
-            // 2. 새로운 위치에 드래그한 타일 삽입
-            currentTiles.splice(toIndex, 0, draggedTile);
-
-            // 3. 배열을 기반으로 DOM을 다시 그림
+            // 현재 drop-area에 있는 타일들의 배열과 해당 타일의 원래 위치(인덱스) 저장
+            let currentTilesInDropArea = [];
             allTargets.forEach((target, index) => {
-                // 기존 자식 노드(타일) 제거
-                const existingTile = target.querySelector('.char-tile');
-                if (existingTile) {
-                    target.removeChild(existingTile);
-                }
-
-                // 힌트 텍스트가 남아있을 수 있으므로 제거
-                target.dataset.hint = '';
-                target.classList.remove('hint-active'); // 힌트 클래스도 제거
-
-                // 배열에 있는 타일을 순서대로 다시 추가
-                if (currentTiles[index]) {
-                    target.appendChild(currentTiles[index]);
+                const tile = target.querySelector('.char-tile');
+                if (tile) {
+                    currentTilesInDropArea.push({ tile: tile, originalIndex: index });
                 }
             });
 
-            // 4. drop-area를 벗어난 타일은 scrambled-area로 이동
-            const overflowTiles = currentTiles.slice(allTargets.length);
-            overflowTiles.forEach(tile => {
-                if(tile) scrambledArea.appendChild(tile);
+            // 드래그된 타일의 원래 위치 찾기
+            const fromItem = currentTilesInDropArea.find(item => item.tile === draggedTile);
+            const fromIndex = fromItem ? fromItem.originalIndex : -1;
+
+            // DOM에서 타일 임시 제거 (scrambledArea 또는 다른 drop-target에서 왔을 수 있음)
+            draggedTile.parentNode?.removeChild(draggedTile);
+
+
+            // 1. 목표 위치(toIndex)에 이미 타일이 있었는지 확인
+            const tileAtTarget = allTargets[toIndex].querySelector('.char-tile');
+
+            // 2. 타일들을 재배치할 새 배열 준비
+            const newTileOrder = Array(allTargets.length).fill(null);
+
+            // 3. 드래그된 타일을 목표 위치에 먼저 배치
+            newTileOrder[toIndex] = draggedTile;
+
+            // 4. 나머지 타일들을 순서대로 배치 (목표 위치는 건너뛰고, 원래 드래그 위치도 건너뜀)
+            let currentPlacementIndex = 0;
+            currentTilesInDropArea.forEach(item => {
+                if (item.tile !== draggedTile) { // 드래그된 타일이 아니면
+                    while (newTileOrder[currentPlacementIndex] !== null) { // 빈 칸 찾기
+                        currentPlacementIndex++;
+                    }
+                    if (currentPlacementIndex < allTargets.length) {
+                        newTileOrder[currentPlacementIndex] = item.tile;
+                    }
+                }
             });
 
-            // 5. 타일 놓기 효과음 재생
-            playDropSound();
+             // --- DOM 업데이트 ---
+             allTargets.forEach((target, index) => {
+                 // 기존 타일 제거 (있었다면)
+                 const existingTile = target.querySelector('.char-tile');
+                 if (existingTile) {
+                     target.removeChild(existingTile);
+                 }
+                 // 힌트 제거
+                 target.dataset.hint = '';
+                 target.classList.remove('hint-active');
+
+                 // 새 순서에 따라 타일 추가
+                 if (newTileOrder[index]) {
+                     target.appendChild(newTileOrder[index]);
+                 }
+             });
+
+            // 5. drop-area를 벗어난 타일은 scrambled-area로 이동 (이 로직은 reorder 내에서는 불필요할 수 있음, drop 핸들러에서 처리)
+             // 만약 재정렬 결과 drop-area 크기를 넘어서는 타일이 있다면 scrambled-area로 보내는 로직 추가 필요 시 여기에 구현
+
+            playDropSound(); // 재배치 완료 후 소리 재생
         }
 
         /**
          * '다시 배치' 버튼 핸들러
          */
         function resetTiles() {
-            // 효과음 재생
-            playResetSound();
+            playResetSound(); // 효과음 재생
 
             const tilesInDropArea = dropArea.querySelectorAll('.char-tile');
             tilesInDropArea.forEach(tile => {
-                scrambledArea.appendChild(tile);
+                scrambledArea.appendChild(tile); // 드롭 영역 타일을 스크램블 영역으로 이동
             });
 
-            // 힌트 클리어
+            // 모든 드롭 타겟의 힌트 제거
             dropArea.querySelectorAll('.drop-target').forEach(target => {
                 target.dataset.hint = '';
                 target.classList.remove('hint-active');
             });
 
-            /* hideFeedbackIcon() 호출 제거 */
+            /* hideFeedbackIcon() 호출 제거됨 */
         }
 
-        /* showFeedbackIcon(type) 함수 제거 */
+        /* showFeedbackIcon(type) 함수 제거됨 */
 
-        /* hideFeedbackIcon() 함수 제거 */
+        /* hideFeedbackIcon() 함수 제거됨 */
 
         /**
          * '정답 확인' 버튼 핸들러
@@ -867,44 +957,65 @@
 
             targets.forEach(target => {
                 const tile = target.querySelector('.char-tile');
-                if (!tile) {
+                if (!tile) { // 타일이 없는 칸이 있으면 미완성
                     isComplete = false;
+                    constructedSentence += ' '; // 임시로 공백 추가 (정확한 비교 위해)
                 } else {
                     constructedSentence += tile.dataset.char;
                 }
             });
 
+            // 완성되었고, 문장이 일치하는 경우
             if (isComplete && constructedSentence === correctSentence) {
                 handleSuccess();
                 playCorrectSound(); // 정답 효과음
             } else {
-                playIncorrectSound(); // 오답 효과음
+                 playIncorrectSound(); // 오답 효과음
+                 // (선택적) 오답 시 시각적 피드백 (예: 흔들림)
+                 dropArea.classList.add('shake');
+                 setTimeout(() => dropArea.classList.remove('shake'), 500); // 0.5초 후 클래스 제거
             }
         }
 
         // 성공 처리
         function handleSuccess() {
-            dropArea.classList.add('success');
-            scrambledArea.style.display = 'none';
+            dropArea.classList.add('success'); // 성공 스타일 적용
+            scrambledArea.style.display = 'none'; // 스크램블 영역 숨기기
 
             // 버튼 상태 변경
             checkButton.style.display = 'none';
             resetButton.style.display = 'none';
             nextButton.style.display = 'inline-block';
 
-            // 성공 시 혹시 모를 힌트 텍스트 제거
+            // 성공 시 타겟 셀에 남아 있을 수 있는 힌트 제거
             dropArea.querySelectorAll('.drop-target').forEach(target => {
-                if (!target.querySelector('.char-tile')) {
-                    target.dataset.hint = '';
-                }
+                target.dataset.hint = '';
+                target.classList.remove('hint-active');
+                target.style.cursor = 'default'; // 힌트 클릭 커서 제거
             });
 
-            // 타일 드래그 비활성화
-            document.querySelectorAll('.char-tile').forEach(tile => {
+            // 타일 드래그 비활성화 및 커서 변경
+            dropArea.querySelectorAll('.char-tile').forEach(tile => {
                 tile.draggable = false;
                 tile.style.cursor = 'default';
             });
         }
+
+        // (선택적) 오답 시 흔들림 애니메이션 CSS 추가
+        const styleSheet = document.styleSheets[0];
+        styleSheet.insertRule(`
+            @keyframes shake {
+              0%, 100% { transform: translateX(0); }
+              10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+              20%, 40%, 60%, 80% { transform: translateX(5px); }
+            }
+        `, styleSheet.cssRules.length);
+        styleSheet.insertRule(`
+            #drop-area.shake {
+              animation: shake 0.5s ease-in-out;
+            }
+        `, styleSheet.cssRules.length);
+
 
     </script>
 </body>
