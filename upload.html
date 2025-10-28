@@ -285,6 +285,11 @@
             {
                 "name": "동물 모양 찾기",
                 "url": "https://rootspace-tc.github.io/school-quiz/petsearch.html"
+            },
+            // 🆕 [추가] 요청하신 '크리처 카운터' 바로가기를 여기에 추가했습니다.
+            {
+                "name": "크리처 카운터",
+                "url": "https://rootspace-tc.github.io/school-quiz/creatures.html"
             }
         ];
         let currentActionUrl = '';
@@ -343,6 +348,7 @@
         document.getElementById('action-goto-btn').addEventListener('click', () => {
             if (currentActionUrl) { window.open(currentActionUrl, '_blank'); }
             actionModal.style.display = 'none';
+Final Answer:
         });
         document.getElementById('action-copy-btn').addEventListener('click', () => {
             if (currentActionUrl) { navigator.clipboard.writeText(currentActionUrl).then(() => { showNotification('주소가 클립보드에 복사되었습니다!'); }); }
