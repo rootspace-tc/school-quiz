@@ -345,10 +345,11 @@
             }
         });
         document.getElementById('modal-cancel-btn').addEventListener('click', () => { formModal.style.display = 'none'; });
+        
+        // ✅ [수정] 오류를 일으켰던 'Final Answer:' 텍스트를 제거하고 올바르게 수정했습니다.
         document.getElementById('action-goto-btn').addEventListener('click', () => {
             if (currentActionUrl) { window.open(currentActionUrl, '_blank'); }
             actionModal.style.display = 'none';
-Final Answer:
         });
         document.getElementById('action-copy-btn').addEventListener('click', () => {
             if (currentActionUrl) { navigator.clipboard.writeText(currentActionUrl).then(() => { showNotification('주소가 클립보드에 복사되었습니다!'); }); }
