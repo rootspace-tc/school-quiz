@@ -10,7 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     
     <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-    <script src="https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -59,7 +60,6 @@
             cursor: grabbing;
         }
 
-        /* [추가] 게임 정보 (스테이지, 라이프) */
         #game-info {
             position: absolute;
             top: 20px;
@@ -75,7 +75,6 @@
             color: #e94560; /* 하트 색상 */
         }
 
-        /* (버튼 스타일은 거의 동일) */
         .btn {
             font-family: 'Jua', sans-serif;
             font-size: 24px;
@@ -145,7 +144,6 @@
             background-color: #6a6ab1;
         }
 
-        /* [수정] 결과 화면 (팝업 모달 스타일) */
         #result-screen {
             background-color: rgba(26, 26, 46, 0.8); /* 어두운 반투명 배경 */
             backdrop-filter: blur(8px);
@@ -153,7 +151,6 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             padding: 40px;
             z-index: 20;
-            /* [수정] 전체 화면이 아닌 중앙 팝업으로 변경 */
             width: auto;
             height: auto;
             max-width: 500px;
@@ -180,8 +177,7 @@
             <button class="btn" data-difficulty="easy">쉬움</button>
             <button class="btn" data-difficulty="medium">보통</button>
             <button class="btn" data-difficulty="hard">어려움</button>
-            <button class="btn" data-difficulty="custom" disabled>커스텀 (미구현)</button>
-        </div>
+            </div>
     </div>
 
     <div id="game-screen" class="screen">
@@ -206,25 +202,19 @@
 
     
     <script>
-    // [수정] 스크립트가 DOM을 완전히 읽은 후 실행되도록 보장 (안정성)
     document.addEventListener('DOMContentLoaded', () => {
-
-        // [수정] import 대신 전역 THREE 객체 사용
-        // (three.min.js와 OrbitControls.js가 <head>에서 로드됨)
 
         // --- 전역 변수 설정 ---
         let scene, camera, renderer, orbitControls;
         let ambientLight, pointLight;
         const canvasContainer = document.getElementById('canvas-container');
 
-        // 게임 로직 관련
         let gameObjects = []; 
         let selectedObject = null;
         let currentDifficulty = 'easy';
         let lives = 3;
         let currentStage = 1;
 
-        // 도형 정보
         const shapeFaceCounts = {
             'tetrahedron': 4,
             'cube': 6,
@@ -233,15 +223,13 @@
         };
         const availableShapes = Object.keys(shapeFaceCounts);
 
-        // 마우스 컨트롤 관련
         let raycaster, mouse;
         let mouseDownPos = new THREE.Vector2();
         let isDragging = false;
         let selectedObjectForDrag = null;
         let lastMousePos = new THREE.Vector2();
-        const dragThreshold = 5; // 5픽셀 이상 움직여야 드래그로 간주
+        const dragThreshold = 5; 
 
-        // 화면 DOM
         const difficultyScreen = document.getElementById('difficulty-screen');
         const gameScreen = document.getElementById('game-screen');
         const resultScreen = document.getElementById('result-screen');
@@ -263,12 +251,9 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             canvasContainer.appendChild(renderer.domElement);
 
-            // [수정] THREE.OrbitControls로 초기화
+            // [수정] 이제 THREE.OrbitControls가 정상적으로 로드됩니다.
             orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
             orbitControls.enableDamping = true;
-            
-            // [삭제] 자동 회전 제거 (개별 회전으로 대체)
-            // orbitControls.autoRotate = false; 
 
             ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
@@ -279,16 +264,14 @@
             raycaster = new THREE.Raycaster();
             mouse = new THREE.Vector2();
 
-            // [수정] 마우스 이벤트 리스너 (클릭/드래그 로직)
             window.addEventListener('resize', onWindowResize);
             canvasContainer.addEventListener('mousedown', onMouseDown);
             canvasContainer.addEventListener('mousemove', onMouseMove);
             canvasContainer.addEventListener('mouseup', onMouseUp);
             
+            // [수정] 'custom' 버튼이 삭제되었으므로 if문 제거
             difficultyScreen.querySelectorAll('.btn[data-difficulty]').forEach(button => {
-                if (button.dataset.difficulty !== 'custom') {
-                    button.addEventListener('click', () => selectDifficulty(button.dataset.difficulty));
-                }
+                button.addEventListener('click', () => selectDifficulty(button.dataset.difficulty));
             });
 
             submitButton.addEventListener('click', checkAnswer);
@@ -300,8 +283,8 @@
         // --- 2. 게임 시작/흐름 관련 함수 ---
         function selectDifficulty(difficulty) {
             currentDifficulty = difficulty;
-            lives = 3; // [추가] 라이프 리셋
-            currentStage = 1; // [추가] 스테이지 리셋
+            lives = 3;
+            currentStage = 1; 
             
             difficultyScreen.classList.remove('active');
             resultScreen.classList.remove('active');
@@ -316,7 +299,7 @@
             resultScreen.classList.remove('active');
             gameScreen.classList.add('active');
             
-            updateGameInfo(); // [추가] UI 업데이트
+            updateGameInfo(); 
 
             const settings = {
                 easy: { count: 4, grid: [2, 2] },
@@ -342,7 +325,6 @@
             }
         }
         
-        // [추가] 스테이지/라이프 UI 업데이트 함수
         function updateGameInfo() {
             stageDisplay.textContent = `STAGE ${currentStage}`;
             livesDisplay.textContent = '❤️'.repeat(lives);
@@ -421,7 +403,7 @@
             return [correctPattern, decoyPattern];
         }
 
-        // --- 4. [수정] 인터랙션 (클릭 & 드래그) ---
+        // --- 4. 인터랙션 (클릭 & 드래그) ---
 
         function getIntersectedObject(x, y) {
             mouse.x = (x / window.innerWidth) * 2 - 1;
@@ -439,24 +421,22 @@
             selectedObjectForDrag = getIntersectedObject(event.clientX, event.clientY);
             
             if (selectedObjectForDrag) {
-                orbitControls.enabled = false; // [수정] 도형 잡으면 배경 회전 끔
+                orbitControls.enabled = false; 
                 canvasContainer.style.cursor = 'grabbing';
             }
         }
 
         function onMouseMove(event) {
-            if (selectedObjectForDrag) { // 마우스를 누른 상태에서
+            if (selectedObjectForDrag) { 
                 const deltaX = event.clientX - lastMousePos.x;
                 const deltaY = event.clientY - lastMousePos.y;
                 
-                // [수정] 드래그 임계값 체크
                 const dragDistance = mouseDownPos.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
                 if (dragDistance > dragThreshold) {
                     isDragging = true;
                 }
 
                 if (isDragging) {
-                    // [수정] 개별 도형 회전 로직
                     selectedObjectForDrag.rotation.y += deltaX * 0.01;
                     selectedObjectForDrag.rotation.x += deltaY * 0.01;
                 }
@@ -466,27 +446,23 @@
         }
 
         function onMouseUp(event) {
-            if (!isDragging) { // [수정] 드래그가 아니었다면 (클릭)
+            if (!isDragging) { 
                 const clickedObject = getIntersectedObject(event.clientX, event.clientY);
                 handleObjectClick(clickedObject);
             }
 
-            // [수정] 모든 상태 리셋
             orbitControls.enabled = true;
             isDragging = false;
             selectedObjectForDrag = null;
             canvasContainer.style.cursor = 'grab';
         }
         
-        // [추가] 선택/선택 해제 로직
         function handleObjectClick(clickedObject) {
             if (clickedObject) {
                 if (selectedObject === clickedObject) {
-                    // 이미 선택된 것을 다시 클릭 -> 선택 해제
                     setHighlight(selectedObject, false);
                     selectedObject = null;
                 } else {
-                    // 다른 도형 클릭 -> 선택 변경
                     if (selectedObject) {
                         setHighlight(selectedObject, false);
                     }
@@ -494,7 +470,6 @@
                     setHighlight(selectedObject, true);
                 }
             } else {
-                // 배경 클릭 -> 선택 해제
                 if (selectedObject) {
                     setHighlight(selectedObject, false);
                     selectedObject = null;
@@ -515,7 +490,7 @@
             }
         }
 
-        // --- 5. [수정] 정답 확인 (라이프, 팝업 로직) ---
+        // --- 5. 정답 확인 (라이프, 팝업 로직) ---
 
         function checkAnswer() {
             if (!selectedObject) {
@@ -532,7 +507,7 @@
                 resultButton.textContent = "다음 단계";
                 resultButton.onclick = () => {
                     currentStage++;
-                    startGame(currentDifficulty); // 팝업은 startGame이 자동으로 닫음
+                    startGame(currentDifficulty); 
                 };
 
             } else {
@@ -545,7 +520,7 @@
                     resultMsg.textContent = "게임 오버!";
                     resultMsg.className = 'incorrect';
                     resultButton.textContent = "처음으로";
-                    resultButton.onclick = goToHome; // 팝업은 goToHome이 닫음
+                    resultButton.onclick = goToHome; 
                 } else {
                     // 오답 (라이프 남음)
                     resultMsg.textContent = `틀렸습니다!`;
@@ -553,13 +528,11 @@
                     resultButton.textContent = "닫기";
                     resultButton.onclick = () => {
                         resultScreen.classList.remove('active');
-                        // [추가] 닫을 때 선택 해제
                         handleObjectClick(null); 
                     };
                 }
             }
             
-            // [수정] 팝업(모달) 띄우기
             resultScreen.classList.add('active');
         }
 
