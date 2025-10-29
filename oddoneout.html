@@ -177,7 +177,7 @@
             <button class="btn" data-difficulty="easy">쉬움</button>
             <button class="btn" data-difficulty="medium">보통</button>
             <button class="btn" data-difficulty="hard">어려움</button>
-            </div>
+        </div>
     </div>
 
     <div id="game-screen" class="screen">
@@ -202,7 +202,10 @@
 
     
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    // [수정] DOMContentLoaded 대신 window.onload 사용
+    // 페이지의 모든 리소스(three.js, OrbitControls.js 포함)가
+    // 로드된 후 스크립트를 실행합니다.
+    window.onload = () => {
 
         // --- 전역 변수 설정 ---
         let scene, camera, renderer, orbitControls;
@@ -241,6 +244,9 @@
 
         // --- 1. 초기화 함수 ---
         function init() {
+            // 이 시점에는 THREE와 THREE.OrbitControls가
+            // 확실하게 로드되어 있습니다.
+            
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x1a1a2e);
 
@@ -251,7 +257,6 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             canvasContainer.appendChild(renderer.domElement);
 
-            // [수정] 이제 THREE.OrbitControls가 정상적으로 로드됩니다.
             orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
             orbitControls.enableDamping = true;
 
@@ -269,7 +274,6 @@
             canvasContainer.addEventListener('mousemove', onMouseMove);
             canvasContainer.addEventListener('mouseup', onMouseUp);
             
-            // [수정] 'custom' 버튼이 삭제되었으므로 if문 제거
             difficultyScreen.querySelectorAll('.btn[data-difficulty]').forEach(button => {
                 button.addEventListener('click', () => selectDifficulty(button.dataset.difficulty));
             });
@@ -551,8 +555,10 @@
         }
 
         // --- 스크립트 실행 ---
+        // init() 함수는 window.onload가 호출할 것이므로
+        // 여기에서 바로 호출합니다.
         init();
-    });
+    };
     </script>
     </body>
 </html>
