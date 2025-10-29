@@ -67,9 +67,20 @@
             text-shadow: 0 0 10px rgba(0,0,0,0.5);
             display: flex;
             gap: 20px;
+            /* [수정] 텍스트 정렬 */
+            align-items: center;
         }
         #lives-display {
-            color: #e94560; /* 하트 색상 */
+            color: #e94560;
+            font-size: 28px; /* 하트 크기 살짝 조절 */
+        }
+        /* [추가] 타이머 스타일 */
+        #timer-display {
+            color: #40c9a2;
+            background-color: rgba(0,0,0,0.2);
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 28px;
         }
 
         .btn {
@@ -142,7 +153,7 @@
         }
 
         #result-screen {
-            background-color: rgba(26, 26, 46, 0.8); /* 어두운 반투명 배경 */
+            background-color: rgba(26, 26, 46, 0.8);
             backdrop-filter: blur(8px);
             border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -156,6 +167,12 @@
 
         #result-screen h2 {
             font-size: 48px;
+            margin-bottom: 25px;
+        }
+        /* [추가] 게임 오버 시 시간 표시 스타일 */
+        #result-time {
+            font-size: 22px;
+            color: #f0f0f0;
             margin-bottom: 25px;
         }
         #result-message.correct {
@@ -180,6 +197,7 @@
         <div id="game-info">
             <span id="stage-display">STAGE 1</span>
             <span id="lives-display">❤️❤️❤️</span>
+            <span id="timer-display">TIME 0.0</span>
         </div>
         <div id="canvas-container"></div>
         <div class="game-ui">
@@ -190,6 +208,7 @@
     </div>
     <div id="result-screen" class="screen">
         <h2 id="result-message"></h2>
+        <p id="result-time"></p>
         <button id="result-button" class="btn"></button>
     </div>
 
@@ -204,12 +223,8 @@
     </script>
 
     <script type="module">
-        // [수정] 3. 모듈 방식(import)으로 라이브러리 로드
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-        // [수정] 4. DOMContentLoaded 래퍼 제거
-        // (type="module" 스크립트는 DOM이 준비된 후 실행되는 것이 보장됨)
 
         // --- 전역 변수 설정 ---
         let scene, camera, renderer, orbitControls;
@@ -222,6 +237,11 @@
         let lives = 3;
         let currentStage = 1;
 
+        // [추가] 타이머 관련 변수
+        let stageTimerInterval; // 스테이지 타이머 (setInterval 핸들러)
+        let lastStageStartTime; // 스테이지 시작 시간 (ms)
+        let totalTime = 0; // 총 플레이 시간 (sec)
+
         const shapeFaceCounts = {
             'tetrahedron': 4,
             'cube': 6,
@@ -230,7 +250,6 @@
         };
         const availableShapes = Object.keys(shapeFaceCounts);
         
-        // [수정] 회전축 계산을 위한 임시 변수
         const worldAxisX = new THREE.Vector3(1, 0, 0);
         const worldAxisY = new THREE.Vector3(0, 1, 0);
 
@@ -247,8 +266,10 @@
         const submitButton = document.getElementById('submit-button');
         const homeButton = document.getElementById('home-button');
         const resultButton = document.getElementById('result-button');
+        const resultTimeDisplay = document.getElementById('result-time'); // [추가]
         const stageDisplay = document.getElementById('stage-display');
         const livesDisplay = document.getElementById('lives-display');
+        const timerDisplay = document.getElementById('timer-display'); // [추가]
 
         // --- 1. 초기화 함수 ---
         function init() {
@@ -294,6 +315,7 @@
             currentDifficulty = difficulty;
             lives = 3;
             currentStage = 1; 
+            totalTime = 0; // [추가] 총 시간 리셋
             
             difficultyScreen.classList.remove('active');
             resultScreen.classList.remove('active');
@@ -310,6 +332,16 @@
             
             updateGameInfo(); 
 
+            // [추가] 타이머 시작
+            if (stageTimerInterval) clearInterval(stageTimerInterval);
+            lastStageStartTime = new Date().getTime();
+            timerDisplay.textContent = "TIME 0.0";
+            stageTimerInterval = setInterval(() => {
+                const elapsed = (new Date().getTime() - lastStageStartTime) / 1000;
+                timerDisplay.textContent = `TIME ${elapsed.toFixed(1)}`;
+            }, 100);
+
+
             const settings = {
                 easy: { count: 4, grid: [2, 2] },
                 medium: { count: 6, grid: [3, 2] },
@@ -317,9 +349,8 @@
             };
             const { count, grid } = settings[difficulty];
             
-            // [수정] 도형 랜덤 선택 및 확인
             const shapeType = availableShapes[Math.floor(Math.random() * availableShapes.length)];
-            console.log("Selected shape type:", shapeType); // F12 콘솔에서 확인 가능
+            console.log("Selected shape type:", shapeType); 
             
             const [correctPattern, decoyPattern] = generateColorPatterns(shapeType);
             const decoyIndex = Math.floor(Math.random() * count);
@@ -363,6 +394,8 @@
             gameScreen.classList.remove('active');
             resultScreen.classList.remove('active');
             difficultyScreen.classList.add('active');
+            if (stageTimerInterval) clearInterval(stageTimerInterval); // [추가] 타이머 정지
+            resultTimeDisplay.textContent = ""; // [추가] 시간 표시 제거
             clearScene();
         }
 
@@ -378,18 +411,28 @@
             switch (type) {
                 case 'tetrahedron':
                     geometry = new THREE.TetrahedronGeometry(1.2);
+                    // [BUG FIX] 정사면체는 수동으로 재질 그룹을 할당해야 합니다.
+                    // 정사면체는 4개의 면(삼각형)으로 구성되며, 총 12개의 인덱스를 가집니다.
+                    // (0, 1, 2), (0, 3, 1), (0, 2, 3), (1, 3, 2)
+                    geometry.clearGroups(); // 기존 그룹 제거
+                    geometry.addGroup(0, 3, 0); // 1번째 면(인덱스 0~2) -> 재질 0
+                    geometry.addGroup(3, 3, 1); // 2번째 면(인덱스 3~5) -> 재질 1
+                    geometry.addGroup(6, 3, 2); // 3번째 면(인덱스 6~8) -> 재질 2
+                    geometry.addGroup(9, 3, 3); // 4번째 면(인덱스 9~11) -> 재질 3
                     break;
                 case 'cube':
                     geometry = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+                    // BoxGeometry는 자동으로 6개 재질을 6면에 매핑합니다.
                     break;
                 case 'octahedron':
                     geometry = new THREE.OctahedronGeometry(1.2);
+                    // OctahedronGeometry는 자동으로 8개 재질을 8면에 매핑합니다.
                     break;
                 case 'dodecahedron':
                     geometry = new THREE.DodecahedronGeometry(1.2);
+                    // DodecahedronGeometry는 자동으로 12개 재질을 12면에 매핑합니다.
                     break;
                 default:
-                    // 혹시 모를 오류 대비 (큐브)
                     geometry = new THREE.BoxGeometry(1.2, 1.2, 1.2);
             }
 
@@ -453,7 +496,6 @@
                 }
 
                 if (isDragging) {
-                    // [수정] 월드 축 기준으로 회전 (직관적인 회전)
                     selectedObjectForDrag.rotateOnWorldAxis(worldAxisY, deltaX * 0.01);
                     selectedObjectForDrag.rotateOnWorldAxis(worldAxisX, deltaY * 0.01);
                 }
@@ -515,7 +557,13 @@
                 return;
             }
 
+            // [추가] 정답 확인 시 타이머 정지 및 시간 계산
+            clearInterval(stageTimerInterval);
+            const stageTime = (new Date().getTime() - lastStageStartTime) / 1000;
+            totalTime += stageTime;
+
             const resultMsg = document.getElementById('result-message');
+            resultTimeDisplay.textContent = ""; // 팝업 시간 표시는 기본적으로 숨김
             
             if (selectedObject.userData.isDecoy) {
                 // 정답
@@ -536,6 +584,7 @@
                     // 게임 오버
                     resultMsg.textContent = "게임 오버!";
                     resultMsg.className = 'incorrect';
+                    resultTimeDisplay.textContent = `총 플레이 시간: ${totalTime.toFixed(1)}초`; // [추가]
                     resultButton.textContent = "처음으로";
                     resultButton.onclick = goToHome; 
                 } else {
@@ -546,6 +595,12 @@
                     resultButton.onclick = () => {
                         resultScreen.classList.remove('active');
                         handleObjectClick(null); 
+                        // [추가] 닫으면 타이머 다시 시작
+                        lastStageStartTime = new Date().getTime() - (stageTime * 1000); // 멈췄던 시간부터
+                        stageTimerInterval = setInterval(() => {
+                            const elapsed = (new Date().getTime() - lastStageStartTime) / 1000;
+                            timerDisplay.textContent = `TIME ${elapsed.toFixed(1)}`;
+                        }, 100);
                     };
                 }
             }
@@ -568,7 +623,6 @@
         }
 
         // --- 스크립트 실행 ---
-        // (모듈 스크립트의 최상위 레벨에서 init() 호출)
         init();
     </script>
     </body>
