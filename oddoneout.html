@@ -9,9 +9,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     
-    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-    <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
-
     <style>
         * {
             margin: 0;
@@ -179,386 +176,391 @@
             <button class="btn" data-difficulty="hard">어려움</button>
         </div>
     </div>
-
     <div id="game-screen" class="screen">
         <div id="game-info">
             <span id="stage-display">STAGE 1</span>
             <span id="lives-display">❤️❤️❤️</span>
         </div>
-        
         <div id="canvas-container"></div>
-        
         <div class="game-ui">
             <div id="message-box">다른 색상 패턴을 가진 도형을 찾아보세요.</div>
             <button id="submit-button" class="btn">정답 확인</button>
             <button id="home-button" class="btn small">처음으로</button>
         </div>
     </div>
-
     <div id="result-screen" class="screen">
         <h2 id="result-message"></h2>
         <button id="result-button" class="btn"></button>
     </div>
 
     
-    <script>
-    // [수정] DOMContentLoaded 대신 window.onload 사용
-    // 페이지의 모든 리소스(three.js, OrbitControls.js 포함)가
-    // 로드된 후 스크립트를 실행합니다.
-    window.onload = () => {
-
-        // --- 전역 변수 설정 ---
-        let scene, camera, renderer, orbitControls;
-        let ambientLight, pointLight;
-        const canvasContainer = document.getElementById('canvas-container');
-
-        let gameObjects = []; 
-        let selectedObject = null;
-        let currentDifficulty = 'easy';
-        let lives = 3;
-        let currentStage = 1;
-
-        const shapeFaceCounts = {
-            'tetrahedron': 4,
-            'cube': 6,
-            'octahedron': 8,
-            'dodecahedron': 12
-        };
-        const availableShapes = Object.keys(shapeFaceCounts);
-
-        let raycaster, mouse;
-        let mouseDownPos = new THREE.Vector2();
-        let isDragging = false;
-        let selectedObjectForDrag = null;
-        let lastMousePos = new THREE.Vector2();
-        const dragThreshold = 5; 
-
-        const difficultyScreen = document.getElementById('difficulty-screen');
-        const gameScreen = document.getElementById('game-screen');
-        const resultScreen = document.getElementById('result-screen');
-        const submitButton = document.getElementById('submit-button');
-        const homeButton = document.getElementById('home-button');
-        const resultButton = document.getElementById('result-button');
-        const stageDisplay = document.getElementById('stage-display');
-        const livesDisplay = document.getElementById('lives-display');
-
-        // --- 1. 초기화 함수 ---
-        function init() {
-            // 이 시점에는 THREE와 THREE.OrbitControls가
-            // 확실하게 로드되어 있습니다.
-            
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x1a1a2e);
-
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 10;
-
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            canvasContainer.appendChild(renderer.domElement);
-
-            orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
-            orbitControls.enableDamping = true;
-
-            ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-            scene.add(ambientLight);
-            pointLight = new THREE.PointLight(0xffffff, 1.0);
-            pointLight.position.set(5, 10, 10);
-            scene.add(pointLight);
-
-            raycaster = new THREE.Raycaster();
-            mouse = new THREE.Vector2();
-
-            window.addEventListener('resize', onWindowResize);
-            canvasContainer.addEventListener('mousedown', onMouseDown);
-            canvasContainer.addEventListener('mousemove', onMouseMove);
-            canvasContainer.addEventListener('mouseup', onMouseUp);
-            
-            difficultyScreen.querySelectorAll('.btn[data-difficulty]').forEach(button => {
-                button.addEventListener('click', () => selectDifficulty(button.dataset.difficulty));
-            });
-
-            submitButton.addEventListener('click', checkAnswer);
-            homeButton.addEventListener('click', goToHome);
-            
-            animate();
-        }
-
-        // --- 2. 게임 시작/흐름 관련 함수 ---
-        function selectDifficulty(difficulty) {
-            currentDifficulty = difficulty;
-            lives = 3;
-            currentStage = 1; 
-            
-            difficultyScreen.classList.remove('active');
-            resultScreen.classList.remove('active');
-            gameScreen.classList.add('active');
-            
-            startGame(difficulty);
-        }
-
-        function startGame(difficulty) {
-            clearScene();
-            selectedObject = null;
-            resultScreen.classList.remove('active');
-            gameScreen.classList.add('active');
-            
-            updateGameInfo(); 
-
-            const settings = {
-                easy: { count: 4, grid: [2, 2] },
-                medium: { count: 6, grid: [3, 2] },
-                hard: { count: 8, grid: [4, 2] }
-            };
-            const { count, grid } = settings[difficulty];
-            const shapeType = availableShapes[Math.floor(Math.random() * availableShapes.length)];
-            const [correctPattern, decoyPattern] = generateColorPatterns(shapeType);
-            const decoyIndex = Math.floor(Math.random() * count);
-
-            for (let i = 0; i < count; i++) {
-                const pattern = (i === decoyIndex) ? decoyPattern : correctPattern;
-                const shape = createShape(shapeType, pattern);
-
-                const gridX = (i % grid[0]) - (grid[0] - 1) / 2;
-                const gridY = Math.floor(i / grid[0]) - (grid[1] - 1) / 2;
-                shape.position.set(gridX * 3.5, gridY * -3.5, 0);
-
-                shape.userData = { isDecoy: (i === decoyIndex) };
-                scene.add(shape);
-                gameObjects.push(shape);
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
             }
         }
-        
-        function updateGameInfo() {
-            stageDisplay.textContent = `STAGE ${currentStage}`;
-            livesDisplay.textContent = '❤️'.repeat(lives);
-        }
+    </script>
 
-        function clearScene() {
-            for (let i = gameObjects.length - 1; i >= 0; i--) {
-                const obj = gameObjects[i];
-                scene.remove(obj);
-                if (obj.geometry) obj.geometry.dispose();
-                if (obj.material) {
-                    if (Array.isArray(obj.material)) {
-                        obj.material.forEach(m => m.dispose());
-                    } else {
-                        obj.material.dispose();
+    <script type="module">
+        // [수정] 3. 모듈 방식(import)으로 라이브러리 로드
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // [수정] 4. DOM 로드 후 스크립트 실행
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- 전역 변수 설정 ---
+            let scene, camera, renderer, orbitControls;
+            let ambientLight, pointLight;
+            const canvasContainer = document.getElementById('canvas-container');
+
+            let gameObjects = []; 
+            let selectedObject = null;
+            let currentDifficulty = 'easy';
+            let lives = 3;
+            let currentStage = 1;
+
+            const shapeFaceCounts = {
+                'tetrahedron': 4,
+                'cube': 6,
+                'octahedron': 8,
+                'dodecahedron': 12
+            };
+            const availableShapes = Object.keys(shapeFaceCounts);
+
+            let raycaster, mouse;
+            let mouseDownPos = new THREE.Vector2();
+            let isDragging = false;
+            let selectedObjectForDrag = null;
+            let lastMousePos = new THREE.Vector2();
+            const dragThreshold = 5; 
+
+            const difficultyScreen = document.getElementById('difficulty-screen');
+            const gameScreen = document.getElementById('game-screen');
+            const resultScreen = document.getElementById('result-screen');
+            const submitButton = document.getElementById('submit-button');
+            const homeButton = document.getElementById('home-button');
+            const resultButton = document.getElementById('result-button');
+            const stageDisplay = document.getElementById('stage-display');
+            const livesDisplay = document.getElementById('lives-display');
+
+            // --- 1. 초기화 함수 ---
+            function init() {
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x1a1a2e);
+
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.z = 10;
+
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                canvasContainer.appendChild(renderer.domElement);
+
+                // [수정] 오류가 났던 부분!
+                // 'new THREE.OrbitControls'가 아니라 'new OrbitControls'를 사용합니다.
+                // (import { OrbitControls }... 로 직접 가져왔기 때문)
+                orbitControls = new OrbitControls(camera, renderer.domElement);
+                orbitControls.enableDamping = true;
+
+                ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                scene.add(ambientLight);
+                pointLight = new THREE.PointLight(0xffffff, 1.0);
+                pointLight.position.set(5, 10, 10);
+                scene.add(pointLight);
+
+                raycaster = new THREE.Raycaster();
+                mouse = new THREE.Vector2();
+
+                window.addEventListener('resize', onWindowResize);
+                canvasContainer.addEventListener('mousedown', onMouseDown);
+                canvasContainer.addEventListener('mousemove', onMouseMove);
+                canvasContainer.addEventListener('mouseup', onMouseUp);
+                
+                difficultyScreen.querySelectorAll('.btn[data-difficulty]').forEach(button => {
+                    button.addEventListener('click', () => selectDifficulty(button.dataset.difficulty));
+                });
+
+                submitButton.addEventListener('click', checkAnswer);
+                homeButton.addEventListener('click', goToHome);
+                
+                animate();
+            }
+
+            // --- 2. 게임 시작/흐름 관련 함수 ---
+            function selectDifficulty(difficulty) {
+                currentDifficulty = difficulty;
+                lives = 3;
+                currentStage = 1; 
+                
+                difficultyScreen.classList.remove('active');
+                resultScreen.classList.remove('active');
+                gameScreen.classList.add('active');
+                
+                startGame(difficulty);
+            }
+
+            function startGame(difficulty) {
+                clearScene();
+                selectedObject = null;
+                resultScreen.classList.remove('active');
+                gameScreen.classList.add('active');
+                
+                updateGameInfo(); 
+
+                const settings = {
+                    easy: { count: 4, grid: [2, 2] },
+                    medium: { count: 6, grid: [3, 2] },
+                    hard: { count: 8, grid: [4, 2] }
+                };
+                const { count, grid } = settings[difficulty];
+                const shapeType = availableShapes[Math.floor(Math.random() * availableShapes.length)];
+                const [correctPattern, decoyPattern] = generateColorPatterns(shapeType);
+                const decoyIndex = Math.floor(Math.random() * count);
+
+                for (let i = 0; i < count; i++) {
+                    const pattern = (i === decoyIndex) ? decoyPattern : correctPattern;
+                    const shape = createShape(shapeType, pattern);
+
+                    const gridX = (i % grid[0]) - (grid[0] - 1) / 2;
+                    const gridY = Math.floor(i / grid[0]) - (grid[1] - 1) / 2;
+                    shape.position.set(gridX * 3.5, gridY * -3.5, 0);
+
+                    shape.userData = { isDecoy: (i === decoyIndex) };
+                    scene.add(shape);
+                    gameObjects.push(shape);
+                }
+            }
+            
+            function updateGameInfo() {
+                stageDisplay.textContent = `STAGE ${currentStage}`;
+                livesDisplay.textContent = '❤️'.repeat(lives);
+            }
+
+            function clearScene() {
+                for (let i = gameObjects.length - 1; i >= 0; i--) {
+                    const obj = gameObjects[i];
+                    scene.remove(obj);
+                    if (obj.geometry) obj.geometry.dispose();
+                    if (obj.material) {
+                        if (Array.isArray(obj.material)) {
+                            obj.material.forEach(m => m.dispose());
+                        } else {
+                            obj.material.dispose();
+                        }
                     }
                 }
-            }
-            gameObjects = [];
-        }
-
-        function goToHome() {
-            gameScreen.classList.remove('active');
-            resultScreen.classList.remove('active');
-            difficultyScreen.classList.add('active');
-            clearScene();
-        }
-
-        // --- 3. 3D 객체 생성 함수 ---
-        function createShape(type, colors) {
-            let geometry;
-            const materials = colors.map(color => new THREE.MeshStandardMaterial({
-                color: color,
-                roughness: 0.7,
-                metalness: 0.2
-            }));
-
-            switch (type) {
-                case 'tetrahedron':
-                    geometry = new THREE.TetrahedronGeometry(1.2);
-                    break;
-                case 'cube':
-                    geometry = new THREE.BoxGeometry(1.2, 1.2, 1.2);
-                    break;
-                case 'octahedron':
-                    geometry = new THREE.OctahedronGeometry(1.2);
-                    break;
-                case 'dodecahedron':
-                    geometry = new THREE.DodecahedronGeometry(1.2);
-                    break;
+                gameObjects = [];
             }
 
-            const mesh = new THREE.Mesh(geometry, materials);
-            return mesh;
-        }
-
-        function generateColorPatterns(shapeType) {
-            const faceCount = shapeFaceCounts[shapeType];
-            const baseColors = [0xe6194B, 0x3cb44b, 0xffe119, 0x4363d8, 0xf58231, 0x911eb4, 0x42d4f4, 0xf032e6, 0xbfef45, 0xadb300];
-            
-            const correctPattern = [];
-            for (let i = 0; i < faceCount; i++) {
-                correctPattern.push(baseColors[Math.floor(Math.random() * baseColors.length)]);
+            function goToHome() {
+                gameScreen.classList.remove('active');
+                resultScreen.classList.remove('active');
+                difficultyScreen.classList.add('active');
+                clearScene();
             }
 
-            const decoyPattern = [...correctPattern];
-            if (faceCount < 2) return [correctPattern, correctPattern]; 
+            // --- 3. 3D 객체 생성 함수 ---
+            function createShape(type, colors) {
+                let geometry;
+                const materials = colors.map(color => new THREE.MeshStandardMaterial({
+                    color: color,
+                    roughness: 0.7,
+                    metalness: 0.2
+                }));
 
-            const idx1 = Math.floor(Math.random() * faceCount);
-            let idx2 = Math.floor(Math.random() * faceCount);
-            while (idx1 === idx2) {
-                idx2 = Math.floor(Math.random() * faceCount);
-            }
-            [decoyPattern[idx1], decoyPattern[idx2]] = [decoyPattern[idx2], decoyPattern[idx1]];
-
-            return [correctPattern, decoyPattern];
-        }
-
-        // --- 4. 인터랙션 (클릭 & 드래그) ---
-
-        function getIntersectedObject(x, y) {
-            mouse.x = (x / window.innerWidth) * 2 - 1;
-            mouse.y = -(y / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(gameObjects);
-            return intersects.length > 0 ? intersects[0].object : null;
-        }
-
-        function onMouseDown(event) {
-            mouseDownPos.set(event.clientX, event.clientY);
-            lastMousePos.set(event.clientX, event.clientY);
-            isDragging = false;
-            
-            selectedObjectForDrag = getIntersectedObject(event.clientX, event.clientY);
-            
-            if (selectedObjectForDrag) {
-                orbitControls.enabled = false; 
-                canvasContainer.style.cursor = 'grabbing';
-            }
-        }
-
-        function onMouseMove(event) {
-            if (selectedObjectForDrag) { 
-                const deltaX = event.clientX - lastMousePos.x;
-                const deltaY = event.clientY - lastMousePos.y;
-                
-                const dragDistance = mouseDownPos.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
-                if (dragDistance > dragThreshold) {
-                    isDragging = true;
+                switch (type) {
+                    case 'tetrahedron':
+                        geometry = new THREE.TetrahedronGeometry(1.2);
+                        break;
+                    case 'cube':
+                        geometry = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+                        break;
+                    case 'octahedron':
+                        geometry = new THREE.OctahedronGeometry(1.2);
+                        break;
+                    case 'dodecahedron':
+                        geometry = new THREE.DodecahedronGeometry(1.2);
+                        break;
                 }
 
-                if (isDragging) {
-                    selectedObjectForDrag.rotation.y += deltaX * 0.01;
-                    selectedObjectForDrag.rotation.x += deltaY * 0.01;
-                }
+                const mesh = new THREE.Mesh(geometry, materials);
+                return mesh;
+            }
+
+            function generateColorPatterns(shapeType) {
+                const faceCount = shapeFaceCounts[shapeType];
+                const baseColors = [0xe6194B, 0x3cb44b, 0xffe119, 0x4363d8, 0xf58231, 0x911eb4, 0x42d4f4, 0xf032e6, 0xbfef45, 0xadb300];
                 
+                const correctPattern = [];
+                for (let i = 0; i < faceCount; i++) {
+                    correctPattern.push(baseColors[Math.floor(Math.random() * baseColors.length)]);
+                }
+
+                const decoyPattern = [...correctPattern];
+                if (faceCount < 2) return [correctPattern, correctPattern]; 
+
+                const idx1 = Math.floor(Math.random() * faceCount);
+                let idx2 = Math.floor(Math.random() * faceCount);
+                while (idx1 === idx2) {
+                    idx2 = Math.floor(Math.random() * faceCount);
+                }
+                [decoyPattern[idx1], decoyPattern[idx2]] = [decoyPattern[idx2], decoyPattern[idx1]];
+
+                return [correctPattern, decoyPattern];
+            }
+
+            // --- 4. 인터랙션 (클릭 & 드래그) ---
+
+            function getIntersectedObject(x, y) {
+                mouse.x = (x / window.innerWidth) * 2 - 1;
+                mouse.y = -(y / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(gameObjects);
+                return intersects.length > 0 ? intersects[0].object : null;
+            }
+
+            function onMouseDown(event) {
+                mouseDownPos.set(event.clientX, event.clientY);
                 lastMousePos.set(event.clientX, event.clientY);
+                isDragging = false;
+                
+                selectedObjectForDrag = getIntersectedObject(event.clientX, event.clientY);
+                
+                if (selectedObjectForDrag) {
+                    orbitControls.enabled = false; 
+                    canvasContainer.style.cursor = 'grabbing';
+                }
             }
-        }
 
-        function onMouseUp(event) {
-            if (!isDragging) { 
-                const clickedObject = getIntersectedObject(event.clientX, event.clientY);
-                handleObjectClick(clickedObject);
+            function onMouseMove(event) {
+                if (selectedObjectForDrag) { 
+                    const deltaX = event.clientX - lastMousePos.x;
+                    const deltaY = event.clientY - lastMousePos.y;
+                    
+                    const dragDistance = mouseDownPos.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
+                    if (dragDistance > dragThreshold) {
+                        isDragging = true;
+                    }
+
+                    if (isDragging) {
+                        selectedObjectForDrag.rotation.y += deltaX * 0.01;
+                        selectedObjectForDrag.rotation.x += deltaY * 0.01;
+                    }
+                    
+                    lastMousePos.set(event.clientX, event.clientY);
+                }
             }
 
-            orbitControls.enabled = true;
-            isDragging = false;
-            selectedObjectForDrag = null;
-            canvasContainer.style.cursor = 'grab';
-        }
-        
-        function handleObjectClick(clickedObject) {
-            if (clickedObject) {
-                if (selectedObject === clickedObject) {
-                    setHighlight(selectedObject, false);
-                    selectedObject = null;
+            function onMouseUp(event) {
+                if (!isDragging) { 
+                    const clickedObject = getIntersectedObject(event.clientX, event.clientY);
+                    handleObjectClick(clickedObject);
+                }
+
+                orbitControls.enabled = true;
+                isDragging = false;
+                selectedObjectForDrag = null;
+                canvasContainer.style.cursor = 'grab';
+            }
+            
+            function handleObjectClick(clickedObject) {
+                if (clickedObject) {
+                    if (selectedObject === clickedObject) {
+                        setHighlight(selectedObject, false);
+                        selectedObject = null;
+                    } else {
+                        if (selectedObject) {
+                            setHighlight(selectedObject, false);
+                        }
+                        selectedObject = clickedObject;
+                        setHighlight(selectedObject, true);
+                    }
                 } else {
                     if (selectedObject) {
                         setHighlight(selectedObject, false);
+                        selectedObject = null;
                     }
-                    selectedObject = clickedObject;
-                    setHighlight(selectedObject, true);
-                }
-            } else {
-                if (selectedObject) {
-                    setHighlight(selectedObject, false);
-                    selectedObject = null;
                 }
             }
-        }
 
-        function setHighlight(object, active) {
-            if (!object || !object.material) return;
-            const highlightColor = active ? 0x888888 : 0x000000; 
+            function setHighlight(object, active) {
+                if (!object || !object.material) return;
+                const highlightColor = active ? 0x888888 : 0x000000; 
 
-            if (Array.isArray(object.material)) {
-                object.material.forEach(material => {
-                    material.emissive.setHex(highlightColor);
-                });
-            } else {
-                object.material.emissive.setHex(highlightColor);
-            }
-        }
-
-        // --- 5. 정답 확인 (라이프, 팝업 로직) ---
-
-        function checkAnswer() {
-            if (!selectedObject) {
-                document.getElementById('message-box').textContent = "먼저 도형을 선택해주세요!";
-                return;
-            }
-
-            const resultMsg = document.getElementById('result-message');
-            
-            if (selectedObject.userData.isDecoy) {
-                // 정답
-                resultMsg.textContent = "정답입니다!";
-                resultMsg.className = 'correct';
-                resultButton.textContent = "다음 단계";
-                resultButton.onclick = () => {
-                    currentStage++;
-                    startGame(currentDifficulty); 
-                };
-
-            } else {
-                // 오답
-                lives--;
-                updateGameInfo();
-
-                if (lives <= 0) {
-                    // 게임 오버
-                    resultMsg.textContent = "게임 오버!";
-                    resultMsg.className = 'incorrect';
-                    resultButton.textContent = "처음으로";
-                    resultButton.onclick = goToHome; 
+                if (Array.isArray(object.material)) {
+                    object.material.forEach(material => {
+                        material.emissive.setHex(highlightColor);
+                    });
                 } else {
-                    // 오답 (라이프 남음)
-                    resultMsg.textContent = `틀렸습니다!`;
-                    resultMsg.className = 'incorrect';
-                    resultButton.textContent = "닫기";
-                    resultButton.onclick = () => {
-                        resultScreen.classList.remove('active');
-                        handleObjectClick(null); 
-                    };
+                    object.material.emissive.setHex(highlightColor);
                 }
             }
-            
-            resultScreen.classList.add('active');
-        }
 
-        // --- 6. 렌더링 ---
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
+            // --- 5. 정답 확인 (라이프, 팝업 로직) ---
 
-        function animate() {
-            requestAnimationFrame(animate);
-            if (orbitControls) orbitControls.update();
-            pointLight.position.set(camera.position.x, camera.position.y, camera.position.z);
-            renderer.render(scene, camera);
-        }
+            function checkAnswer() {
+                if (!selectedObject) {
+                    document.getElementById('message-box').textContent = "먼저 도형을 선택해주세요!";
+                    return;
+                }
 
-        // --- 스크립트 실행 ---
-        // init() 함수는 window.onload가 호출할 것이므로
-        // 여기에서 바로 호출합니다.
-        init();
-    };
+                const resultMsg = document.getElementById('result-message');
+                
+                if (selectedObject.userData.isDecoy) {
+                    // 정답
+                    resultMsg.textContent = "정답입니다!";
+                    resultMsg.className = 'correct';
+                    resultButton.textContent = "다음 단계";
+                    resultButton.onclick = () => {
+                        currentStage++;
+                        startGame(currentDifficulty); 
+                    };
+
+                } else {
+                    // 오답
+                    lives--;
+                    updateGameInfo();
+
+                    if (lives <= 0) {
+                        // 게임 오버
+                        resultMsg.textContent = "게임 오버!";
+                        resultMsg.className = 'incorrect';
+                        resultButton.textContent = "처음으로";
+                        resultButton.onclick = goToHome; 
+                    } else {
+                        // 오답 (라이프 남음)
+                        resultMsg.textContent = `틀렸습니다!`;
+                        resultMsg.className = 'incorrect';
+                        resultButton.textContent = "닫기";
+                        resultButton.onclick = () => {
+                            resultScreen.classList.remove('active');
+                            handleObjectClick(null); 
+                        };
+                    }
+                }
+                
+                resultScreen.classList.add('active');
+            }
+
+            // --- 6. 렌더링 ---
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                if (orbitControls) orbitControls.update();
+                pointLight.position.set(camera.position.x, camera.position.y, camera.position.z);
+                renderer.render(scene, camera);
+            }
+
+            // --- 스크립트 실행 ---
+            init();
+        });
     </script>
     </body>
 </html>
