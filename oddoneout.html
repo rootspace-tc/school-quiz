@@ -67,14 +67,12 @@
             text-shadow: 0 0 10px rgba(0,0,0,0.5);
             display: flex;
             gap: 20px;
-            /* [수정] 텍스트 정렬 */
             align-items: center;
         }
         #lives-display {
             color: #e94560;
-            font-size: 28px; /* 하트 크기 살짝 조절 */
+            font-size: 28px;
         }
-        /* [추가] 타이머 스타일 */
         #timer-display {
             color: #40c9a2;
             background-color: rgba(0,0,0,0.2);
@@ -169,7 +167,6 @@
             font-size: 48px;
             margin-bottom: 25px;
         }
-        /* [추가] 게임 오버 시 시간 표시 스타일 */
         #result-time {
             font-size: 22px;
             color: #f0f0f0;
@@ -237,10 +234,9 @@
         let lives = 3;
         let currentStage = 1;
 
-        // [추가] 타이머 관련 변수
-        let stageTimerInterval; // 스테이지 타이머 (setInterval 핸들러)
-        let lastStageStartTime; // 스테이지 시작 시간 (ms)
-        let totalTime = 0; // 총 플레이 시간 (sec)
+        let stageTimerInterval;
+        let lastStageStartTime; 
+        let totalTime = 0; 
 
         const shapeFaceCounts = {
             'tetrahedron': 4,
@@ -266,10 +262,10 @@
         const submitButton = document.getElementById('submit-button');
         const homeButton = document.getElementById('home-button');
         const resultButton = document.getElementById('result-button');
-        const resultTimeDisplay = document.getElementById('result-time'); // [추가]
+        const resultTimeDisplay = document.getElementById('result-time'); 
         const stageDisplay = document.getElementById('stage-display');
         const livesDisplay = document.getElementById('lives-display');
-        const timerDisplay = document.getElementById('timer-display'); // [추가]
+        const timerDisplay = document.getElementById('timer-display'); 
 
         // --- 1. 초기화 함수 ---
         function init() {
@@ -315,7 +311,7 @@
             currentDifficulty = difficulty;
             lives = 3;
             currentStage = 1; 
-            totalTime = 0; // [추가] 총 시간 리셋
+            totalTime = 0; 
             
             difficultyScreen.classList.remove('active');
             resultScreen.classList.remove('active');
@@ -332,7 +328,6 @@
             
             updateGameInfo(); 
 
-            // [추가] 타이머 시작
             if (stageTimerInterval) clearInterval(stageTimerInterval);
             lastStageStartTime = new Date().getTime();
             timerDisplay.textContent = "TIME 0.0";
@@ -340,7 +335,6 @@
                 const elapsed = (new Date().getTime() - lastStageStartTime) / 1000;
                 timerDisplay.textContent = `TIME ${elapsed.toFixed(1)}`;
             }, 100);
-
 
             const settings = {
                 easy: { count: 4, grid: [2, 2] },
@@ -394,8 +388,8 @@
             gameScreen.classList.remove('active');
             resultScreen.classList.remove('active');
             difficultyScreen.classList.add('active');
-            if (stageTimerInterval) clearInterval(stageTimerInterval); // [추가] 타이머 정지
-            resultTimeDisplay.textContent = ""; // [추가] 시간 표시 제거
+            if (stageTimerInterval) clearInterval(stageTimerInterval); 
+            resultTimeDisplay.textContent = ""; 
             clearScene();
         }
 
@@ -408,29 +402,33 @@
                 metalness: 0.2
             }));
 
+            // [BUG FIX] 정육면체를 제외한 모든 다면체에 수동으로 재질 그룹을 할당합니다.
             switch (type) {
-                case 'tetrahedron':
+                case 'tetrahedron': // 4 faces, 1 triangle/face (3 vertices)
                     geometry = new THREE.TetrahedronGeometry(1.2);
-                    // [BUG FIX] 정사면체는 수동으로 재질 그룹을 할당해야 합니다.
-                    // 정사면체는 4개의 면(삼각형)으로 구성되며, 총 12개의 인덱스를 가집니다.
-                    // (0, 1, 2), (0, 3, 1), (0, 2, 3), (1, 3, 2)
-                    geometry.clearGroups(); // 기존 그룹 제거
-                    geometry.addGroup(0, 3, 0); // 1번째 면(인덱스 0~2) -> 재질 0
-                    geometry.addGroup(3, 3, 1); // 2번째 면(인덱스 3~5) -> 재질 1
-                    geometry.addGroup(6, 3, 2); // 3번째 면(인덱스 6~8) -> 재질 2
-                    geometry.addGroup(9, 3, 3); // 4번째 면(인덱스 9~11) -> 재질 3
+                    geometry.clearGroups(); 
+                    geometry.addGroup(0, 3, 0); 
+                    geometry.addGroup(3, 3, 1); 
+                    geometry.addGroup(6, 3, 2); 
+                    geometry.addGroup(9, 3, 3); 
                     break;
-                case 'cube':
+                case 'cube': // 6 faces, 2 triangles/face (6 vertices)
                     geometry = new THREE.BoxGeometry(1.2, 1.2, 1.2);
-                    // BoxGeometry는 자동으로 6개 재질을 6면에 매핑합니다.
+                    // BoxGeometry는 6개 재질 배열을 자동으로 처리합니다.
                     break;
-                case 'octahedron':
+                case 'octahedron': // 8 faces, 1 triangle/face (3 vertices)
                     geometry = new THREE.OctahedronGeometry(1.2);
-                    // OctahedronGeometry는 자동으로 8개 재질을 8면에 매핑합니다.
+                    geometry.clearGroups(); 
+                    for (let i = 0; i < 8; i++) {
+                        geometry.addGroup(i * 3, 3, i);
+                    }
                     break;
-                case 'dodecahedron':
+                case 'dodecahedron': // 12 faces, 3 triangles/face (9 vertices)
                     geometry = new THREE.DodecahedronGeometry(1.2);
-                    // DodecahedronGeometry는 자동으로 12개 재질을 12면에 매핑합니다.
+                    geometry.clearGroups();
+                    for (let i = 0; i < 12; i++) {
+                        geometry.addGroup(i * 9, 9, i);
+                    }
                     break;
                 default:
                     geometry = new THREE.BoxGeometry(1.2, 1.2, 1.2);
@@ -440,24 +438,34 @@
             return mesh;
         }
 
+        // [수정] 난이도 하향 (1-Color-Replace)
         function generateColorPatterns(shapeType) {
             const faceCount = shapeFaceCounts[shapeType];
             const baseColors = [0xe6194B, 0x3cb44b, 0xffe119, 0x4363d8, 0xf58231, 0x911eb4, 0x42d4f4, 0xf032e6, 0xbfef45, 0xadb300];
             
+            // 1. 정답 패턴 생성
             const correctPattern = [];
             for (let i = 0; i < faceCount; i++) {
                 correctPattern.push(baseColors[Math.floor(Math.random() * baseColors.length)]);
             }
 
+            // 2. 오답 패턴 생성 (복사)
             const decoyPattern = [...correctPattern];
-            if (faceCount < 2) return [correctPattern, correctPattern]; 
+            if (faceCount < 1) return [correctPattern, correctPattern]; 
 
-            const idx1 = Math.floor(Math.random() * faceCount);
-            let idx2 = Math.floor(Math.random() * faceCount);
-            while (idx1 === idx2) {
-                idx2 = Math.floor(Math.random() * faceCount);
-            }
-            [decoyPattern[idx1], decoyPattern[idx2]] = [decoyPattern[idx2], decoyPattern[idx1]];
+            // 3. 바꿀 면의 인덱스 선택
+            const idxToChange = Math.floor(Math.random() * faceCount);
+            const originalColor = decoyPattern[idxToChange];
+            
+            let newColor;
+            
+            // 4. 원래 색과 다른 새로운 색을 선택
+            do {
+                newColor = baseColors[Math.floor(Math.random() * baseColors.length)];
+            } while (newColor === originalColor);
+
+            // 5. 오답 패턴에 새 색상 적용
+            decoyPattern[idxToChange] = newColor;
 
             return [correctPattern, decoyPattern];
         }
@@ -557,13 +565,12 @@
                 return;
             }
 
-            // [추가] 정답 확인 시 타이머 정지 및 시간 계산
             clearInterval(stageTimerInterval);
             const stageTime = (new Date().getTime() - lastStageStartTime) / 1000;
             totalTime += stageTime;
 
             const resultMsg = document.getElementById('result-message');
-            resultTimeDisplay.textContent = ""; // 팝업 시간 표시는 기본적으로 숨김
+            resultTimeDisplay.textContent = ""; 
             
             if (selectedObject.userData.isDecoy) {
                 // 정답
@@ -584,7 +591,7 @@
                     // 게임 오버
                     resultMsg.textContent = "게임 오버!";
                     resultMsg.className = 'incorrect';
-                    resultTimeDisplay.textContent = `총 플레이 시간: ${totalTime.toFixed(1)}초`; // [추가]
+                    resultTimeDisplay.textContent = `총 플레이 시간: ${totalTime.toFixed(1)}초`;
                     resultButton.textContent = "처음으로";
                     resultButton.onclick = goToHome; 
                 } else {
@@ -595,8 +602,8 @@
                     resultButton.onclick = () => {
                         resultScreen.classList.remove('active');
                         handleObjectClick(null); 
-                        // [추가] 닫으면 타이머 다시 시작
-                        lastStageStartTime = new Date().getTime() - (stageTime * 1000); // 멈췄던 시간부터
+                        
+                        lastStageStartTime = new Date().getTime() - (stageTime * 1000); 
                         stageTimerInterval = setInterval(() => {
                             const elapsed = (new Date().getTime() - lastStageStartTime) / 1000;
                             timerDisplay.textContent = `TIME ${elapsed.toFixed(1)}`;
