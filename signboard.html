@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>움직이는 전광판</title>
-    <!-- Tailwind CSS 로드 -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Font 'Jua' 로드 -->
-    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS 로드 --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font 'Jua' 로드 --><link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     
     <style>
         /* Jua 폰트 전역 적용 및 기본 스타일 */
@@ -39,7 +37,8 @@
         /* 전광판 텍스트 컨테이너 (애니메이션 적용 대상) */
         #display-text-wrapper {
             width: 100%;
-            height: 80%; /* 화면의 80%를 텍스트 영역으로 사용 */
+            /* height: 80%; <-- 이 줄을 삭제합니다. */
+            flex-grow: 1; /* (수정) 남은 공간을 모두 차지하도록 변경 */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -59,10 +58,14 @@
             background-color: #1f2937; /* 어두운 회색 배경 */
             color: white;
             width: 100%;
-            height: 20%; /* 화면의 20%를 컨트롤 영역으로 */
+            /* height: 20%; <-- 이 줄을 삭제합니다. */
+            flex-shrink: 0; /* (신규) 패널이 줄어들지 않도록 설정 */
+            max-height: 40vh; /* (신규) 최대 높이를 화면의 40%로 제한 */
+            overflow-y: auto; /* (신규) 내용이 넘칠 경우 패널 내부 스크롤 */
             padding: 1rem;
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            /* grid-template-columns: repeat(3, 1fr); <-- 이 줄을 삭제합니다. */
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); /* (수정) 반응형 그리드 적용 */
             gap: 1rem;
             align-items: center;
             box-shadow: 0 -4px 10px rgba(0,0,0,0.5);
@@ -177,15 +180,24 @@
              animation-fill-mode: both; /* 딜레이 동안 숨겨지지 않게 */
         }
 
+        /* (신규) 실시간 시계 텍스트 스타일 */
+        .clock-text {
+            /* 80pt(약 5rem/80px)를 기준으로 반응형 폰트 크기 설정 */
+            /* min: 2.5rem(40px), preferred: 6vw, max: 5rem(80px) */
+            font-size: clamp(2.5rem, 6vw, 5rem);
+            line-height: 1.1; /* 줄 간격 좁게 */
+            letter-spacing: -0.025em; /* 자간 살짝 좁게 */
+            white-space: nowrap; /* 시계는 줄바꿈 없음 */
+        }
+
     </style>
 </head>
 <body class="bg-gray-900 text-white">
 
-    <!-- 1. 오프닝 화면 -->
-    <div id="opening-screen" class="fullscreen-container bg-gray-800 p-8 text-center">
+    <!-- 1. 오프닝 화면 --><div id="opening-screen" class="fullscreen-container bg-gray-800 p-8 text-center">
         <h1 class="text-6xl font-bold mb-8 text-blue-400">Jua 전광판 앱</h1>
         <p class="text-2xl mb-4">표시할 텍스트를 입력하세요.</p>
-        <p class="text-lg mb-8 text-gray-400">(학생들이 못 보게 입력창이 움직입니다!)</p>
+        <!-- (수정) 문구 변경 및 스타일 강조 --><p class="text-lg mb-8 text-yellow-400 font-bold">집중해 주세요!</p>
         
         <button id="open-text-modal-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-full text-2xl shadow-lg transition duration-300">
             텍스트 입력하기
@@ -198,21 +210,21 @@
         </button>
     </div>
 
-    <!-- 2. 텍스트 입력 모달 (숨겨져 있음) -->
-    <!-- 이 섹션은 삭제되었습니다 -->
-
-    <!-- 3. 전광판 메인 화면 (숨겨져 있음) -->
-    <div id="main-screen" class="fullscreen-container hidden">
+    <!-- 2. 텍스트 입력 모달 (숨겨져 있음) --><!-- 이 섹션은 삭제되었습니다 --><!-- 3. 전광판 메인 화면 (숨겨져 있음) --><div id="main-screen" class="fullscreen-container hidden">
         
-        <!-- 전광판 텍스트 표시 영역 -->
-        <div id="display-text-wrapper">
+        <!-- 전광판 텍스트 표시 영역 --><div id="display-text-wrapper">
             <div id="display-text"></div>
         </div>
 
-        <!-- 컨트롤 패널 -->
-        <div id="controls">
-            <!-- 섹션 1: 텍스트/애니메이션 제어 -->
-            <div class="space-y-2">
+        <!-- 컨트롤 패널 --><div id="controls">
+            <!-- (수정) 섹션 1: 텍스트/색상 및 효과음 버튼 그룹 --><div class="space-y-2">
+                <!-- (이동) 효과음 버튼 --><div class="grid grid-cols-5 gap-2">
+                    <button class="sound-btn" data-sound="1">배경음</button>
+                    <button class="sound-btn" data-sound="2">성공</button>
+                    <button class="sound-btn" data-sound="3">경고</button>
+                    <button class="sound-btn" data-sound="4">박수</button>
+                    <button class="sound-btn" data-sound="5">패스</button>
+                </div>
                 <div>
                     <label for="font-size-slider">글자 크기: <span id="font-size-value">100</span>pt</label>
                     <input type="range" id="font-size-slider" min="10" max="200" value="100">
@@ -221,16 +233,18 @@
                     <label for="text-color-picker" class="flex-shrink-0">글자색:</label>
                     <input type="color" id="text-color-picker" value="#FFFF00">
                 </div>
-                <button id="back-btn" class="bg-red-600 hover:bg-red-700 text-sm py-2">
-                    &lt; 처음으로
-                </button>
-                <button id="stop-sounds-btn" class="bg-yellow-500 hover:bg-yellow-600 text-black text-sm py-2 mt-2">
-                    ■ 효과음 정지
-                </button>
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="back-btn" class="bg-red-600 hover:bg-red-700 text-sm py-2">
+                        &lt; 처음으로
+                    </button>
+                    <button id="stop-sounds-btn" class="bg-yellow-500 hover:bg-yellow-600 text-black text-sm py-2">
+                        ■ 효과음 정지
+                    </button>
+                </div>
             </div>
             
-            <!-- 섹션 2: 효과 설정 -->
-            <div class="space-y-2">
+            <!-- (수정) 섹션 2: 애니메이션 설정 그룹 --><div class="space-y-2">
                  <div>
                     <label for="animation-select">애니메이션 효과</label>
                     <select id="animation-select">
@@ -250,22 +264,19 @@
                         <option value="char">3. 글자별</option>
                     </select>
                 </div>
+                <div>
+                    <label for="animation-speed-slider">애니메이션 속도: <span id="animation-speed-value">1.00</span>x</label>
+                    <input type="range" id="animation-speed-slider" min="0.25" max="2.0" value="1.0" step="0.25">
+                </div>
                 <div class="flex items-center justify-center gap-4 p-2 bg-gray-700 rounded-lg">
                     <label for="loop-toggle" class="text-sm">효과음 반복 재생</label>
-                    <input type"checkbox" id="loop-toggle" class="w-6 h-6 rounded">
+                    <input type="checkbox" id="loop-toggle" class="w-6 h-6 rounded">
                 </div>
             </div>
 
-            <!-- 섹션 3: 효과음 버튼 -->
-            <div class="space-y-2">
-                <label>효과음 재생 (나중에 Base64로 추가하세요)</label>
-                <div class="grid grid-cols-5 gap-2">
-                    <button class="sound-btn" data-sound="1">FX 1</button>
-                    <button class="sound-btn" data-sound="2">FX 2</button>
-                    <button class="sound-btn" data-sound="3">FX 3</button>
-                    <button class="sound-btn" data-sound="4">FX 4</button>
-                    <button class="sound-btn" data-sound="5">FX 5</button>
-                </div>
+            <!-- (이동) 섹션 3: 실시간 시계 --><div id="clock-container" class="space-y-1 text-center font-bold text-yellow-400 flex flex-col justify-center h-full min-h-[150px]">
+                <div id="clock-date" class="clock-text"></div>
+                <div id="clock-time" class="clock-text"></div>
             </div>
         </div>
     </div>
@@ -305,7 +316,13 @@
         const colorPicker = document.getElementById('text-color-picker');
         const animationSelect = document.getElementById('animation-select');
         const animationUnitSelect = document.getElementById('animation-unit-select');
+        const animationSpeedSlider = document.getElementById('animation-speed-slider'); // (신규)
+        const animationSpeedValue = document.getElementById('animation-speed-value'); // (신규)
         
+        // (신규) 시계 요소
+        const clockDateEl = document.getElementById('clock-date');
+        const clockTimeEl = document.getElementById('clock-time');
+
         const loopToggle = document.getElementById('loop-toggle');
         const soundBtns = document.querySelectorAll('.sound-btn');
         const audioPlayers = [
@@ -318,6 +335,8 @@
 
         // --- 상태 변수 ---
         let currentText = "";
+        let animationSpeedMultiplier = 1.0; // (신규)
+        let clockInterval = null; // (신규) 시계 인터벌 ID
         // let modalMoveInterval = null; // 삭제
 
         // --- 1. 오프닝 화면 및 모달 로직 ---
@@ -415,6 +434,11 @@
                 document.documentElement.requestFullscreen().catch(err => {
                     console.warn(`전체 화면 모드를 시작할 수 없습니다: ${err.message}`);
                 });
+
+                // (신규) 시계 업데이트 시작
+                if (clockInterval) clearInterval(clockInterval); // 기존 것 정리
+                updateClock(); // 즉시 1회 실행
+                clockInterval = setInterval(updateClock, 1000); // 1초마다 실행
             }
         });
 
@@ -426,6 +450,12 @@
             // 전체 화면 종료
             if (document.fullscreenElement) {
                 document.exitFullscreen();
+            }
+
+            // (신규) 시계 업데이트 중지
+            if (clockInterval) {
+                clearInterval(clockInterval);
+                clockInterval = null;
             }
         });
 
@@ -453,6 +483,14 @@
             applyAnimation(animationSelect.value); // 현재 애니메이션을 새 단위로 다시 적용
         });
 
+        // (신규) 애니메이션 속도 변경
+        animationSpeedSlider.addEventListener('input', (e) => {
+            animationSpeedMultiplier = parseFloat(e.target.value);
+            animationSpeedValue.textContent = animationSpeedMultiplier.toFixed(2);
+            // 현재 애니메이션을 새 속도로 다시 적용
+            applyAnimation(animationSelect.value);
+        });
+
         // 애니메이션 적용 함수
         function applyAnimation(animationType) {
             // 1. 모든 이전 클래스 및 스타일 초기화
@@ -460,45 +498,61 @@
             displayText.className = ''; // 모든 애니메이션 클래스 제거
             // (수정) 먼저 기본값(줄바꿈 허용)으로 리셋
             displayText.style.whiteSpace = 'pre-wrap';
+            displayText.style.animationDuration = ''; // (신규) 지속시간 리셋
             
             const unit = animationUnitSelect.value; // 선택된 단위 (all, word, char)
+            
+            // (신규) 속도 계산 함수
+            let baseSpeed = 1.0;
+            // (수정) 로직 변경: (base * multiplier) -> (base / multiplier)
+            // '속도' 배율이므로, 2.0x는 2배 '빠른' 것 (지속시간은 절반)
+            const calculatedSpeed = (base) => (base / animationSpeedMultiplier) + 's';
 
             // 2. 새 애니메이션 적용
             switch (animationType) {
                 case 'marquee':
+                    baseSpeed = 15.0;
                     // Marquee는 줄바꿈을 공백으로 변경
                     updateDisplayText(currentText.replace(/\n/g, ' '));
                     displayTextWrapper.classList.add('marquee-wrapper');
                     displayText.classList.add('marquee');
                     // (수정) Marquee일 때만 강제로 한 줄로 만듦
                     displayText.style.whiteSpace = 'nowrap'; 
+                    displayText.style.animationDuration = calculatedSpeed(baseSpeed); // (신규) 속도 적용
                     break;
                 case 'blink':
+                    baseSpeed = 1.0;
                     if (unit === 'all') {
                         updateDisplayText(currentText); // 원본 텍스트
                         displayText.classList.add('blink');
+                        displayText.style.animationDuration = calculatedSpeed(baseSpeed); // (신규) 속도 적용
                     } else {
                         // 'word' 또는 'char'
-                        splitTextForAnimation(unit); // 텍스트를 span으로 쪼갬
+                        splitTextForAnimation(unit, baseSpeed); // (수정) baseSpeed 전달
                         displayText.classList.add('blink-by-unit');
                     }
                     break;
                 case 'wave':
+                    baseSpeed = 1.5;
                     // 'wave'는 항상 글자별로 작동
-                    splitTextForWave();
+                    splitTextForWave(baseSpeed); // (수정) baseSpeed 전달
                     displayText.classList.add('wave');
                     break;
                 case 'shake':
+                    baseSpeed = 0.5;
                     updateDisplayText(currentText); // 원본 텍스트
                     displayText.classList.add('shake');
+                    displayText.style.animationDuration = calculatedSpeed(baseSpeed); // (신규) 속도 적용
                     break;
                 case 'bounce':
+                    baseSpeed = 1.0;
                     if (unit === 'all') {
                         updateDisplayText(currentText); // 원본 텍스트
                         displayText.classList.add('bounce');
+                        displayText.style.animationDuration = calculatedSpeed(baseSpeed); // (신규) 속도 적용
                     } else {
                         // 'word' 또는 'char'
-                        splitTextForAnimation(unit); // 텍스트를 span으로 쪼갬
+                        splitTextForAnimation(unit, baseSpeed); // (수정) baseSpeed 전달
                         displayText.classList.add('bounce-by-unit');
                     }
                     break;
@@ -510,27 +564,38 @@
         }
 
         // '물결' 효과를 위해 텍스트를 span으로 쪼개는 함수
-        function splitTextForWave() {
+        function splitTextForWave(baseSpeed) { // (수정) baseSpeed 받기
+            // (신규) 속도 및 딜레이 계산
+            const calculatedSpeed = (baseSpeed / animationSpeedMultiplier) + 's'; // (수정) 로직 변경
+            const delayIncrement = 0.1 / animationSpeedMultiplier; // (수정) 로직 변경
+            let currentDelay = 0;
+
             displayText.innerHTML = currentText
                 .split('')
                 .map((char, i) => {
                     if (char === '\n') {
                         return '<br>'; // 줄바꿈 문자는 <br> 태그로
                     }
-                    // 공백은 &nbsp;로, 나머지는 span으로 감싸기
-                    return `<span style="animation-delay: ${i * 0.1}s">${char === ' ' ? '&nbsp;' : char}</span>`;
+                    if (char !== ' ') {
+                        currentDelay += delayIncrement;
+                    }
+                    // (수정) 계산된 속도와 딜레이 적용
+                    return `<span style="animation-duration: ${calculatedSpeed}; animation-delay: ${currentDelay}s">${char === ' ' ? '&nbsp;' : char}</span>`;
                 })
                 .join('');
         }
 
         // '깜빡이기', '통통 튀기'를 위해 텍스트를 span으로 쪼개는 함수
-        function splitTextForAnimation(unit) {
+        function splitTextForAnimation(unit, baseSpeed) { // (수정) baseSpeed 받기
             // unit: 'word' 또는 'char'
             // 단어별 분리 시: 공백/줄바꿈을 포함하여 분리 (정규식 / (\s+) / 사용)
             // 글자별 분리 시: ''으로 분리
             const elements = (unit === 'char') ? currentText.split('') : currentText.split(/(\s+)/);
+            
+            // (신규) 속도 및 딜레이 계산
             let delay = 0;
-            const delayIncrement = 0.15; // 딜레이 간격
+            const delayIncrement = 0.15 / animationSpeedMultiplier; // (수정) 로직 변경
+            const calculatedSpeed = (baseSpeed / animationSpeedMultiplier) + 's'; // (수정) 로직 변경
 
             displayText.innerHTML = elements.map(item => {
                 if (item === '') return ''; // 정규식으로 생긴 빈 문자열 건너뛰기
@@ -544,7 +609,8 @@
                 
                 // 글자 또는 단어
                 delay += delayIncrement;
-                return `<span style="animation-delay: ${delay}s">${item}</span>`;
+                // (수정) 계산된 속도와 딜레이 적용
+                return `<span style="animation-duration: ${calculatedSpeed}; animation-delay: ${delay}s">${item}</span>`;
             }).join('');
         }
 
@@ -612,6 +678,30 @@
                 audio.currentTime = 0;
             });
         }
+
+        // --- (신규) 5. 시계 로직 ---
+
+        // (신규) 숫자 2자리로 패딩
+        function pad(num) {
+            return num.toString().padStart(2, '0');
+        }
+
+        // (신규) 시계 업데이트 함수
+        function updateClock() {
+            if (!clockDateEl || !clockTimeEl) return; // 요소가 없으면 중단
+
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = pad(now.getMonth() + 1);
+            const day = pad(now.getDate());
+            
+            const hours = pad(now.getHours());
+            const minutes = pad(now.getMinutes());
+            const seconds = pad(now.getSeconds());
+
+            clockDateEl.textContent = `${year}. ${month}. ${day}.`;
+            clockTimeEl.textContent = `${hours}:${minutes}:${seconds}`;
+        }
         
         // 초기 텍스트 설정 (페이지 로드 시)
         updateDisplayText("");
@@ -620,8 +710,4 @@
 
 </body>
 </html>
-
-
-
-
 
