@@ -223,7 +223,7 @@
                     <button class="sound-btn" data-sound="2">성공</button>
                     <button class="sound-btn" data-sound="3">경고</button>
                     <button class="sound-btn" data-sound="4">박수</button>
-                    <button class="sound-btn" data-sound="5">패스</button>
+                    <button class="sound-btn" data-sound="5">통과</button>
                 </div>
                 <div>
                     <label for="font-size-slider">글자 크기: <span id="font-size-value">100</span>pt</label>
@@ -234,23 +234,32 @@
                     <input type="color" id="text-color-picker" value="#FFFF00">
                 </div>
                 
-                <div class="grid grid-cols-2 gap-2">
+                <!-- (수정) 3개 버튼을 위한 grid-cols-3 -->
+                <div class="grid grid-cols-3 gap-2">
                     <button id="back-btn" class="bg-red-600 hover:bg-red-700 text-sm py-2">
                         &lt; 처음으로
                     </button>
+                    <!-- (신규) TTS 버튼 -->
+                    <button id="tts-btn" class="bg-blue-500 hover:bg-blue-600 text-sm py-2">
+                        🔊 읽어주기
+                    </button>
+                    <!-- (수정) 문구 변경 -->
                     <button id="stop-sounds-btn" class="bg-yellow-500 hover:bg-yellow-600 text-black text-sm py-2">
-                        ■ 효과음 정지
+                        ■ ALL STOP
                     </button>
                 </div>
             </div>
             
-            <!-- (수정) 섹션 2: 애니메이션 설정 그룹 --><div class="space-y-2">
+            <!-- (수정) 섹션 2: 애니메이션 설정 그룹 -->
+            <!-- (오류 수정) 누락된 HTML 코드 복원 -->
+            <div class="space-y-2">
                  <div>
                     <label for="animation-select">애니메이션 효과</label>
                     <select id="animation-select">
                         <option value="none">1. 평범하게</option>
                         <option value="marquee">2. 흐르기</option>
                         <option value="blink">3. 깜빡이기</option>
+            <!-- (오류 수정) 누락된 HTML 코드 복원 -->
                         <option value="wave">4. 물결치기</option>
                         <option value="shake">5. 흔들기</option>
                         <option value="bounce">6. 통통 튀기</option>
@@ -307,7 +316,8 @@
         const textPreview = document.getElementById('text-preview');
         const startBtn = document.getElementById('start-btn');
         const backBtn = document.getElementById('back-btn');
-        const stopSoundsBtn = document.getElementById('stop-sounds-btn'); // 정지 버튼 추가
+        const allStopBtn = document.getElementById('stop-sounds-btn'); // (수정) 변수명 변경 (ID는 유지)
+        const ttsBtn = document.getElementById('tts-btn'); // (신규) TTS 버튼
 
         const displayTextWrapper = document.getElementById('display-text-wrapper');
         const displayText = document.getElementById('display-text');
@@ -457,6 +467,9 @@
                 clearInterval(clockInterval);
                 clockInterval = null;
             }
+
+            // (수정) 모든 미디어 정지
+            stopAllMedia();
         });
 
         // --- 3. 전광판 컨트롤 로직 ---
@@ -620,11 +633,16 @@
             displayText.textContent = text; // 순수 텍스트로 설정 (CSS의 pre-wrap이 \n을 처리)
         }
 
-        // --- 4. 효과음 로직 ---
+        // --- 4. 효과음 및 미디어 로직 ---
 
-        // 효과음 정지 버튼
-        stopSoundsBtn.addEventListener('click', () => {
-            stopAllSounds();
+        // (수정) ALL STOP 버튼
+        allStopBtn.addEventListener('click', () => {
+            stopAllMedia();
+        });
+
+        // (신규) TTS 버튼
+        ttsBtn.addEventListener('click', () => {
+            speakText(currentText);
         });
 
         // 반복 재생 토글
@@ -671,12 +689,48 @@
             }
         }
 
-        // (신규) 모든 사운드 정지 함수
-        function stopAllSounds() {
+        // (수정) 모든 미디어 정지 함수
+        function stopAllMedia() {
+            // 1. 오디오 정지
             audioPlayers.forEach(audio => {
                 audio.pause();
                 audio.currentTime = 0;
             });
+
+            // 2. 음성(TTS) 정지
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        // (신규) TTS 재생 함수
+        function speakText(text) {
+            if (!text || !window.speechSynthesis) {
+                console.warn('음성 합성을 지원하지 않거나 텍스트가 없습니다.');
+                return;
+            }
+
+            // 기존 음성 중지 (새 요청 시)
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+
+            // (신규) 언어 감지 로직
+            // 한글 문자가 포함되어 있는지 확인
+            const hasKorean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(text);
+
+            if (hasKorean) {
+                utterance.lang = 'ko-KR'; // 한글이 있으면 한국어로 설정
+            } else {
+                utterance.lang = 'en-US'; // 한글이 없으면 영어(미국)로 기본 설정
+            }
+
+            // (수정) 언어를 강제로 'ko-KR'로 고정하는 코드를 삭제합니다.
+            // utterance.lang = 'ko-KR'; // <-- 위 로직으로 대체됨
+            utterance.rate = 1.0;     // 기본 속도
+            utterance.pitch = 1.0;    // 기본 톤
+            
+            window.speechSynthesis.speak(utterance);
         }
 
         // --- (신규) 5. 시계 로직 ---
@@ -710,4 +764,8 @@
 
 </body>
 </html>
+
+
+
+
 
