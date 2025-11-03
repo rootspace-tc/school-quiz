@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>6학년 2학기 과학 - 3. 연소와 소화</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Gowun Dodum', sans-serif;
+        }
+        h1, h2, h3, h4, h5, h6, .btn, .toc-link {
+            font-family: 'Jua', sans-serif;
+        }
+        .page-content {
+            font-size: 2.2rem; /* 기본 글자 크기 조정 */
+            line-height: 1.8;
+        }
+        .page, .btn {
+            transition: all 0.3s ease-in-out;
+        }
+        
+        /* --- Animation Effects --- */
+        .anim-item {
+            opacity: 0; /* Hidden by default */
+        }
+        .anim-item.visible {
+            opacity: 1;
+            animation-duration: 0.7s;
+            animation-fill-mode: both;
+            animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translate3d(0, 30px, 0); }
+            to { opacity: 1; transform: translate3d(0, 0, 0); }
+        }
+        .fadeInUp { animation-name: fadeInUp; }
+        
+        @keyframes zoomIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .zoomIn { animation-name: zoomIn; }
+
+    </style>
+</head>
+<body class="bg-orange-50 flex items-center justify-center min-h-screen py-10">
+
+    <div class="container w-full max-w-7xl mx-auto p-4 md:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-red-800">6학년 2학기 과학</h1>
+            <h2 class="text-3xl md:text-4xl text-red-600">3. 연소와 소화</h2>
+        </header>
+
+        <div class="flex justify-center items-center gap-4 my-6">
+            <span class="text-lg text-gray-700" style="font-family: 'Jua', sans-serif;">글자 크기</span>
+            <button id="font-decrease" class="btn bg-white border-2 border-red-300 text-red-700 w-10 h-10 rounded-full text-2xl font-bold hover:bg-red-100 active:scale-95">-</button>
+            <button id="font-increase" class="btn bg-white border-2 border-red-300 text-red-700 w-10 h-10 rounded-full text-2xl font-bold hover:bg-red-100 active:scale-95">+</button>
+        </div>
+
+        <main id="main-content" class="bg-white rounded-2xl shadow-lg p-6 md:p-10 relative cursor-pointer min-h-[600px]">
+            
+            <div id="page-0" class="page">
+                <h3 class="text-5xl font-bold text-center text-red-700 mb-8">목차</h3>
+                <ul class="text-2xl grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <li><a href="#" class="toc-link block p-4 bg-red-100 rounded-lg hover:bg-red-200" data-page="1">1. 물질이 탈 때 나타나는 현상</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-red-100 rounded-lg hover:bg-red-200" data-page="2">2. 연소의 조건</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-red-100 rounded-lg hover:bg-red-200" data-page="3">3. 연소 후 생성되는 물질</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-red-100 rounded-lg hover:bg-red-200" data-page="4">4. 불을 끄는 방법 (소화)</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-red-100 rounded-lg hover:bg-red-200" data-page="5">5. 화재 대처 및 예방</a></li>
+                </ul>
+            </div>
+
+            <div id="page-1" class="page hidden page-content">
+                <h3 class="text-5xl font-bold text-red-700 mb-4 anim-item fadeInUp">1. 물질이 탈 때 나타나는 현상</h3>
+                <p class="anim-item zoomIn">물질이 탈 때에는 <strong class="text-orange-600">빛과 열이 동시에 발생</strong>하여 주변이 밝아지고 따뜻해집니다. 우리는 이러한 빛과 열을 생활 속에서 다양하게 활용합니다. 예를 들어, 어두운 곳을 밝히는 케이크 위의 촛불이나 강물에 띄운 유등은 주로 <strong class="text-red-800">'빛'</strong>을 이용하는 경우입니다. 반면, 가스레인지의 불꽃으로 음식을 조리하거나 벽난로의 장작불로 실내를 따뜻하게 하는 것은 주로 <strong class="text-red-800">'열'</strong>을 이용하는 대표적인 예입니다.</p>
+            </div>
+
+            <div id="page-2" class="page hidden page-content">
+                <h3 class="text-5xl font-bold text-red-700 mb-4 anim-item fadeInUp">2. 연소의 조건</h3>
+                <p class="anim-item zoomIn">물질이 산소와 만나 빛과 열을 내며 타는 현상을 <strong class="text-red-800">'연소'</strong>라고 합니다. 연소가 일어나기 위해서는 반드시 <strong class="text-orange-600">세 가지 조건</strong>이 충족되어야 합니다. 첫째, 초나 나무와 같이 불에 탈 수 있는 <strong class="text-red-800">'탈 물질'</strong>이 있어야 합니다. 둘째, 물질이 타는 것을 돕는 <strong class="text-red-800">'산소'</strong>가 공급되어야 합니다. 마지막으로, 물질이 스스로 타기 시작하는 온도인 <strong class="text-red-800">'발화점'</strong> 이상의 온도가 되어야 합니다. 이 세 가지 조건 중 하나라도 만족되지 않으면 연소는 일어나지 않습니다.</p>
+            </div>
+
+            <div id="page-3" class="page hidden page-content">
+                <h3 class="text-5xl font-bold text-red-700 mb-4 anim-item fadeInUp">3. 연소 후 생성되는 물질</h3>
+                <p class="anim-item zoomIn">물질이 연소하고 나면 연소 전과는 다른 <strong class="text-orange-600">새로운 물질</strong>이 만들어집니다. 촛불이 타는 실험을 통해 이를 확인할 수 있습니다. 촛불을 덮은 아크릴 통 안쪽의 푸른색 염화 코발트 종이가 붉게 변하는 것은 <strong class="text-red-800">'물'</strong>이 생성되었기 때문입니다. 또한, 촛불이 꺼진 통에 석회수를 넣고 흔들면 뿌옇게 흐려지는데, 이는 <strong class="text-red-800">'이산화 탄소'</strong>가 생성되었음을 의미합니다.</p>
+            </div>
+
+            <div id="page-4" class="page hidden page-content">
+                <h3 class="text-5xl font-bold text-red-700 mb-4 anim-item fadeInUp">4. 불을 끄는 방법 (소화)</h3>
+                <p class="anim-item zoomIn">불을 끄는 것을 <strong class="text-red-800">'소화'</strong>라고 하며, 이는 연소의 세 가지 조건 중 한 가지 이상을 제거하는 원리를 이용합니다. 소화 방법에는 세 가지가 있습니다. 첫째, 산불이 번지는 것을 막기 위해 나무를 베는 것처럼 <strong class="text-orange-600">'탈 물질을 제거'</strong>하는 방법이 있습니다. 둘째, 알코올램프 뚜껑을 덮거나 소화기를 사용하여 <strong class="text-orange-600">'산소 공급을 차단'</strong>할 수 있습니다. 셋째, 화재 현장에 물을 뿌려 <strong class="text-orange-600">'발화점 미만으로 온도를 낮추는'</strong> 방법이 있습니다.</p>
+            </div>
+            
+            <div id="page-5" class="page hidden page-content" style="font-size: 1.6rem; line-height: 1.7;">
+                <h3 class="text-4xl md:text-5xl font-bold text-red-700 mb-6 anim-item fadeInUp">5. 화재 발생 시 대처 방법 및 예방</h3>
+                <div class="space-y-5">
+                    <div class="anim-item zoomIn">
+                        <h4 class="text-3xl text-red-700">가. 화재 종류별 소화 방법</h4>
+                        <ul class="list-disc list-inside mt-2 ml-4">
+                            <li><strong class="text-orange-600">일반 화재(나무, 종이 등):</strong> 물을 사용하여 불을 끌 수 있음.</li>
+                            <li><strong class="text-orange-600">특수 화재(기름, 가스, 전기 등):</strong> 물 사용 시 더 위험하므로, <strong class="text-red-800">소화기나 마른 모래</strong>로 덮어 불을 꺼야 함.</li>
+                        </ul>
+                    </div>
+                     <div class="anim-item zoomIn">
+                        <h4 class="text-3xl text-red-700">나. 화재 시 대피 요령</h4>
+                        <ul class="list-disc list-inside mt-2 ml-4">
+                            <li><strong class="text-orange-600">초기 행동:</strong> "불이야!" 외치고 비상벨 누르기</li>
+                            <li><strong class="text-orange-600">대피 경로 탐색:</strong> 문이 뜨거우면 열지 말고 다른 길 찾기</li>
+                            <li><strong class="text-orange-600">안전한 대피:</strong> 젖은 수건으로 코와 입을 막고 낮은 자세로, <strong class="text-red-800">계단</strong>을 이용해 대피하기</li>
+                            <li><strong class="text-orange-600">대피 완료 후:</strong> 안전한 곳에서 119에 신고하고 구조 기다리기</li>
+                        </ul>
+                    </div>
+                     <div class="anim-item zoomIn">
+                        <h4 class="text-3xl text-red-700">다. 화재 예방 대책</h4>
+                        <ul class="list-disc list-inside mt-2 ml-4">
+                            <li><strong class="text-orange-600">사전 대비:</strong> 비상구, 소방시설 위치 및 소화기 사용법을 미리 알아두기</li>
+                            <li><strong class="text-orange-600">방염 제품 사용:</strong> 화재 피해를 줄이기 위해 불에 잘 타지 않는 방염 제품 사용하기</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+        </main>
+
+        <footer id="navigation" class="mt-8 flex justify-between items-center hidden">
+            <button id="prev-btn" class="btn bg-red-500 text-white py-2 px-6 rounded-lg text-xl hover:bg-red-600 active:scale-95">이전</button>
+            <button id="toc-btn" class="btn bg-gray-400 text-white py-2 px-6 rounded-lg text-xl hover:bg-gray-500 active:scale-95">목차로</button>
+            <button id="next-btn" class="btn bg-red-500 text-white py-2 px-6 rounded-lg text-xl hover:bg-red-600 active:scale-95">다음</button>
+        </footer>
+    </div>
+
+    <script>
+        const mainContent = document.getElementById('main-content');
+        const pages = document.querySelectorAll('.page');
+        const tocLinks = document.querySelectorAll('.toc-link');
+        const navigation = document.getElementById('navigation');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const tocBtn = document.getElementById('toc-btn');
+        const fontIncreaseBtn = document.getElementById('font-increase');
+        const fontDecreaseBtn = document.getElementById('font-decrease');
+        const pageContents = document.querySelectorAll('.page-content');
+
+        let currentPage = 0;
+        const totalPages = pages.length;
+        
+        let currentAnimatables = [];
+        let animationIndex = 0;
+
+        function showPage(pageNumber) {
+            pages.forEach(page => {
+                page.classList.add('hidden');
+                page.querySelectorAll('.anim-item').forEach(item => item.classList.remove('visible'));
+            });
+            
+            const pageToShow = document.getElementById(`page-${pageNumber}`);
+            if (pageToShow) {
+                pageToShow.classList.remove('hidden');
+                mainContent.classList.toggle('cursor-pointer', pageNumber !== 0);
+            }
+
+            if (pageNumber === 0) {
+                navigation.classList.add('hidden');
+            } else {
+                navigation.classList.remove('hidden');
+                prevBtn.disabled = pageNumber === 1;
+                nextBtn.disabled = pageNumber === pages.length -1;
+                prevBtn.classList.toggle('opacity-50', prevBtn.disabled);
+                nextBtn.classList.toggle('opacity-50', nextBtn.disabled);
+                
+                currentAnimatables = Array.from(pageToShow.querySelectorAll('.anim-item'));
+                animationIndex = 0;
+            }
+            
+            currentPage = pageNumber;
+        }
+
+        mainContent.addEventListener('click', (e) => {
+            if (currentPage === 0) return; 
+            if (e.target.closest('button, a')) return;
+
+            if (animationIndex < currentAnimatables.length) {
+                currentAnimatables[animationIndex].classList.add('visible');
+                animationIndex++;
+            }
+        });
+
+        tocLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const pageNum = parseInt(link.dataset.page, 10);
+                showPage(pageNum);
+            });
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 1) showPage(currentPage - 1);
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentPage < pages.length-1) showPage(currentPage + 1);
+        });
+
+        tocBtn.addEventListener('click', () => showPage(0));
+
+        let currentFontSize = 2.2;
+        const FONT_STEP = 0.1;
+        
+        function updateFontSize() {
+            pageContents.forEach(content => {
+                if (content.id === 'page-5') {
+                    content.style.fontSize = `${currentFontSize - 0.6}rem`;
+                } else {
+                    content.style.fontSize = `${currentFontSize}rem`;
+                }
+            });
+        }
+
+        fontIncreaseBtn.addEventListener('click', () => {
+            currentFontSize += FONT_STEP;
+            updateFontSize();
+        });
+
+        fontDecreaseBtn.addEventListener('click', () => {
+            if (currentFontSize > 1.2) {
+                currentFontSize -= FONT_STEP;
+                updateFontSize();
+            }
+        });
+
+        showPage(0);
+        updateFontSize();
+    </script>
+
+</body>
+</html>
