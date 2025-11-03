@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>과학 O/X 퀴즈</title>
+    <style>
+        /* BMJUA 폰트 임베딩 */
+        @font-face {
+            font-family: 'BMJUA';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_one@1.0/BMJUA.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f4f7f6;
+            font-family: 'BMJUA', sans-serif;
+            overflow: hidden; /* 스크롤바 숨기기 */
+            font-size: calc(24px + 0.8vw); /* 반응형 폰트 크기 */
+        }
+
+        #quiz-container {
+            background-color: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 3vw; /* 반응형 패딩 */
+            width: 80vw; /* 반응형 너비 */
+            max-width: 1000px; /* 최대 너비 제한 */
+            min-height: 70vh; /* 최소 높이 설정 */
+            max-height: 90vh; /* 추가: 컨테이너 최대 높이 설정 */
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box; /* 패딩 포함 너비 계산 */
+            position: relative; /* 카운터 배치를 위해 추가 */
+            overflow-y: hidden; /* 컨테이너 자체 스크롤은 숨김 */
+        }
+
+        h1 {
+            color: #333;
+            font-size: calc(2em + 1vw); /* 반응형 제목 폰트 크기 */
+            margin-bottom: 2vh;
+            line-height: 1.3; /* 줄 간격 조절 */
+        }
+        
+        h2 {
+            color: #555;
+            font-size: calc(1.5em + 0.5vw);
+            margin-bottom: 2vh;
+        }
+
+        .screen {
+            width: 100%;
+            height: 100%; /* 변경: 내부 스크린도 높이를 100%로 설정하여 quiz-container의 overflow를 따르도록 함 */
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 1.5vw 3vw; /* 반응형 패딩 */
+            margin: 1.5vh 0;
+            font-family: 'BMJUA', sans-serif;
+            font-size: calc(1.2em + 0.5vw); /* 반응형 버튼 폰트 크기 */
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            min-width: 150px; /* 최소 너비 */
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #start-button {
+            background-color: #008CBA;
+        }
+
+        #start-button:hover {
+            background-color: #007B9E;
+        }
+        
+        #select-unit-screen button {
+            background-color: #5bc0de;
+            margin: 1vh 0.5vw;
+            padding: 1vw 2vw;
+            font-size: calc(1em + 0.3vw);
+            min-width: 120px;
+        }
+        
+        #select-unit-screen button:hover {
+            background-color: #31b0d5;
+        }
+
+
+        /* 문제 텍스트 영역 */
+        #question-text {
+            font-size: calc(1.8em + 0.8vw); /* 반응형 문제 폰트 크기 */
+            margin-bottom: 4vh;
+            line-height: 1.5;
+            word-break: keep-all; /* 단어 단위로 줄바꿈 */
+            max-height: 40vh; /* 문제 텍스트 최대 높이 지정 */
+            overflow-y: auto; /* 내용이 넘치면 스크롤바 생성 */
+            padding-right: 10px; /* 스크롤바 때문에 내용이 가려지지 않도록 패딩 추가 */
+            text-align: center;
+        }
+
+        #ox-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 3vw; /* 반응형 버튼 간격 */
+            width: 100%;
+        }
+
+        #ox-buttons button {
+            flex: 1; /* 동일한 너비로 확장 */
+            max-width: 45%; /* 버튼 최대 너비 */
+            font-size: calc(2.5em + 1vw); /* O, X 버튼 폰트 크기 */
+            padding: 4vw 0; /* O, X 버튼 패딩 */
+            border-radius: 50%; /* 원형 버튼 */
+            min-width: 100px;
+            min-height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #o-button { background-color: #FF6347; } /* 토마토 색상 */
+        #o-button:hover { background-color: #e55338; }
+
+        #x-button { background-color: #4682B4; } /* 스틸블루 색상 */
+        #x-button:hover { background-color: #3a6a97; }
+
+        #result-text {
+            font-size: calc(1.5em + 0.7vw); /* 반응형 결과 폰트 크기 */
+            margin-bottom: 2vh;
+            line-height: 1.6;
+            word-break: keep-all;
+        }
+
+        /* 결과 설명 텍스트 영역 */
+        #result-explanation {
+            font-size: calc(1.5em + 0.6vw); /* 반응형 설명 폰트 크기 1.5배 증가 */
+            color: #555;
+            margin-bottom: 4vh;
+            line-height: 1.6;
+            word-break: keep-all;
+            max-height: 35vh; /* 해설 텍스트 최대 높이 지정 */
+            overflow-y: auto; /* 내용이 넘치면 스크롤바 생성 */
+            padding-right: 10px; /* 스크롤바 때문에 내용이 가려지지 않도록 패딩 추가 */
+            text-align: center;
+        }
+
+        #restart-button {
+            background-color: #f44336;
+        }
+
+        #restart-button:hover {
+            background-color: #da190b;
+        }
+
+        #next-question-button, #back-to-units-button {
+            background-color: #007bff;
+        }
+
+        #next-question-button:hover, #back-to-units-button:hover {
+            background-color: #0056b3;
+        }
+
+        #streak-counter {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: calc(1.2em + 0.6vw);
+            color: red;
+            font-weight: bold;
+            display: none; /* 초기에는 숨김 */
+        }
+    </style>
+</head>
+<body>
+    <div id="quiz-container">
+        <div id="streak-counter">맞은 개수: 0</div>
+
+        <div id="start-screen" class="screen active">
+            <h1>과학 퀴즈<br>균류, 원생생물, 세균</h1>
+            <button id="start-button">퀴즈 시작</button>
+        </div>
+
+        <div id="question-screen" class="screen">
+            <p id="question-text"></p>
+            <div id="ox-buttons">
+                <button id="o-button">O</button>
+                <button id="x-button">X</button>
+            </div>
+        </div>
+
+        <div id="result-screen" class="screen">
+            <p id="result-text"></p>
+            <p id="result-explanation"></p>
+            <button id="next-question-button" style="display:none;">다음 문제</button>
+            <button id="restart-button" style="display:none;">다시 시작</button>
+            </div>
+    </div>
+
+    <audio id="success-sound" src="success-340660.mp3" preload="auto"></audio>
+    <audio id="fail-sound" src="drop-fx-sound-effect-240230.mp3" preload="auto"></audio>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 여기에 직접 만든 10문제만 삽입합니다.
+            const allQuestionsByUnit = {
+                unit4_custom: [
+                    { question: "콩으로 된장을 만드는 과정에서 활용되는 미생물의 종류는 세균이다.", answer: 'X', explanation: "콩으로 된장을 만드는 과정에는 균류(곰팡이)와 세균이 모두 활용되지만, 주요한 미생물 종류 중 하나는 균류(곰팡이)입니다." },
+                    { question: "제대로 보관하지 않아 빵에 생긴 곰팡이는 균류에 속하며, 곰팡이가 피면 음식을 상하게 한다.", answer: 'O', explanation: "곰팡이는 균류에 속하며, 음식이 상하고 먹을 수 없게 만듭니다." },
+                    { question: "김과 미역은 식재료로 사용되는 대표적인 원생생물이다.", answer: 'O', explanation: "김과 미역은 바다에 사는 원생생물로 식재료로 이용됩니다. 해캄은 식재료로 흔히 사용되지 않습니다." },
+                    { question: "강이나 바다에 오염 물질이 과다하게 유입될 때 야광충과 같은 원생생물이 급증하여 발생하는 현상은 적조 현상이다.", answer: 'O', explanation: "적조 현상은 오염 물질 유입으로 원생생물이 과다하게 번식하여 바닷물의 색깔이 붉게 변하는 현상입니다." },
+                    { question: "요구르트를 만드는 데 사용되는 대표적인 세균은 대장균이다.", answer: 'X', explanation: "요구르트를 만드는 데 사용되는 대표적인 세균은 젖산균입니다." },
+                    { question: "우리 입속에 살면서 충치를 일으킬 수 있는 미생물의 종류는 세균이다.", answer: 'O', explanation: "입속 세균은 음식물 찌꺼기를 분해하며 산을 만들어 치아를 부식시켜 충치를 일으킵니다." },
+                    { question: "죽은 생물이나 배설물을 분해하여 지구 환경을 유지하는 데 기여하는 미생물은 오직 세균뿐이다.", answer: 'X', explanation: "균류, 원생생물, 세균 모두 죽은 생물이나 배설물을 분해하여 지구 환경 유지에 중요한 역할을 합니다." },
+                    { question: "버섯을 이용하여 가죽과 비슷한 새로운 재료를 만드는 기술은 생명과학의 응용 사례이다.", answer: 'O', explanation: "생명과학은 생물과 생명 현상을 연구하여 우리 생활의 다양한 문제를 해결하는 데 이용됩니다. 버섯을 이용한 가죽 대체재 개발도 그 예입니다." },
+                    { question: "바다에 사는 유글레나와 같은 원생생물을 이용하여 자동차 연료로 개발된 친환경 연료는 수소 연료이다.", answer: 'X', explanation: "바다에 사는 유글레나와 같은 원생생물을 이용하여 환경 오염을 줄이는 친환경 자동차 연료가 개발되고 있습니다. 이는 수소 연료와는 다른 개념입니다." },
+                    { question: "대장균과 같은 세균을 이용하여 의약품을 대량 생산할 수 있다.", answer: 'O', explanation: "대장균 등의 미생물을 이용해 인슐린과 같은 다양한 의약품을 대량으로 생산할 수 있습니다." }
+                ],
+            };
+
+            // 모든 단원의 문제를 하나의 배열로 합칩니다.
+            // 여기서는 'unit4_custom' 단원만 사용하므로 해당 단원의 문제만 가져옵니다.
+            const allCombinedQuestions = allQuestionsByUnit.unit4_custom;
+
+            const startButton = document.getElementById('start-button');
+            const oButton = document.getElementById('o-button');
+            const xButton = document.getElementById('x-button');
+            const nextQuestionButton = document.getElementById('next-question-button');
+            const restartButton = document.getElementById('restart-button');
+            const questionText = document.getElementById('question-text');
+            const resultText = document.getElementById('result-text');
+            const resultExplanation = document.getElementById('result-explanation');
+            const startScreen = document.getElementById('start-screen');
+            const questionScreen = document.getElementById('question-screen');
+            const resultScreen = document.getElementById('result-screen');
+            const streakCounter = document.getElementById('streak-counter');
+
+            const successSound = document.getElementById('success-sound');
+            const failSound = document.getElementById('fail-sound');
+
+            let availableQuestions = [];
+            let currentQuestion = null;
+            let finalCorrectCount = 0; // 최종 정답 횟수
+            let totalQuestionsCount = 0; // 전체 문제 수 (합쳐진 문제 배열의 길이)
+
+            // TTS 관련 변수
+            let utterance = null;
+            let ttsActive = false;
+            let voices = [];
+
+            function loadVoices() {
+                if ('speechSynthesis' in window) {
+                    const getAndSetVoices = () => {
+                        voices = speechSynthesis.getVoices();
+                        const koreanVoice = voices.find(voice => voice.lang === 'ko-KR' || voice.name.includes('Korean'));
+                        if (utterance && koreanVoice) {
+                            utterance.voice = koreanVoice;
+                        }
+                        ttsActive = true;
+                    };
+
+                    getAndSetVoices();
+                    if (speechSynthesis.onvoiceschanged !== undefined) {
+                        speechSynthesis.onvoiceschanged = getAndSetVoices;
+                    }
+                }
+            }
+
+            function speakText(text, callback) {
+                if (!ttsActive || !utterance) {
+                    if (callback) callback();
+                    return;
+                }
+                if (speechSynthesis.speaking) {
+                    speechSynthesis.cancel();
+                }
+                utterance.text = text;
+                utterance.onend = () => {
+                    if (callback) callback();
+                };
+                speechSynthesis.speak(utterance);
+            }
+
+            if ('speechSynthesis' in window) {
+                utterance = new SpeechSynthesisUtterance();
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                utterance.lang = 'ko-KR';
+                loadVoices();
+            }
+
+            function showScreen(screenId) {
+                document.querySelectorAll('.screen').forEach(screen => {
+                    screen.classList.remove('active');
+                });
+                document.getElementById(screenId).classList.add('active');
+
+                if (screenId === 'question-screen' || screenId === 'result-screen') {
+                    streakCounter.style.display = 'block';
+                } else {
+                    streakCounter.style.display = 'none';
+                }
+            }
+
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            function updateStreakCounter() {
+                streakCounter.textContent = `맞은 개수: ${finalCorrectCount} / ${totalQuestionsCount - availableQuestions.length}`;
+            }
+
+            function initializeQuiz() {
+                availableQuestions = [...allCombinedQuestions]; // 모든 문제를 사용
+                shuffleArray(availableQuestions);
+                finalCorrectCount = 0;
+                totalQuestionsCount = allCombinedQuestions.length; // 전체 문제 수로 설정
+                updateStreakCounter();
+                
+                if (speechSynthesis.speaking) {
+                    speechSynthesis.cancel();
+                }
+                loadNextQuestion();
+            }
+
+            function loadNextQuestion() {
+                if (availableQuestions.length === 0) {
+                    showScreen('result-screen');
+                    resultText.textContent = `모든 문제를 다 풀었습니다! 최종 맞은 개수: ${finalCorrectCount} / ${totalQuestionsCount}개`;
+                    resultText.style.color = "#333";
+                    resultExplanation.textContent = "정말 수고하셨습니다! 다시 도전해 보세요!";
+                    nextQuestionButton.style.display = 'none';
+                    restartButton.style.display = 'block';
+
+                    if (speechSynthesis.speaking) {
+                        speechSynthesis.cancel();
+                    }
+                    speakText(resultText.textContent);
+                    return;
+                }
+
+                currentQuestion = availableQuestions.pop();
+                questionText.textContent = currentQuestion.question;
+                questionText.scrollTop = 0; 
+                showScreen('question-screen');
+                nextQuestionButton.style.display = 'none';
+                restartButton.style.display = 'none';
+
+                updateStreakCounter(); // 문제 로드 시마다 현재 문제 번호 업데이트
+                speakText(currentQuestion.question);
+            }
+
+            function checkAnswer(userAnswer) {
+                if (speechSynthesis.speaking) {
+                    speechSynthesis.cancel();
+                }
+
+                showScreen('result-screen');
+                resultExplanation.textContent = `정답: ${currentQuestion.answer}. ${currentQuestion.explanation}`;
+                resultExplanation.scrollTop = 0;
+
+                if (userAnswer === currentQuestion.answer) {
+                    resultText.textContent = "정답입니다!";
+                    resultText.style.color = "#4CAF50";
+                    
+                    finalCorrectCount++;
+                    updateStreakCounter();
+                    
+                    successSound.currentTime = 0;
+                    successSound.play().catch(e => console.error("Sound play failed:", e));
+                    speakText("정답입니다!"); 
+
+                } else {
+                    resultText.textContent = "오답입니다!";
+                    resultText.style.color = "#f44336";
+                    
+                    updateStreakCounter();
+
+                    failSound.currentTime = 0;
+                    failSound.play().catch(e => console.error("Sound play failed:", e));
+                    speakText("오답입니다!"); 
+                }
+                nextQuestionButton.style.display = 'block';
+                restartButton.style.display = 'block';
+            }
+
+            startButton.addEventListener('click', initializeQuiz); 
+            oButton.addEventListener('click', () => checkAnswer('O'));
+            xButton.addEventListener('click', () => checkAnswer('X'));
+            nextQuestionButton.addEventListener('click', loadNextQuestion);
+            restartButton.addEventListener('click', initializeQuiz);
+            
+            // 초기 화면 표시
+            showScreen('start-screen');
+        });
+    </script>
+</body>
+</html>
