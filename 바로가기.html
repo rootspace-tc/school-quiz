@@ -1,7 +1,7 @@
 <html lang="ko"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>내 프로그램 모음</title>
+    <title>내 프로그램 모음 (v2: 폴더 기능)</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&amp;display=swap" rel="stylesheet">
     <style>
         body {
@@ -9,7 +9,7 @@
             background-color: #f0f8ff;
             display: flex;
             justify-content: center;
-            align-items: flex-start; /* <<< 수정된 부분: 중앙 정렬에서 상단 정렬로 변경 */
+            align-items: flex-start;
             min-height: 100vh;
             margin: 0;
             padding: 20px;
@@ -24,7 +24,7 @@
             width: 90%;
             max-width: 1000px;
             position: relative;
-            margin: 20px 0; /* <<< 추가된 부분: 상하 여백을 주어 보기 좋게 함 */
+            margin: 20px 0;
         }
         h1 {
             color: #4a6fa5;
@@ -33,8 +33,34 @@
         }
         .subtitle {
             color: #6c757d;
-            margin-bottom: 30px;
+            margin-bottom: 10px;
         }
+
+        #breadcrumbs {
+            margin-bottom: 25px;
+            text-align: left;
+            font-size: 1.4em;
+            color: #6c757d;
+            padding: 10px;
+            border-radius: 8px;
+            transition: background-color 0.3s;
+        }
+        #breadcrumbs.drag-over {
+            background-color: #e9ecef;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+        }
+        .breadcrumb-link {
+            color: #007bff;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .breadcrumb-link:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb-separator {
+            margin: 0 8px;
+        }
+
         #link-list {
             list-style: none;
             padding: 0;
@@ -42,13 +68,13 @@
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
         }
-        /* --- ✨ 글자 잘림 문제 해결 --- */
-        .link-item {
+        
+        .link-item, .folder-item {
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100px;
-            padding: 15px; /* 내부 여백 조정 */
+            padding: 15px;
             border-radius: 15px;
             text-decoration: none;
             color: #333;
@@ -56,13 +82,36 @@
             transition: all 0.3s ease;
             box-shadow: 0 5px 10px rgba(0,0,0,0.1);
             cursor: pointer;
-            word-break: break-all; /* 긴 단어도 줄바꿈 처리 */
-            line-height: 1.4; /* 줄 간격 추가 */
+            word-break: break-all;
+            line-height: 1.4;
         }
-        .link-item:hover {
+        .link-item:hover, .folder-item:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 15px rgba(0,0,0,0.15);
         }
+
+        .folder-item {
+            background-color: #fff3cd; /* 기본 폴더 색상 */
+            border: 2px solid #ffe69c;
+        }
+        
+        .folder-item.drag-over {
+            transform: translateY(-5px) scale(1.03);
+            box-shadow: 0 8px 20px rgba(255, 193, 7, 0.7);
+            border-color: #ffc107;
+        }
+        .link-item.drag-over, .folder-item.drag-over-reorder {
+            background-color: #e9ecef !important;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+        
+        /* --- ✨ [요청 1] 순서 변경 모드 활성화 시 커서 변경 --- */
+        .reorder-mode-on .link-item,
+        .reorder-mode-on .folder-item {
+            cursor: move;
+        }
+
+
         #add-btn {
             border: 3px dashed #ccc;
             color: #aaa;
@@ -73,18 +122,36 @@
             color: #888;
             border-color: #aaa;
         }
-        /* --- ✨ 파일 저장 버튼 스타일 추가 --- */
-        #save-as-file-btn {
-            font-family: 'Jua', sans-serif;
-            font-size: 1em;
-            padding: 10px 20px;
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap; /* 창이 좁아지면 줄바꿈 */
+            gap: 15px;
             margin-top: 30px;
-            background-color: #28a745;
+        }
+
+        #save-as-file-btn, #add-folder-btn, #reorder-mode-btn {
+            font-family: 'Jua', sans-serif;
+            font-size: 1.1em;
+            padding: 12px 25px;
             color: white;
             border: none;
             border-radius: 8px;
             cursor: pointer;
+            transition: background-color 0.3s;
         }
+        #save-as-file-btn { background-color: #28a745; }
+        #add-folder-btn { background-color: #ffc107; }
+        /* --- ✨ [요청 1] 순서 변경 모드 버튼 스타일 --- */
+        #reorder-mode-btn {
+            background-color: #6c757d; /* 기본: 회색 */
+        }
+        #reorder-mode-btn.reorder-mode-active {
+            background-color: #dc3545; /* 활성화: 빨간색 */
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.7);
+        }
+
 
         .modal {
             display: none;
@@ -106,18 +173,49 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
         .modal-content h2 { margin-top: 0; }
-        .modal-content input {
+        .modal-content input[type="text"] {
             width: 90%; padding: 10px;
             margin-bottom: 15px; font-family: 'Jua', sans-serif;
             font-size: 1em; border: 1px solid #ccc; border-radius: 8px;
+            width: calc(100% - 24px);
+        }
+        
+        .form-field-url { display: block; }
+        .form-field-color {
+            display: none;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        input[type="color"] {
+            width: 50px;
+            height: 30px;
+            padding: 0 2px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .modal-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
         }
         .modal-buttons button {
             font-family: 'Jua', sans-serif; font-size: 1em; padding: 10px 20px;
             border-radius: 8px; border: none; cursor: pointer; margin: 0 5px;
         }
-        #modal-save-btn, #action-goto-btn { background-color: #007bff; color: white; }
+        /* --- ✨ [요청 2] 버튼 ID 변경 --- */
+        #modal-save-btn { background-color: #007bff; color: white; }
+        #action-primary-btn { background-color: #007bff; color: white; } /* (접속하기/열기) */
+        
         #modal-cancel-btn, #action-close-btn { background-color: #6c757d; color: white; }
         #action-copy-btn { background-color: #17a2b8; color: white; }
+        #action-edit-btn { background-color: #ffc107; color: #212529; }
         #action-delete-btn { background-color: #dc3545; color: white; }
 
         .notification {
@@ -126,233 +224,438 @@
             color: white; padding: 12px 25px; border-radius: 8px;
             opacity: 0; transition: opacity 0.5s, transform 0.5s;
             pointer-events: none;
+            z-index: 2000;
         }
         .notification.show { opacity: 1; transform: translate(-50%, -10px); }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" id="main-container">
         <h1>🚀 내 프로그램 바로가기 🚀</h1>
-        <p class="subtitle">버튼을 추가/삭제한 후에는 꼭 '파일로 저장하기'를 눌러주세요!</p>
-        <ul id="link-list"><li class="link-item" style="background-color: rgb(255, 173, 173);">야찌 게임</li><li class="link-item" style="background-color: rgb(255, 214, 165);">초등 상식 퀴즈(50문제)</li><li class="link-item" style="background-color: rgb(253, 255, 182);">타일 매칭 게임</li><li class="link-item" style="background-color: rgb(202, 255, 191);">밤하늘관찰퀴즈(4th)</li><li class="link-item" style="background-color: rgb(155, 246, 255);">도블</li><li class="link-item" style="background-color: rgb(160, 196, 255);">도블(스마트폰 가능 버전)</li><li class="link-item" style="background-color: rgb(189, 178, 255);">타이머</li><li class="link-item" style="background-color: rgb(255, 198, 255);">돼지주사위</li><li class="link-item" style="background-color: rgb(255, 173, 173);">짝맞추기</li><li class="link-item" style="background-color: rgb(255, 214, 165);">폭탄 피하기</li><li class="link-item" style="background-color: rgb(253, 255, 182);">사다리</li><li class="link-item" style="background-color: rgb(202, 255, 191);">방탈출</li><li class="link-item" style="background-color: rgb(155, 246, 255);">배틀쉽</li><li class="link-item" style="background-color: rgb(160, 196, 255);">폭탄 피하기 ver.2</li><li class="link-item" style="background-color: rgb(189, 178, 255);">실시간 퀴즈 플랫폼(최신화)</li><li class="link-item" style="background-color: rgb(255, 198, 255);">완성형 퀴즈 플랫폼(최신화)</li><li class="link-item" style="background-color: rgb(255, 173, 173);">팀 뽑기</li><li class="link-item" style="background-color: rgb(255, 214, 165);">사각형 점수 얻기</li><li class="link-item" style="background-color: rgb(253, 255, 182);">학생 랜덤 뽑기</li><li class="link-item" style="background-color: rgb(202, 255, 191);">바로가기</li><li class="link-item" style="background-color: rgb(155, 246, 255);">초성,중성,종성 퀴즈</li><li class="link-item" style="background-color: rgb(160, 196, 255);">배포용</li><li class="link-item" style="background-color: rgb(189, 178, 255);">숫자야구(네자리)</li><li class="link-item" style="background-color: rgb(255, 198, 255);">양궁 점수판</li><li class="link-item" style="background-color: rgb(255, 173, 173);">꽃잎 점수판</li><li class="link-item" style="background-color: rgb(255, 214, 165);">꽃잎 퀴즈 플랫폼</li><li class="link-item" style="background-color: rgb(253, 255, 182);">로또 점수판</li><li class="link-item" style="background-color: rgb(202, 255, 191);">사각형 선택 상품 뽑기</li><li class="link-item" style="background-color: rgb(155, 246, 255);">문장 순서 맞히기</li><li class="link-item" style="background-color: rgb(160, 196, 255);">그림 확대 퀴즈</li><li class="link-item" style="background-color: rgb(189, 178, 255);">숨은 단어 찾기</li><li class="link-item" style="background-color: rgb(255, 198, 255);">숨은 단어 찾기(수동)</li><li class="link-item" style="background-color: rgb(255, 173, 173);">햄버거 만들기</li><li class="link-item" style="background-color: rgb(255, 214, 165);">공 튕기기</li><li class="link-item" style="background-color: rgb(253, 255, 182);">그림 순서 맞추기 퍼즐</li><li class="link-item" style="background-color: rgb(202, 255, 191);">커튼 뒤 그림 찾기</li><li class="link-item" style="background-color: rgb(155, 246, 255);">물방울 그림 찾기</li><li class="link-item" style="background-color: rgb(160, 196, 255);">기억력 게임</li><li class="link-item" style="background-color: rgb(189, 178, 255);">동물 모양 찾기</li><li class="link-item" style="background-color: rgb(255, 198, 255);">크리처 카운터</li><li class="link-item" style="background-color: rgb(255, 173, 173);">다른 도형 찾기</li><li class="link-item" style="background-color: rgb(255, 214, 165);">지나가는 글자</li><li class="link-item" style="background-color: rgb(253, 255, 182);">least change(뺄셈)</li><li class="link-item" style="background-color: rgb(202, 255, 191);">치킨 레이스</li><li class="link-item" style="background-color: rgb(155, 246, 255);">전광판</li><li id="add-btn" class="link-item">+</li></ul>
-        <button id="save-as-file-btn">💾 파일로 저장하기</button>
+        <p class="subtitle">폴더를 만들고 항목을 드래그하여 정리하세요.<br>수정 후에는 꼭 '파일로 저장하기'를 눌러주세요!</p>
+        
+        <div id="breadcrumbs" class=""><span class="breadcrumb-link">Home</span><span class="breadcrumb-separator">&gt;</span><span>수업 내용</span></div>
+
+        <ul id="link-list"><li draggable="true" class="link-item" style="background-color: rgb(255, 173, 173);">[4-2] 1.밤하늘 관찰 퀴즈</li><li draggable="true" class="link-item" style="background-color: rgb(255, 214, 165);">[먹이그물연계]초등 상식 퀴즈(50문제)</li><li draggable="true" class="link-item" style="background-color: rgb(253, 255, 182);">least change(뺄셈)</li><li draggable="true" class="link-item" style="background-color: rgb(202, 255, 191);">[3-2] 1.물체와 물질(전체 내용)</li><li draggable="true" class="link-item" style="background-color: rgb(155, 246, 255);">[3-2] 1.물체와 물질(고체,액체,기체) 퀴즈</li><li draggable="true" class="link-item" style="background-color: rgb(160, 196, 255);">[4-1] 4.다양한 생물과 우리 생활 문제(균류, 원생생물, 세균)</li><li draggable="true" class="link-item" style="background-color: rgb(189, 178, 255);">[4-2] 1.밤하늘 관찰(전체 내용)</li><li draggable="true" class="link-item" style="background-color: rgb(255, 198, 255);">[4-2] 2.생물과 환경(먹이사슬, 먹이그물)</li><li draggable="true" class="link-item" style="background-color: rgb(255, 173, 173);">[3,4-2] 2. 지구와 바다(밀물과 썰물)</li><li draggable="true" class="link-item" style="background-color: rgb(255, 214, 165);">[5-2] 2.생물과 환경(전체 내용)</li><li draggable="true" class="link-item" style="background-color: rgb(253, 255, 182);">[5-2] 3.날씨와 우리 생활(고기압, 저기압)</li><li draggable="true" class="link-item" style="background-color: rgb(202, 255, 191);">[5-2] 3.날씨와 우리 생활(이슬,안개,구름,비,눈)</li><li draggable="true" class="link-item" style="background-color: rgb(155, 246, 255);">[5-1] 1~4단원 과학 복습 퀴즈</li><li draggable="true" class="link-item" style="background-color: rgb(160, 196, 255);">[6-1] 4.여러 가지 기체(산소, 이산화탄소 발생)</li><li draggable="true" class="link-item" style="background-color: rgb(189, 178, 255);">[6-2] 2. 계절의 변화(기온,고도,길이 그래프)</li><li draggable="true" class="link-item" style="background-color: rgb(255, 198, 255);">[6-2] 2.계절의 변화(태양의 남중고도)</li><li draggable="true" class="link-item" style="background-color: rgb(255, 173, 173);">[6-2] 3. 연소와 소화(전체 내용)</li><li draggable="true" class="link-item" style="background-color: rgb(255, 214, 165);">[6-2] 3. 연소와 소화(안전한 실험실 영상)</li><li draggable="true" class="link-item" style="background-color: rgb(253, 255, 182);">[6-2] 3. 연소와 소화(연소 후 생성 물질)</li><li draggable="true" class="link-item" style="background-color: rgb(202, 255, 191);">[6-1] 1,2,4,5 단원 과학 복습 퀴즈</li><li id="add-btn" class="link-item">+</li></ul>
+
+        <div class="button-container">
+            <button id="reorder-mode-btn" class="">↔️ 순서 변경 모드</button>
+            <button id="add-folder-btn">📁 새 폴더 추가</button>
+            <button id="save-as-file-btn">💾 파일로 저장하기</button>
+        </div>
     </div>
 
     <div id="form-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <h2 id="modal-title">새 바로가기 추가</h2>
-            <input type="text" id="link-name-input" placeholder="아이콘 이름 (예: 야찌 게임)">
-            <input type="text" id="link-url-input" placeholder="인터넷 주소 (URL)">
+            <div class="form-field">
+                <input type="text" id="item-name-input" placeholder="이름 (예: 야찌 게임)">
+            </div>
+            <div class="form-field-url" style="display: block;">
+                <input type="text" id="item-url-input" placeholder="인터넷 주소 (URL)">
+            </div>
+            <div class="form-field-color" style="display: none;">
+                <label for="item-color-input">폴더 색상:</label>
+                <input type="color" id="item-color-input" value="#fff3cd">
+            </div>
             <div class="modal-buttons">
                 <button id="modal-save-btn">추가</button>
                 <button id="modal-cancel-btn">취소</button>
             </div>
         </div>
     </div>
+
     <div id="action-modal" class="modal" style="display: none;">
         <div class="modal-content">
-            <h2 id="action-title">least change(뺄셈)</h2>
+            <h2 id="action-title">[6-1] 1,2,4,5 단원 과학 복습</h2>
             <div class="modal-buttons">
-                <button id="action-goto-btn">접속하기</button>
-                <button id="action-copy-btn">주소 복사하기</button>
+                <button id="action-primary-btn" style="display: inline-block;">접속하기</button> 
+                <button id="action-copy-btn" style="display: inline-block;">주소 복사하기</button>
+                <button id="action-edit-btn">수정하기</button>
                 <button id="action-delete-btn">삭제하기</button>
                 <button id="action-close-btn">닫기</button>
             </div>
         </div>
     </div>
-    <div class="notification" id="notification">바로가기가 추가되었습니다. [파일로 저장하기]를 눌러주세요!</div>
+
+    <div class="notification" id="notification">항목 순서가 변경되었습니다.</div>
 
     <script>
+        // --- 데이터 구조 ---
+        let dataStore = [
+    {
+        "type": "folder",
+        "name": "수업 내용",
+        "items": [
+            {
+                "type": "link",
+                "name": "[4-2] 1.밤하늘 관찰 퀴즈",
+                "url": "https://htmlpreview.github.io/?https://github.com/rootspace-tc/school-quiz/blob/main/4%ED%95%99%EB%85%84%20%EB%B0%A4%ED%95%98%EB%8A%98%EA%B4%80%EC%B0%B0.html"
+            },
+            {
+                "type": "link",
+                "name": "[먹이그물연계]초등 상식 퀴즈(50문제)",
+                "url": "https://htmlpreview.github.io/?https://raw.githubusercontent.com/rootspace-tc/school-quiz/main/%EC%B4%88%EB%93%B1%EC%83%81%EC%8B%9D%ED%80%B4%EC%A6%88.html"
+            },
+            {
+                "type": "link",
+                "name": "least change(뺄셈)",
+                "url": "https://rootspace-tc.github.io/school-quiz/leastchange.html"
+            },
+            {
+                "type": "link",
+                "name": "[3-2] 1.물체와 물질(전체 내용)",
+                "url": "https://rootspace-tc.github.io/school-quiz/3%ED%95%99%EB%85%84%202%ED%95%99%EA%B8%B0%201%EB%8B%A8%EC%9B%90%20%EB%AC%BC%EC%B2%B4%EC%99%80%20%EB%AC%BC%EC%A7%88%20%EC%A0%84%EC%B2%B4%20%EB%82%B4%EC%9A%A9%20%EC%A0%95%EB%A6%AC.HTML"
+            },
+            {
+                "type": "link",
+                "name": "[3-2] 1.물체와 물질(고체,액체,기체) 퀴즈",
+                "url": "https://rootspace-tc.github.io/school-quiz/3%ED%95%99%EB%85%84%202%ED%95%99%EA%B8%B0%201%EB%8B%A8%EC%9B%90%20%EB%AC%BC%EC%B2%B4%EC%99%80%20%EB%AC%BC%EC%A7%88%20%ED%80%B4%EC%A6%88%28%EA%B3%A0%EC%B2%B4%2C%EC%95%A1%EC%B2%B4%2C%EA%B8%B0%EC%B2%B4%29.html"
+            },
+            {
+                "type": "link",
+                "name": "[4-1] 4.다양한 생물과 우리 생활 문제(균류, 원생생물, 세균)",
+                "url": "https://rootspace-tc.github.io/school-quiz/4%ED%95%99%EB%85%84%201%ED%95%99%EA%B8%B0%204%EB%8B%A8%EC%9B%90%20%EB%8B%A4%EC%96%91%ED%95%9C%20%EC%83%9D%EB%AC%BC%EA%B3%BC%20%EC%9A%B0%EB%A6%AC%20%EC%83%9D%ED%99%9C%20%EB%AC%B8%EC%A0%9C%28%EA%B7%A0%EB%A5%98%2C%EC%9B%90%EC%83%9D%EC%83%9D%EB%AC%BC%2C%EC%84%B8%EA%B7%A0%29.html"
+            },
+            {
+                "type": "link",
+                "name": "[4-2] 1.밤하늘 관찰(전체 내용)",
+                "url": "https://rootspace-tc.github.io/school-quiz/4%ED%95%99%EB%85%84%202%ED%95%99%EA%B8%B0%201%EB%8B%A8%EC%9B%90%20%EB%B0%A4%ED%95%98%EB%8A%98%20%EA%B4%80%EC%B0%B0%20%EC%A0%84%EC%B2%B4%20%EB%82%B4%EC%9A%A9%20%EC%A0%95%EB%A6%AC.html"
+            },
+            {
+                "type": "link",
+                "name": "[4-2] 2.생물과 환경(먹이사슬, 먹이그물)",
+                "url": "https://rootspace-tc.github.io/school-quiz/4%ED%95%99%EB%85%84%202%ED%95%99%EA%B8%B0%202%EB%8B%A8%EC%9B%90%20%EC%83%9D%EB%AC%BC%EA%B3%BC%20%ED%99%98%EA%B2%BD%28%EB%A8%B9%EC%9D%B4%EC%82%AC%EC%8A%AC%2C%20%EB%A8%B9%EC%9D%B4%EA%B7%B8%EB%AC%BC%29.html"
+            },
+            {
+                "type": "link",
+                "name": "[3,4-2] 2. 지구와 바다(밀물과 썰물)",
+                "url": "https://rootspace-tc.github.io/school-quiz/4%ED%95%99%EB%85%84%202%ED%95%99%EA%B8%B0%202%EB%8B%A8%EC%9B%90%28%EB%B3%B4%EC%B6%A9%29%20%EC%A7%80%EA%B5%AC%EC%99%80%20%EB%B0%94%EB%8B%A4%28%EB%B0%80%EB%AC%BC%EA%B3%BC%20%EC%8D%B0%EB%AC%BC%29.html"
+            },
+            {
+                "type": "link",
+                "name": "[5-2] 2.생물과 환경(전체 내용)",
+                "url": "https://rootspace-tc.github.io/school-quiz/5%ED%95%99%EB%85%84%202%ED%95%99%EA%B8%B0%202%EB%8B%A8%EC%9B%90%20%EB%82%B4%EC%9A%A9%EC%A0%95%EB%A6%AC.HTML"
+            },
+            {
+                "type": "link",
+                "name": "[5-2] 3.날씨와 우리 생활(고기압, 저기압)",
+                "url": "https://rootspace-tc.github.io/school-quiz/5%ED%95%99%EB%85%84%202%ED%95%99%EA%B8%B0%203%EB%8B%A8%EC%9B%90%20%EB%82%A0%EC%94%A8%EC%99%80%20%EC%9A%B0%EB%A6%AC%20%EC%83%9D%ED%99%9C(%EA%B3%A0%EA%B8%B0%EC%95%95%2C%20%EC%A0%80%EA%B8%B0%EC%95%95).html"
+            },
+            {
+                "type": "link",
+                "name": "[5-2] 3.날씨와 우리 생활(이슬,안개,구름,비,눈)",
+                "url": "https://rootspace-tc.github.io/school-quiz/5학년 2학기 3단원 날씨와 우리 생활(이슬%2C 안개%2C 구름%2C 비%2C 눈).HTML"
+            },
+            {
+                "type": "link",
+                "name": "[5-1] 1~4단원 과학 복습 퀴즈",
+                "url": "https://rootspace-tc.github.io/school-quiz/5학년 1학기 과학 복습(1~4단원).html"
+            },
+            {
+                "type": "link",
+                "name": "[6-1] 4.여러 가지 기체(산소, 이산화탄소 발생)",
+                "url": "https://rootspace-tc.github.io/school-quiz/6학년 1학기 4단원 여러가지기체(산소와 이산화탄소).html"
+            },
+            {
+                "type": "link",
+                "name": "[6-2] 2. 계절의 변화(기온,고도,길이 그래프)",
+                "url": "https://rootspace-tc.github.io/school-quiz/6학년 고도,길이,기온 그래프 생성기.html"
+            },
+            {
+                "type": "link",
+                "name": "[6-2] 2.계절의 변화(태양의 남중고도)",
+                "url": "https://rootspace-tc.github.io/school-quiz/6%ED%95%99%EB%85%84%202%ED%95%99%EA%B8%B0%202%EB%8B%A8%EC%9B%90%20%ED%83%9C%EC%96%91%EC%9D%98%20%EB%82%A8%EC%A4%91%EA%B3%A0%EB%8F%84%20v2.html"
+            },
+            {
+                "type": "link",
+                "name": "[6-2] 3. 연소와 소화(전체 내용)",
+                "url": "https://rootspace-tc.github.io/school-quiz/6학년 2학기 3단원 내용정리.html"
+            },
+            {
+                "type": "link",
+                "name": "[6-2] 3. 연소와 소화(안전한 실험실 영상)",
+                "url": "https://rootspace-tc.github.io/school-quiz/6학년 2학기 3단원 연소와 소화(안전한 실험실).html"
+            },
+            {
+                "type": "link",
+                "name": "[6-2] 3. 연소와 소화(연소 후 생성 물질)",
+                "url": "https://rootspace-tc.github.io/school-quiz/6학년 2학기 3단원 연소와 소화(연소 후 발생하는 것).html"
+            },
+            {
+                "type": "link",
+                "name": "[6-1] 1,2,4,5 단원 과학 복습 퀴즈",
+                "url": "https://rootspace-tc.github.io/school-quiz/6학년 과학 복습.html"
+            }
+        ],
+        "color": "#f3df5e"
+    },
+    {
+        "type": "folder",
+        "name": "실시간 플랫폼",
+        "items": [
+            {
+                "type": "link",
+                "name": "꽃잎 퀴즈 플랫폼",
+                "url": "https://petal-quiz.web.app/"
+            },
+            {
+                "type": "link",
+                "name": "완성형 퀴즈 플랫폼(최신화)",
+                "url": "https://foranswering-afec8-multiquiz.web.app/"
+            },
+            {
+                "type": "link",
+                "name": "실시간 퀴즈 플랫폼(최신화)",
+                "url": "https://foranswering-afec8.web.app/"
+            }
+        ],
+        "color": "#ffadad"
+    },
+    {
+        "type": "folder",
+        "name": "수업 도우미",
+        "items": [
+            {
+                "type": "link",
+                "name": "전광판",
+                "url": "https://rootspace-tc.github.io/school-quiz/signboard.html"
+            },
+            {
+                "type": "link",
+                "name": "지나가는 글자",
+                "url": "https://rootspace-tc.github.io/school-quiz/plane.html"
+            },
+            {
+                "type": "link",
+                "name": "숨은 단어 찾기(수동)",
+                "url": "https://rootspace-tc.github.io/school-quiz/wordsearch%20v3.html"
+            },
+            {
+                "type": "link",
+                "name": "숨은 단어 찾기",
+                "url": "https://school-quiz-game.netlify.app/wordsearch%20v2.html"
+            },
+            {
+                "type": "link",
+                "name": "커튼 뒤 그림 찾기",
+                "url": "https://rootspace-tc.github.io/school-quiz/echo%20draw.html"
+            },
+            {
+                "type": "link",
+                "name": "물방울 그림 찾기",
+                "url": "https://rootspace-tc.github.io/school-quiz/bubblepopquiz.html"
+            },
+            {
+                "type": "link",
+                "name": "그림 순서 맞추기 퍼즐",
+                "url": "https://rootspace-tc.github.io/school-quiz/tilepuzzle.html"
+            },
+            {
+                "type": "link",
+                "name": "그림 확대 퀴즈",
+                "url": "https://rootspace-tc.github.io/school-quiz/enlargement.html"
+            },
+            {
+                "type": "link",
+                "name": "문장 순서 맞히기",
+                "url": "https://rootspace-tc.github.io/school-quiz/letterjumble.html"
+            },
+            {
+                "type": "link",
+                "name": "초성,중성,종성 퀴즈",
+                "url": "https://rootspace-tc.github.io/school-quiz/글자숨바꼭질(입력방법변경).html"
+            },
+            {
+                "type": "link",
+                "name": "학생 랜덤 뽑기",
+                "url": "https://rootspace-tc.github.io/school-quiz/뽑기(일반%20ver2).html"
+            },
+            {
+                "type": "link",
+                "name": "팀 뽑기",
+                "url": "https://rootspace-tc.github.io/school-quiz/%ED%8C%80%20%EB%BD%91%EA%B8%B0.html"
+            },
+            {
+                "type": "link",
+                "name": "짝맞추기",
+                "url": "https://rootspace-tc.github.io/school-quiz/짝맞추기.html"
+            },
+            {
+                "type": "link",
+                "name": "타이머",
+                "url": "https://rootspace-tc.github.io/school-quiz/timer.html"
+            }
+        ],
+        "color": "#fff3cd"
+    },
+    {
+        "type": "folder",
+        "name": "자투리 놀이",
+        "items": [
+            {
+                "type": "link",
+                "name": "치킨 레이스",
+                "url": "https://rootspace-tc.github.io/school-quiz/chicken%20race.html"
+            },
+            {
+                "type": "link",
+                "name": "다른 도형 찾기",
+                "url": "https://rootspace-tc.github.io/school-quiz/oddoneout.html"
+            },
+            {
+                "type": "link",
+                "name": "크리처 카운터",
+                "url": "https://rootspace-tc.github.io/school-quiz/creatures.html"
+            },
+            {
+                "type": "link",
+                "name": "동물 모양 찾기",
+                "url": "https://rootspace-tc.github.io/school-quiz/petsearch.html"
+            },
+            {
+                "type": "link",
+                "name": "기억력 게임",
+                "url": "https://rootspace-tc.github.io/school-quiz/animalsound%20v2.html"
+            },
+            {
+                "type": "link",
+                "name": "공 튕기기",
+                "url": "https://rootspace-tc.github.io/school-quiz/ballkeeper.html"
+            },
+            {
+                "type": "link",
+                "name": "햄버거 만들기",
+                "url": "https://rootspace-tc.github.io/school-quiz/hamburger.html"
+            },
+            {
+                "type": "link",
+                "name": "숫자야구(네자리)",
+                "url": "https://rootspace-tc.github.io/school-quiz/code%20breaker(%EC%88%AB%EC%9E%90%EC%95%BC%EA%B5%AC).html"
+            },
+            {
+                "type": "link",
+                "name": "배틀쉽",
+                "url": "https://rootspace-tc.github.io/school-quiz/battleship.html"
+            },
+            {
+                "type": "link",
+                "name": "방탈출",
+                "url": "https://rootspace-tc.github.io/school-quiz/escape.html"
+            },
+            {
+                "type": "link",
+                "name": "폭탄 피하기",
+                "url": "https://rootspace-tc.github.io/school-quiz/tong-game.html"
+            },
+            {
+                "type": "link",
+                "name": "도블(스마트폰 가능 버전)",
+                "url": "https://rootspace-tc.github.io/school-quiz/dobble%202.html"
+            },
+            {
+                "type": "link",
+                "name": "도블",
+                "url": "https://htmlpreview.github.io/?https://github.com/rootspace-tc/school-quiz/blob/main/dobble.html"
+            },
+            {
+                "type": "link",
+                "name": "타일 매칭 게임",
+                "url": "https://htmlpreview.github.io/?https://raw.githubusercontent.com/rootspace-tc/school-quiz/refs/heads/main/matching.html"
+            },
+            {
+                "type": "link",
+                "name": "야찌 게임",
+                "url": "https://htmlpreview.github.io/?https://raw.githubusercontent.com/rootspace-tc/school-quiz/main/yahtzee.html"
+            }
+        ],
+        "color": "#caffbf"
+    },
+    {
+        "type": "folder",
+        "name": "점수판",
+        "items": [
+            {
+                "type": "link",
+                "name": "사각형 선택 상품 뽑기",
+                "url": "https://rootspace-tc.github.io/school-quiz/gridselection.html"
+            },
+            {
+                "type": "link",
+                "name": "로또 점수판",
+                "url": "https://rootspace-tc.github.io/school-quiz/lotto.html"
+            },
+            {
+                "type": "link",
+                "name": "꽃잎 점수판",
+                "url": "https://rootspace-tc.github.io/school-quiz/petal%20ver.2.html"
+            },
+            {
+                "type": "link",
+                "name": "양궁 점수판",
+                "url": "https://rootspace-tc.github.io/school-quiz/archery.html"
+            },
+            {
+                "type": "link",
+                "name": "사각형 점수 얻기",
+                "url": "https://rootspace-tc.github.io/school-quiz/사각형%20점수%20얻기.html"
+            },
+            {
+                "type": "link",
+                "name": "폭탄 피하기 ver.2",
+                "url": "https://rootspace-tc.github.io/school-quiz/tong-game%20ver.2.html"
+            },
+            {
+                "type": "link",
+                "name": "사다리",
+                "url": "https://rootspace-tc.github.io/school-quiz/사다리(최종).html"
+            },
+            {
+                "type": "link",
+                "name": "돼지주사위",
+                "url": "https://rootspace-tc.github.io/school-quiz/pigdice.html"
+            }
+        ],
+        "color": "#a0c4ff"
+    },
+    {
+        "type": "folder",
+        "name": "기타",
+        "items": [
+            {
+                "type": "link",
+                "name": "배포용",
+                "url": "https://rootspace-tc.github.io/school-quiz/upload.html"
+            },
+            {
+                "type": "link",
+                "name": "바로가기",
+                "url": "https://rootspace-tc.github.io/school-quiz/바로가기.html"
+            }
+        ],
+        "color": "#51c8a0"
+    }
+];
+
+        const container = document.getElementById('main-container');
         const linkList = document.getElementById('link-list');
         const formModal = document.getElementById('form-modal');
         const actionModal = document.getElementById('action-modal');
         const notification = document.getElementById('notification');
         const saveAsFileBtn = document.getElementById('save-as-file-btn');
+        const addFolderBtn = document.getElementById('add-folder-btn');
+        const breadcrumbs = document.getElementById('breadcrumbs');
         
-        let programs = [
-    {
-        "name": "야찌 게임",
-        "url": "https://htmlpreview.github.io/?https://raw.githubusercontent.com/rootspace-tc/school-quiz/main/yahtzee.html"
-    },
-    {
-        "name": "초등 상식 퀴즈(50문제)",
-        "url": "https://htmlpreview.github.io/?https://raw.githubusercontent.com/rootspace-tc/school-quiz/main/%EC%B4%88%EB%93%B1%EC%83%81%EC%8B%9D%ED%80%B4%EC%A6%88.html"
-    },
-    {
-        "name": "타일 매칭 게임",
-        "url": "https://htmlpreview.github.io/?https://raw.githubusercontent.com/rootspace-tc/school-quiz/refs/heads/main/matching.html"
-    },
-    {
-        "name": "밤하늘관찰퀴즈(4th)",
-        "url": "https://htmlpreview.github.io/?https://github.com/rootspace-tc/school-quiz/blob/main/4%ED%95%99%EB%85%84%20%EB%B0%A4%ED%95%98%EB%8A%98%EA%B4%80%EC%B0%B0.html"
-    },
-    {
-        "name": "도블",
-        "url": "https://htmlpreview.github.io/?https://github.com/rootspace-tc/school-quiz/blob/main/dobble.html"
-    },
-    {
-        "name": "도블(스마트폰 가능 버전)",
-        "url": "https://rootspace-tc.github.io/school-quiz/dobble%202.html"
-    },
-    {
-        "name": "타이머",
-        "url": "https://rootspace-tc.github.io/school-quiz/timer.html"
-    },
-    {
-        "name": "돼지주사위",
-        "url": "https://rootspace-tc.github.io/school-quiz/pigdice.html"
-    },
-    {
-        "name": "짝맞추기",
-        "url": "https://rootspace-tc.github.io/school-quiz/짝맞추기.html"
-    },
-    {
-        "name": "폭탄 피하기",
-        "url": "https://rootspace-tc.github.io/school-quiz/tong-game.html"
-    },
-    {
-        "name": "사다리",
-        "url": "https://rootspace-tc.github.io/school-quiz/사다리(최종).html"
-    },
-    {
-        "name": "방탈출",
-        "url": "https://rootspace-tc.github.io/school-quiz/escape.html"
-    },
-    {
-        "name": "배틀쉽",
-        "url": "https://rootspace-tc.github.io/school-quiz/battleship.html"
-    },
-    {
-        "name": "폭탄 피하기 ver.2",
-        "url": "https://rootspace-tc.github.io/school-quiz/tong-game%20ver.2.html"
-    },
-    {
-        "name": "실시간 퀴즈 플랫폼(최신화)",
-        "url": "https://foranswering-afec8.web.app/"
-    },
-    {
-        "name": "완성형 퀴즈 플랫폼(최신화)",
-        "url": "https://foranswering-afec8-multiquiz.web.app/"
-    },
-    {
-        "name": "팀 뽑기",
-        "url": "https://rootspace-tc.github.io/school-quiz/%ED%8C%80%20%EB%BD%91%EA%B8%B0.html"
-    },
-    {
-        "name": "사각형 점수 얻기",
-        "url": "https://rootspace-tc.github.io/school-quiz/사각형%20점수%20얻기.html"
-    },
-    {
-        "name": "학생 랜덤 뽑기",
-        "url": "https://rootspace-tc.github.io/school-quiz/뽑기(일반%20ver2).html"
-    },
-    {
-        "name": "바로가기",
-        "url": "https://rootspace-tc.github.io/school-quiz/바로가기.html"
-    },
-    {
-        "name": "초성,중성,종성 퀴즈",
-        "url": "https://rootspace-tc.github.io/school-quiz/글자숨바꼭질(입력방법변경).html"
-    },
-    {
-        "name": "배포용",
-        "url": "https://rootspace-tc.github.io/school-quiz/upload.html"
-    },
-    {
-        "name": "숫자야구(네자리)",
-        "url": "https://rootspace-tc.github.io/school-quiz/code%20breaker(%EC%88%AB%EC%9E%90%EC%95%BC%EA%B5%AC).html"
-    },
-    {
-        "name": "양궁 점수판",
-        "url": "https://rootspace-tc.github.io/school-quiz/archery.html"
-    },
-    {
-        "name": "꽃잎 점수판",
-        "url": "https://rootspace-tc.github.io/school-quiz/petal%20ver.2.html"
-    },
-    {
-        "name": "꽃잎 퀴즈 플랫폼",
-        "url": "https://petal-quiz.web.app/"
-    },
-    {
-        "name": "로또 점수판",
-        "url": "https://rootspace-tc.github.io/school-quiz/lotto.html"
-    },
-    {
-        "name": "사각형 선택 상품 뽑기",
-        "url": "https://rootspace-tc.github.io/school-quiz/gridselection.html"
-    },
-    {
-        "name": "문장 순서 맞히기",
-        "url": "https://rootspace-tc.github.io/school-quiz/letterjumble.html"
-    },
-    {
-        "name": "그림 확대 퀴즈",
-        "url": "https://rootspace-tc.github.io/school-quiz/enlargement.html"
-    },
-    {
-        "name": "숨은 단어 찾기",
-        "url": "https://school-quiz-game.netlify.app/wordsearch%20v2.html"
-    },
-    {
-        "name": "숨은 단어 찾기(수동)",
-        "url": "https://rootspace-tc.github.io/school-quiz/wordsearch%20v3.html"
-    },
-    {
-        "name": "햄버거 만들기",
-        "url": "https://rootspace-tc.github.io/school-quiz/hamburger.html"
-    },
-    {
-        "name": "공 튕기기",
-        "url": "https://rootspace-tc.github.io/school-quiz/ballkeeper.html"
-    },
-    {
-        "name": "그림 순서 맞추기 퍼즐",
-        "url": "https://rootspace-tc.github.io/school-quiz/tilepuzzle.html"
-    },
-    {
-        "name": "커튼 뒤 그림 찾기",
-        "url": "https://rootspace-tc.github.io/school-quiz/echo%20draw.html"
-    },
-    {
-        "name": "물방울 그림 찾기",
-        "url": "https://rootspace-tc.github.io/school-quiz/bubblepopquiz.html"
-    },
-    {
-        "name": "기억력 게임",
-        "url": "https://rootspace-tc.github.io/school-quiz/animalsound%20v2.html"
-    },
-    {
-        "name": "동물 모양 찾기",
-        "url": "https://rootspace-tc.github.io/school-quiz/petsearch.html"
-    },
-    {
-        "name": "크리처 카운터",
-        "url": "https://rootspace-tc.github.io/school-quiz/creatures.html"
-    },
-    {
-        "name": "다른 도형 찾기",
-        "url": "https://rootspace-tc.github.io/school-quiz/oddoneout.html"
-    },
-    {
-        "name": "지나가는 글자",
-        "url": "https://rootspace-tc.github.io/school-quiz/plane.html"
-    },
-    {
-        "name": "least change(뺄셈)",
-        "url": "https://rootspace-tc.github.io/school-quiz/leastchange.html"
-    },
-    {
-        "name": "치킨 레이스",
-        "url": "https://rootspace-tc.github.io/school-quiz/chicken%20race.html"
-    },
-    {
-        "name": "전광판",
-        "url": "https://rootspace-tc.github.io/school-quiz/signboard.html"
-    }
-]; // 데이터는 페이지 로드 시 HTML 자체에서 읽어옴
-        let currentActionUrl = '';
-        let currentActionIndex = -1;
+        // --- ✨ [요청 1] 순서 변경 모드 변수 및 버튼 ---
+        const reorderModeBtn = document.getElementById('reorder-mode-btn');
+        let isReorderMode = false;
+
+        let currentActionItem = null;
+        let editingItem = null;
+        let draggedItemInfo = null; 
+        
+        let navigationStack = [{ name: 'Home', items: dataStore }];
+
         const colors = ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff'];
 
         function showNotification(message) {
@@ -361,55 +664,274 @@
             setTimeout(() => { notification.classList.remove('show'); }, 2000);
         }
 
-        function renderLinks() {
+        // --- 상위 폴더 이동 핸들러 ---
+        function handleBreadcrumbDragOver(e) {
+            e.preventDefault();
+            // 순서 변경 모드일 때는 상위 폴더 이동 금지
+            if (!isReorderMode) {
+                breadcrumbs.classList.add('drag-over');
+            }
+        }
+        function handleBreadcrumbDragLeave() {
+            breadcrumbs.classList.remove('drag-over');
+        }
+        function handleBreadcrumbDrop(e) {
+            e.preventDefault();
+            breadcrumbs.classList.remove('drag-over');
+
+            // 순서 변경 모드가 아니고, Home이 아닐 때만 작동
+            if (!isReorderMode && draggedItemInfo && navigationStack.length > 1) {
+                const parentItems = navigationStack[navigationStack.length - 2].items;
+                const itemToMove = draggedItemInfo.fromArray.splice(draggedItemInfo.index, 1)[0];
+                parentItems.push(itemToMove);
+                
+                draggedItemInfo = null;
+                renderCurrentView();
+                showNotification('상위 폴더로 이동했습니다. [파일로 저장하기]를 눌러주세요!');
+            }
+        }
+
+        // --- 현재 폴더 뷰 렌더링 함수 ---
+        function renderCurrentView() {
             linkList.innerHTML = '';
-            programs.forEach((program, index) => {
+            
+            const currentFolder = navigationStack[navigationStack.length - 1];
+            const currentItems = currentFolder.items;
+
+            renderBreadcrumbs();
+
+            // 아이템 렌더링
+            currentItems.forEach((item, index) => {
                 const listItem = document.createElement('li');
-                listItem.className = 'link-item';
-                listItem.textContent = program.name;
-                listItem.style.backgroundColor = colors[index % colors.length];
-                listItem.addEventListener('click', () => {
-                    document.getElementById('action-title').textContent = program.name;
-                    currentActionUrl = program.url;
-                    currentActionIndex = index;
-                    actionModal.style.display = 'flex';
+                listItem.textContent = item.name;
+                listItem.draggable = true;
+
+                listItem.addEventListener('dragstart', (e) => {
+                    draggedItemInfo = { item, fromArray: currentItems, index };
+                    e.dataTransfer.effectAllowed = 'move';
                 });
+
+                if (item.type === 'link') {
+                    listItem.className = 'link-item';
+                    listItem.style.backgroundColor = colors[index % colors.length];
+                    // --- ✨ [요청 2] 링크 클릭 시 모달 열기 ---
+                    listItem.addEventListener('click', () => {
+                        openActionModal(item, currentItems, index);
+                    });
+                } else if (item.type === 'folder') {
+                    listItem.className = 'folder-item';
+                    listItem.textContent = '📁 ' + item.name;
+                    
+                    if (item.color) {
+                        listItem.style.backgroundColor = item.color;
+                        listItem.style.borderColor = item.color;
+                    }
+                    
+                    // --- ✨ [요청 2] 폴더 클릭 시 모달 열기 (네비게이션 대신) ---
+                    listItem.addEventListener('click', () => {
+                        openActionModal(item, currentItems, index);
+                    });
+                }
+
+                // --- 드래그/드롭 핸들러 ---
+                listItem.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    
+                    if (isReorderMode) {
+                        // 순서 변경 모드일 때는 항상 '순서 변경' 강조
+                        listItem.classList.add('drag-over-reorder');
+                    } else if (item.type === 'folder') {
+                        // 기본 모드일 때는 폴더만 '이동' 강조
+                        listItem.classList.add('drag-over');
+                    }
+                });
+                listItem.addEventListener('dragleave', () => {
+                    listItem.classList.remove('drag-over');
+                    listItem.classList.remove('drag-over-reorder');
+                });
+                
+                // --- ✨ [요청 1] 드롭 로직 (모드에 따라 분리) ---
+                listItem.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    listItem.classList.remove('drag-over');
+                    listItem.classList.remove('drag-over-reorder');
+
+                    if (!draggedItemInfo || draggedItemInfo.item === item) return;
+
+                    const sourceArray = draggedItemInfo.fromArray;
+                    const currentArray = currentItems;
+                    const originalIndex = draggedItemInfo.index;
+                    const targetIndex = index;
+                    let reordered = false;
+
+                    // --- [순서 변경 모드] ---
+                    if (isReorderMode) {
+                        if (sourceArray === currentArray) { // 같은 폴더 내에서만 순서 변경
+                            const newTargetIndex = (originalIndex < targetIndex) ? targetIndex - 1 : targetIndex;
+                            const [movedItem] = sourceArray.splice(originalIndex, 1);
+                            sourceArray.splice(newTargetIndex, 0, movedItem);
+                            showNotification('순서가 변경되었습니다.');
+                            reordered = true;
+                        }
+                    } 
+                    // --- [기본 모드 (이동)] ---
+                    else {
+                        const targetItem = item;
+                        // Case 1: [폴더 안으로 이동] - 드롭 대상이 '폴더'일 때
+                        if (targetItem.type === 'folder' && draggedItemInfo.fromArray !== targetItem.items) {
+                            const itemToMove = sourceArray.splice(originalIndex, 1)[0];
+                            targetItem.items.push(itemToMove);
+                            showNotification(`'${itemToMove.name}'을(를) '${targetItem.name}' 폴더로 이동했습니다.`);
+                            reordered = true;
+                        }
+                        // Case 2: [순서 변경] - 드롭 대상이 '링크'일 때 (기본 모드에서는 링크 위 드롭으로만 순서 변경)
+                        else if (targetItem.type === 'link' && sourceArray === currentArray) {
+                            const newTargetIndex = (originalIndex < targetIndex) ? targetIndex - 1 : targetIndex;
+                            const [movedItem] = sourceArray.splice(originalIndex, 1);
+                            sourceArray.splice(newTargetIndex, 0, movedItem);
+                            showNotification('항목 순서가 변경되었습니다.');
+                            reordered = true;
+                        }
+                    }
+
+                    draggedItemInfo = null;
+                    if (reordered) {
+                        renderCurrentView(); // 변경이 일어났을 때만 렌더링
+                    }
+                });
+                // --- 드롭 로직 끝 ---
+
                 linkList.appendChild(listItem);
             });
 
+            // '새 링크 추가' 버튼 렌더링
             const addButton = document.createElement('li');
             addButton.id = 'add-btn';
             addButton.className = 'link-item';
             addButton.textContent = '+';
             addButton.addEventListener('click', () => {
-                document.getElementById('modal-title').textContent = '새 바로가기 추가';
-                document.getElementById('link-name-input').value = '';
-                document.getElementById('link-url-input').value = '';
-                formModal.style.display = 'flex';
+                editingItem = null;
+                openFormModal('link');
             });
             linkList.appendChild(addButton);
         }
 
-        // --- ✨ 데이터 보존을 위한 파일 저장 함수 ---
+        // --- 경로(Breadcrumbs) 렌더링 함수 ---
+        function renderBreadcrumbs() {
+            breadcrumbs.innerHTML = '';
+            breadcrumbs.removeEventListener('dragover', handleBreadcrumbDragOver);
+            breadcrumbs.removeEventListener('dragleave', handleBreadcrumbDragLeave);
+            breadcrumbs.removeEventListener('drop', handleBreadcrumbDrop);
+
+            navigationStack.forEach((folder, index) => {
+                const link = document.createElement('span');
+                link.textContent = folder.name;
+
+                if (index < navigationStack.length - 1) {
+                    link.className = 'breadcrumb-link';
+                    link.addEventListener('click', () => {
+                        navigationStack = navigationStack.slice(0, index + 1);
+                        renderCurrentView();
+                    });
+                    breadcrumbs.appendChild(link);
+                    
+                    const separator = document.createElement('span');
+                    separator.className = 'breadcrumb-separator';
+                    separator.textContent = '>';
+                    breadcrumbs.appendChild(separator);
+                } else {
+                    breadcrumbs.appendChild(link);
+                }
+            });
+
+            // Home이 아닐 경우에만 상위 폴더 이동 리스너 추가
+            if (navigationStack.length > 1) {
+                breadcrumbs.addEventListener('dragover', handleBreadcrumbDragOver);
+                breadcrumbs.addEventListener('dragleave', handleBreadcrumbDragLeave);
+                breadcrumbs.addEventListener('drop', handleBreadcrumbDrop);
+            }
+        }
+
+        // --- ✨ [요청 2] 액션 모달 열기 (수정됨) ---
+        function openActionModal(item, itemArray, index) {
+            currentActionItem = { item, array: itemArray, index };
+            document.getElementById('action-title').textContent = item.name;
+            
+            const primaryBtn = document.getElementById('action-primary-btn');
+            const copyBtn = document.getElementById('action-copy-btn');
+            
+            if (item.type === 'link') {
+                primaryBtn.textContent = '접속하기';
+                primaryBtn.style.display = 'inline-block';
+                copyBtn.style.display = 'inline-block';
+            } else { // 'folder'
+                primaryBtn.textContent = '열기';
+                primaryBtn.style.display = 'inline-block';
+                copyBtn.style.display = 'none';
+            }
+            actionModal.style.display = 'flex';
+        }
+
+        // --- 폼 모달 열기 (추가/수정용) ---
+        function openFormModal(type) {
+            const nameInput = document.getElementById('item-name-input');
+            const urlInput = document.getElementById('item-url-input');
+            const urlField = document.querySelector('.form-field-url');
+            const title = document.getElementById('modal-title');
+            const saveBtn = document.getElementById('modal-save-btn');
+            const colorField = document.querySelector('.form-field-color');
+            const colorInput = document.getElementById('item-color-input');
+
+            if (editingItem) {
+                // --- 수정 모드 ---
+                nameInput.value = editingItem.name;
+                saveBtn.textContent = '수정';
+                
+                if (editingItem.type === 'link') {
+                    title.textContent = '바로가기 수정';
+                    urlInput.value = editingItem.url;
+                    urlField.style.display = 'block';
+                    colorField.style.display = 'none';
+                } else { // 폴더 수정
+                    title.textContent = '폴더 이름 수정';
+                    urlInput.value = '';
+                    urlField.style.display = 'none';
+                    colorField.style.display = 'flex';
+                    colorInput.value = editingItem.color || '#fff3cd';
+                }
+            } else {
+                // --- 새 항목 추가 모드 (링크만 가능) ---
+                nameInput.value = '';
+                urlInput.value = '';
+                title.textContent = '새 바로가기 추가';
+                saveBtn.textContent = '추가';
+                urlField.style.display = 'block';
+                colorField.style.display = 'none';
+            }
+            
+            formModal.style.display = 'flex';
+        }
+
+        // --- 데이터 보존을 위한 파일 저장 함수 ---
         function saveToFile() {
-            // 현재 HTML 문서의 전체 내용을 복제
             const newHtml = document.documentElement.cloneNode(true);
-            
-            // 복제된 HTML의 script 부분에서 programs 배열을 현재 데이터로 교체
             const scriptTag = newHtml.querySelector('script');
-            const newProgramsString = JSON.stringify(programs, null, 4); // 보기 좋게 포맷팅
             
-            // 기존 스크립트 내용을 찾아서 교체 (정규식 사용)
+            const newDataStoreString = JSON.stringify(dataStore, null, 4);
+            
             const oldScriptContent = scriptTag.innerHTML;
-            const newScriptContent = oldScriptContent.replace(/let programs = \[(.|\n)*?\];/, `let programs = ${newProgramsString};`);
+            const newScriptContent = oldScriptContent.replace(
+                /let dataStore = \[(.|\n)*?\];/, 
+                `let dataStore = ${newDataStoreString};`
+            );
             
             scriptTag.innerHTML = newScriptContent;
 
-            // 다운로드 링크 생성
             const blob = new Blob([newHtml.outerHTML], { type: 'text/html' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = '바로가기.html'; // 저장될 파일 이름
+            a.download = '바로가기.html';
             a.click();
             
             URL.revokeObjectURL(a.href);
@@ -418,43 +940,133 @@
 
 
         // --- 이벤트 리스너 ---
+
+        // 폼 모달 (추가/수정) 저장 버튼
         document.getElementById('modal-save-btn').addEventListener('click', () => {
-            const name = document.getElementById('link-name-input').value.trim();
-            const url = document.getElementById('link-url-input').value.trim();
-            if (name && url) {
-                programs.push({ name, url });
-                renderLinks();
-                formModal.style.display = 'none';
-                showNotification('바로가기가 추가되었습니다. [파일로 저장하기]를 눌러주세요!');
+            const name = document.getElementById('item-name-input').value.trim();
+            const url = document.getElementById('item-url-input').value.trim();
+            
+            if (editingItem) {
+                // --- 수정 로직 ---
+                if (!name) { alert('이름을 입력해주세요.'); return; }
+                editingItem.name = name;
+                if (editingItem.type === 'link') {
+                    if (!url) { alert('주소를 입력해주세요.'); return; }
+                    editingItem.url = url;
+                } else {
+                    editingItem.color = document.getElementById('item-color-input').value;
+                }
+                showNotification('수정되었습니다. [파일로 저장하기]를 눌러주세요!');
             } else {
-                alert('이름과 주소를 모두 입력해주세요.');
+                // --- 새 링크 추가 로직 ---
+                if (name && url) {
+                    const newItem = { type: 'link', name, url };
+                    const currentFolder = navigationStack[navigationStack.length - 1];
+                    currentFolder.items.push(newItem);
+                    showNotification('바로가기가 추가되었습니다. [파일로 저장하기]를 눌러주세요!');
+                } else {
+                    alert('이름과 주소를 모두 입력해주세요.');
+                    return;
+                }
+            }
+            
+            editingItem = null;
+            renderCurrentView();
+            formModal.style.display = 'none';
+        });
+
+        // 폼 모달 취소
+        document.getElementById('modal-cancel-btn').addEventListener('click', () => { 
+            formModal.style.display = 'none'; 
+            editingItem = null;
+        });
+
+        // --- ✨ [요청 2] 액션 모달 - '열기' / '접속하기' 버튼 ---
+        document.getElementById('action-primary-btn').addEventListener('click', () => {
+            if (!currentActionItem) return;
+            const item = currentActionItem.item;
+
+            if (item.type === 'link' && item.url) {
+                window.open(item.url, '_blank');
+            } else if (item.type === 'folder') {
+                navigationStack.push(item);
+                renderCurrentView();
+            }
+            actionModal.style.display = 'none';
+        });
+
+        // 액션 모달 - 주소 복사
+        document.getElementById('action-copy-btn').addEventListener('click', () => {
+            if (currentActionItem && currentActionItem.item.type === 'link' && currentActionItem.item.url) { 
+                navigator.clipboard.writeText(currentActionItem.item.url).then(() => { 
+                    showNotification('주소가 클립보드에 복사되었습니다!'); 
+                }); 
+            }
+            actionModal.style.display = 'none';
+        });
+
+        // 액션 모달 - 수정하기
+        document.getElementById('action-edit-btn').addEventListener('click', () => {
+            if (currentActionItem) {
+                editingItem = currentActionItem.item;
+                actionModal.style.display = 'none';
+                openFormModal(editingItem.type);
             }
         });
-        document.getElementById('modal-cancel-btn').addEventListener('click', () => { formModal.style.display = 'none'; });
-        document.getElementById('action-goto-btn').addEventListener('click', () => {
-            if (currentActionUrl) { window.open(currentActionUrl, '_blank'); }
-            actionModal.style.display = 'none';
-        });
-        document.getElementById('action-copy-btn').addEventListener('click', () => {
-            if (currentActionUrl) { navigator.clipboard.writeText(currentActionUrl).then(() => { showNotification('주소가 클립보드에 복사되었습니다!'); }); }
-            actionModal.style.display = 'none';
-        });
+
+        // 액션 모달 - 삭제하기
         document.getElementById('action-delete-btn').addEventListener('click', () => {
-            if (currentActionIndex > -1) {
-                if (confirm('정말로 이 바로가기를 삭제하시겠습니까?')) {
-                    programs.splice(currentActionIndex, 1);
-                    renderLinks();
-                    showNotification('바로가기가 삭제되었습니다. [파일로 저장하기]를 눌러주세요!');
+            if (currentActionItem) {
+                const itemType = currentActionItem.item.type === 'folder' ? '폴더' : '항목';
+                if (confirm(`'${currentActionItem.item.name}' ${itemType}을(를) 정말로 삭제하시겠습니까?`)) {
+                    currentActionItem.array.splice(currentActionItem.index, 1);
+                    renderCurrentView();
+                    showNotification('삭제되었습니다. [파일로 저장하기]를 눌러주세요!');
                 }
             }
             actionModal.style.display = 'none';
         });
-        document.getElementById('action-close-btn').addEventListener('click', () => { actionModal.style.display = 'none'; });
+
+        // 액션 모달 - 닫기
+        document.getElementById('action-close-btn').addEventListener('click', () => { 
+            actionModal.style.display = 'none'; 
+        });
+
+        // --- ✨ [요청 1] 순서 변경 모드 버튼 클릭 ---
+        reorderModeBtn.addEventListener('click', () => {
+            isReorderMode = !isReorderMode; // 모드 토글
+            reorderModeBtn.classList.toggle('reorder-mode-active', isReorderMode);
+            container.classList.toggle('reorder-mode-on', isReorderMode); // 커서 변경용 클래스
+            
+            if (isReorderMode) {
+                showNotification('순서 변경 모드가 켜졌습니다. 드래그하여 순서를 바꾸세요.');
+            } else {
+                showNotification('순서 변경 모드가 꺼졌습니다. 폴더로 드래그하여 이동하세요.');
+            }
+        });
+
+        // --- 새 폴더 추가 버튼 ---
+        addFolderBtn.addEventListener('click', () => {
+            const folderName = prompt('새 폴더의 이름을 입력하세요:');
+            if (folderName && folderName.trim()) {
+                const newFolder = {
+                    type: 'folder',
+                    name: folderName.trim(),
+                    items: [],
+                    color: '#fff3cd'
+                };
+                const currentFolder = navigationStack[navigationStack.length - 1];
+                currentFolder.items.push(newFolder);
+                renderCurrentView();
+                showNotification('새 폴더가 추가되었습니다. [파일로 저장하기]를 눌러주세요!');
+            }
+        });
+
+        // 파일로 저장하기 버튼
         saveAsFileBtn.addEventListener('click', saveToFile);
 
-        // 페이지 로드 시, script 태그 안의 programs 배열을 사용해 렌더링
-        // 이 부분은 HTML이 로드될 때 자동으로 실행되므로 별도 함수 호출이 필요 없음
-        renderLinks();
+        // 페이지 로드 시 초기 렌더링
+        renderCurrentView();
     </script>
 
 </body></html>
