@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>화학 반응 통합 시뮬레이션</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Jua', sans-serif;
+            touch-action: none; /* 모바일 드래그 시 화면 스크롤 방지 */
+        }
+        .supply-item, .welcome-button {
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .supply-item:active {
+            cursor: grabbing;
+        }
+        .supply-item:active, .welcome-button:active {
+            transform: scale(1.05);
+            z-index: 100;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        #flask {
+            width: 400px;
+            height: 500px;
+            border-bottom: 8px solid #9ca3af;
+            border-left: 8px solid #9ca3af;
+            border-right: 8px solid #9ca3af;
+            border-bottom-left-radius: 150px;
+            border-bottom-right-radius: 150px;
+            position: relative;
+            background: linear-gradient(to top, rgba(191, 219, 254, 0.4), rgba(191, 219, 254, 0.1));
+            margin: 0 auto;
+        }
+        #flask::before {
+            content: '';
+            position: absolute;
+            top: -60px;
+            left: calc(50% - 100px);
+            width: 200px;
+            height: 60px;
+            border-top: 8px solid #9ca3af;
+            border-left: 8px solid #9ca3af;
+            border-right: 8px solid #9ca3af;
+        }
+        #beaker {
+            border-bottom: 5px solid #60a5fa;
+            border-left: 5px solid #60a5fa;
+            border-right: 5px solid #60a5fa;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            position: relative;
+            background: linear-gradient(to top, rgba(229, 231, 235, 0.4), rgba(229, 231, 235, 0.1));
+        }
+        .molecule { position: absolute; transition: all 0.5s ease-in-out; }
+        .catalyst-active { animation: pulse 1s infinite; }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 15px rgba(234, 179, 8, 0.7); }
+            50% { box-shadow: 0 0 0px rgba(234, 179, 8, 0); }
+        }
+        .o2-bubble, .co2-bubble { position: absolute; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        
+        /* 산소 거품 크기 3배 증가 (45px -> 135px) */
+        .o2-bubble { 
+            background-color: rgba(209, 213, 219, 0.8); 
+            width: 135px; 
+            height: 135px; 
+            animation: rise-o2 3s ease-in forwards; 
+            font-size: 42px; /* 글씨 크기 조정 */
+            color: #374151;
+        }
+        
+        /* 이산화탄소 거품 크기 3배 증가 (40px -> 120px) */
+        .co2-bubble { 
+            background-color: rgba(209, 213, 219, 0.7); 
+            width: 120px; 
+            height: 120px; 
+            animation: rise-co2 2.5s ease-in forwards; 
+            font-size: 36px; /* 글씨 크기 조정 */
+            color: #4b5563;
+        }
+
+        @keyframes rise-o2 { 0% { transform: translateY(0) scale(0.5); opacity: 1; } 100% { transform: translateY(-500px) scale(1.2); opacity: 0; } }
+        @keyframes rise-co2 { 0% { transform: translateY(0) scale(0.5); opacity: 1; } 100% { transform: translateY(-450px) scale(1.2); opacity: 0; } }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4 text-lg">
+
+    <div class="w-full max-w-7xl">
+        <!-- 공통 헤더 -->
+        <header class="text-center mb-6 bg-white p-4 rounded-xl shadow-lg flex justify-between items-center">
+            <h1 id="main-title" class="text-2xl md:text-4xl font-bold text-gray-800">👩‍🔬 화학 반응 통합 시뮬레이션</h1>
+            <div class="flex items-center space-x-2">
+                 <button class="home-button hidden bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-full transition-colors">홈으로</button>
+                 <span class="text-sm text-gray-600 hidden sm:inline">글씨 크기:</span>
+                 <button id="decrease-font" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-full transition-colors">-</button>
+                 <button id="increase-font" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-full transition-colors">+</button>
+            </div>
+        </header>
+        
+        <!-- 시작 화면 -->
+        <div id="welcome-screen" class="text-center p-8">
+            <h2 class="text-3xl font-bold mb-6 resizable-text">어떤 실험을 해볼까요?</h2>
+            <div class="flex flex-col md:flex-row justify-center items-center gap-8">
+                <button id="start-oxygen-sim" class="welcome-button w-64 h-40 bg-blue-500 text-white rounded-2xl shadow-xl flex flex-col justify-center items-center">
+                    <span class="text-2xl font-bold">산소(O₂) 발생 실험</span>
+                    <span class="text-sm mt-2">(과산화수소 + 이산화망가니즈)</span>
+                </button>
+                <button id="start-co2-sim" class="welcome-button w-64 h-40 bg-green-500 text-white rounded-2xl shadow-xl flex flex-col justify-center items-center">
+                    <span class="text-2xl font-bold">이산화탄소(CO₂) 발생 실험</span>
+                    <span class="text-sm mt-2">(식초 + 베이킹소다)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 산소(O2) 발생 시뮬레이션 -->
+        <div id="oxygen-simulation" class="hidden">
+            <p class="text-center text-lg text-gray-600 mt-2 mb-6 resizable-text">과산화수소(H₂O₂) 분해 반응에서 이산화 망가니즈(MnO₂) 촉매의 역할을 알아봅시다!</p>
+            <main class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white p-6 rounded-2xl shadow-xl">
+                <div class="flex flex-col items-center justify-around p-4 border-2 border-dashed rounded-lg bg-gray-50 min-h-[500px]">
+                    <h2 class="text-2xl font-bold text-gray-700 resizable-text">재료 공급</h2>
+                    <p class="text-center text-gray-500 resizable-text">아래 재료를<br>오른쪽 플라스크로 드래그 해보세요.</p>
+                    <div class="space-y-6">
+                        <div id="h2o2-supply" draggable="true" class="supply-item w-48 h-20 bg-blue-200 border-2 border-blue-400 rounded-lg flex flex-col items-center justify-center text-center font-bold resizable-text">묽은 과산화수소수<span>H₂O₂</span></div>
+                        <div id="mno2-supply" draggable="true" class="supply-item w-48 h-20 bg-gray-600 text-white border-2 border-gray-800 rounded-full flex flex-col items-center justify-center text-center font-bold resizable-text">이산화 망가니즈 (촉매)<span>MnO₂</span></div>
+                    </div>
+                </div>
+                <div class="col-span-1 md:col-span-2 relative flex justify-center items-center">
+                    <div id="flask"></div>
+                </div>
+            </main>
+            <div class="w-full mt-6 p-4 rounded-lg shadow-md bg-gray-200 flex flex-col items-center justify-center text-center">
+                <p id="o2-reaction-message" class="text-lg font-bold text-red-600 h-12 flex items-center resizable-text"></p>
+                <button class="o2-reset-button mt-2 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-full transition-colors">실험 다시하기</button>
+            </div>
+            <footer class="w-full mt-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                <div class="bg-blue-100 p-4 rounded-lg shadow-md"><h3 class="text-xl font-bold text-blue-800 resizable-text">플라스크 안의 H₂O₂</h3><p id="h2o2-count" class="text-4xl font-bold text-blue-600">0</p></div>
+                <div class="bg-gray-300 p-4 rounded-lg shadow-md"><h3 class="text-xl font-bold text-gray-800 resizable-text">플라스크 안의 MnO₂</h3><p id="mno2-count" class="text-4xl font-bold text-gray-600">0</p></div>
+                <div class="bg-green-100 p-4 rounded-lg shadow-md"><h3 class="text-xl font-bold text-green-800 resizable-text">생성된 산소(O₂)</h3><p id="o2-count" class="text-4xl font-bold text-green-600">0</p></div>
+            </footer>
+        </div>
+
+        <!-- 이산화탄소(CO2) 발생 시뮬레이션 -->
+        <div id="co2-simulation" class="hidden">
+             <p class="text-center text-lg text-gray-600 mt-2 mb-6 resizable-text">식초(CH₃COOH)와 베이킹 소다(NaHCO₃)의 반응에서 '한계 반응물'의 역할을 알아봅시다!</p>
+            <main class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white p-6 rounded-2xl shadow-xl">
+                <div class="flex flex-col items-center justify-around p-4 border-2 border-dashed rounded-lg bg-gray-50 min-h-[500px]">
+                    <h2 class="text-2xl font-bold text-gray-700 resizable-text">반응물 공급</h2>
+                    <p class="text-center text-gray-500 resizable-text">아래 분자들을<br>오른쪽 비커로 드래그 해보세요.</p>
+                    <div class="space-y-6">
+                        <div id="vinegar-supply" draggable="true" class="supply-item w-40 h-16 bg-blue-200 border-2 border-blue-400 rounded-lg flex items-center justify-center text-center font-bold resizable-text">식초<br>CH₃COOH</div>
+                        <div id="baking-soda-supply" draggable="true" class="supply-item w-40 h-16 bg-green-200 border-2 border-green-400 rounded-lg flex items-center justify-center text-center font-bold resizable-text">베이킹 소다<br>NaHCO₃</div>
+                    </div>
+                </div>
+                <div id="beaker" class="h-96 md:h-[500px] col-span-1 md:col-span-2 p-4 flex flex-wrap content-end gap-2"></div>
+            </main>
+            <div class="w-full mt-6 p-4 rounded-lg shadow-md bg-gray-200 flex flex-col items-center justify-center text-center">
+                 <p id="co2-reaction-message" class="text-lg font-bold text-red-600 h-12 flex items-center resizable-text"></p>
+                 <button class="co2-reset-button mt-2 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-full transition-colors">실험 다시하기</button>
+            </div>
+            <footer class="w-full mt-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                <div class="bg-blue-100 p-4 rounded-lg shadow-md"><h3 class="text-xl font-bold text-blue-800 resizable-text">비커 안의 식초</h3><p id="vinegar-count" class="text-4xl font-bold text-blue-600">0</p></div>
+                <div class="bg-green-100 p-4 rounded-lg shadow-md"><h3 class="text-xl font-bold text-green-800 resizable-text">비커 안의 베이킹 소다</h3><p id="baking-soda-count" class="text-4xl font-bold text-green-600">0</p></div>
+                <div class="bg-yellow-100 p-4 rounded-lg shadow-md"><h3 class="text-xl font-bold text-yellow-800 resizable-text">생성된 이산화탄소</h3><p id="co2-count" class="text-4xl font-bold text-yellow-600">0</p></div>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- 공통 요소 ---
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const oxygenSimScreen = document.getElementById('oxygen-simulation');
+        const co2SimScreen = document.getElementById('co2-simulation');
+        const startOxygenBtn = document.getElementById('start-oxygen-sim');
+        const startCo2Btn = document.getElementById('start-co2-sim');
+        const homeButtons = document.querySelectorAll('.home-button');
+        const mainTitle = document.getElementById('main-title');
+        
+        const increaseFontBtn = document.getElementById('increase-font');
+        const decreaseFontBtn = document.getElementById('decrease-font');
+        let currentFontSize = 1.125; // rem 단위 (18px)
+        
+        // --- 산소(O2) 시뮬레이션 요소 ---
+        const flask = document.getElementById('flask');
+        const h2o2Supply = document.getElementById('h2o2-supply');
+        const mno2Supply = document.getElementById('mno2-supply');
+        const h2o2CountDisplay = document.getElementById('h2o2-count');
+        const mno2CountDisplay = document.getElementById('mno2-count');
+        const o2CountDisplay = document.getElementById('o2-count');
+        const o2MessageDisplay = document.getElementById('o2-reaction-message');
+        const o2ResetButton = document.querySelector('.o2-reset-button');
+        let naturalDecompositionInterval;
+
+        // --- 이산화탄소(CO2) 시뮬레이션 요소 ---
+        const beaker = document.getElementById('beaker');
+        const vinegarSupply = document.getElementById('vinegar-supply');
+        const bakingSodaSupply = document.getElementById('baking-soda-supply');
+        const vinegarCountDisplay = document.getElementById('vinegar-count');
+        const bakingSodaCountDisplay = document.getElementById('baking-soda-count');
+        const co2CountDisplay = document.getElementById('co2-count');
+        const co2MessageDisplay = document.getElementById('co2-reaction-message');
+        const co2ResetButton = document.querySelector('.co2-reset-button');
+        let vinegarInBeaker = 0;
+        let bakingSodaInBeaker = 0;
+        let co2Count = 0;
+
+        // --- 공통 기능 ---
+        function showScreen(screenToShow) {
+            welcomeScreen.classList.add('hidden');
+            oxygenSimScreen.classList.add('hidden');
+            co2SimScreen.classList.add('hidden');
+            homeButtons.forEach(b => b.classList.remove('hidden'));
+            if(screenToShow) screenToShow.classList.remove('hidden');
+            else welcomeScreen.classList.remove('hidden');
+        }
+
+        function updateFontSize() {
+            const resizableElements = document.querySelectorAll('.resizable-text');
+            resizableElements.forEach(el => {
+                el.style.fontSize = `${currentFontSize}rem`;
+            });
+        }
+        updateFontSize(); // 초기 폰트 크기 적용
+
+        increaseFontBtn.addEventListener('click', () => {
+            if (currentFontSize < 3) { // 최대 크기 제한
+                currentFontSize += 0.1;
+                updateFontSize();
+            }
+        });
+
+        decreaseFontBtn.addEventListener('click', () => {
+            if (currentFontSize > 0.7) { // 최소 크기 제한
+                currentFontSize -= 0.1;
+                updateFontSize();
+            }
+        });
+
+        startOxygenBtn.addEventListener('click', () => {
+            showScreen(oxygenSimScreen);
+            mainTitle.textContent = '🔬 산소(O₂) 발생 실험';
+            initializeOxygenSim();
+        });
+
+        startCo2Btn.addEventListener('click', () => {
+            showScreen(co2SimScreen);
+            mainTitle.textContent = '🧪 이산화탄소(CO₂) 발생 실험';
+            initializeCo2Sim();
+        });
+
+        homeButtons.forEach(button => button.addEventListener('click', () => {
+            showScreen(null);
+            mainTitle.textContent = '👩‍🔬 화학 반응 통합 시뮬레이션';
+            homeButtons.forEach(b => b.classList.add('hidden'));
+            if (naturalDecompositionInterval) clearInterval(naturalDecompositionInterval);
+        }));
+
+
+        // --- O2 시뮬레이션 로직 ---
+        function initializeOxygenSim() {
+            flask.innerHTML = '';
+            o2MessageDisplay.textContent = '재료를 플라스크에 넣어주세요.';
+            o2CountDisplay.textContent = '0';
+            if (naturalDecompositionInterval) clearInterval(naturalDecompositionInterval);
+            updateOxygenDisplays();
+
+            naturalDecompositionInterval = setInterval(() => {
+                const h2o2Molecule = flask.querySelector('.h2o2-molecule');
+                if (h2o2Molecule) {
+                    o2MessageDisplay.textContent = '과산화수소는 스스로 아주 천천히 분해됩니다...';
+                    decomposeH2O2(h2o2Molecule);
+                }
+            }, 10000); // 10초로 변경 (0.5배 속도)
+        }
+
+        function updateOxygenDisplays() {
+            h2o2CountDisplay.textContent = flask.querySelectorAll('.h2o2-molecule').length;
+            mno2CountDisplay.textContent = flask.querySelectorAll('.catalyst-molecule').length;
+        }
+
+        function addMoleculeToFlask(type) {
+            const molecule = document.createElement('div');
+            molecule.className = 'molecule';
+            const flaskRect = flask.getBoundingClientRect();
+            const x = Math.random() * (flaskRect.width - 100);
+            const y = Math.random() * (flaskRect.height / 2);
+            molecule.style.left = `${x}px`;
+            molecule.style.bottom = `${y}px`;
+
+            if (type === 'h2o2') {
+                molecule.innerHTML = `<div class="h2o2-molecule w-24 h-12 bg-blue-200 border-2 border-blue-400 rounded-lg flex items-center justify-center text-center text-xs font-bold resizable-text">H₂O₂</div>`;
+            } else {
+                molecule.innerHTML = `<div class="catalyst-molecule w-24 h-12 bg-gray-600 text-white border-2 border-gray-800 rounded-full flex items-center justify-center text-center text-xs font-bold resizable-text">MnO₂</div>`;
+                setTimeout(() => activateCatalyst(molecule), 100);
+            }
+            flask.appendChild(molecule);
+            updateOxygenDisplays();
+            updateFontSize();
+        }
+
+        function activateCatalyst(catalystElement) {
+            catalystElement.querySelector('.catalyst-molecule').classList.add('catalyst-active');
+            const catalystInterval = setInterval(() => {
+                if (!flask.contains(catalystElement)) {
+                    clearInterval(catalystInterval);
+                    return;
+                }
+                const h2o2Molecule = flask.querySelector('.h2o2-molecule');
+                if (h2o2Molecule) {
+                    o2MessageDisplay.textContent = '촉매가 반응 속도를 빠르게 합니다!';
+                    const h2o2Rect = h2o2Molecule.parentElement.getBoundingClientRect();
+                    const flaskRect = flask.getBoundingClientRect();
+                    catalystElement.style.left = `${h2o2Rect.left - flaskRect.left}px`;
+                    catalystElement.style.bottom = `${flaskRect.bottom - h2o2Rect.bottom}px`;
+                    setTimeout(() => {
+                        if (flask.contains(h2o2Molecule.parentElement)) {
+                           decomposeH2O2(h2o2Molecule, () => {
+                                if(flask.contains(catalystElement)){
+                                    const x = Math.random() * (flask.clientWidth - 100);
+                                    const y = Math.random() * (flask.clientHeight / 2);
+                                    catalystElement.style.left = `${x}px`;
+                                    catalystElement.style.bottom = `${y}px`;
+                                }
+                           });
+                        }
+                    }, 600);
+                } else {
+                    o2MessageDisplay.textContent = '촉매는 반응할 과산화수소를 기다리고 있습니다.';
+                }
+            }, 1500);
+        }
+
+        function decomposeH2O2(h2o2Molecule, callback) {
+            const parent = h2o2Molecule.parentElement;
+            if (!parent || !flask.contains(parent)) return;
+            const rect = parent.getBoundingClientRect();
+            const flaskRect = flask.getBoundingClientRect();
+            parent.remove();
+            for (let i = 0; i < 2; i++) {
+                const waterMolecule = document.createElement('div');
+                waterMolecule.className = 'molecule';
+                waterMolecule.innerHTML = `<div class="w-20 h-10 bg-cyan-200 border-2 border-cyan-400 rounded-lg flex items-center justify-center text-center text-xs font-bold resizable-text">물 (H₂O)</div>`;
+                waterMolecule.style.left = `${rect.left - flaskRect.left + (i * 40 - 20)}px`;
+                waterMolecule.style.bottom = `${flaskRect.bottom - rect.bottom}px`;
+                flask.appendChild(waterMolecule);
+            }
+            const bubble = document.createElement('div');
+            bubble.className = 'o2-bubble';
+            bubble.textContent = 'O₂';
+            bubble.style.left = `${rect.left - flaskRect.left - 50}px`;
+            bubble.style.bottom = `${flaskRect.bottom - rect.bottom}px`;
+            flask.appendChild(bubble);
+            setTimeout(() => bubble.remove(), 3000);
+            o2CountDisplay.textContent = parseInt(o2CountDisplay.textContent) + 1;
+            updateOxygenDisplays();
+            updateFontSize();
+            if(callback) callback();
+        }
+
+        [h2o2Supply, mno2Supply].forEach(supply => {
+            supply.addEventListener('dragstart', (e) => {
+                const type = e.target.id === 'h2o2-supply' ? 'h2o2' : 'mno2';
+                e.dataTransfer.setData('text/plain', type);
+                e.target.style.opacity = '0.5';
+            });
+            supply.addEventListener('dragend', (e) => e.target.style.opacity = '1');
+        });
+        flask.addEventListener('dragover', (e) => e.preventDefault());
+        flask.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const type = e.dataTransfer.getData('text/plain');
+            if (type === 'h2o2' || type === 'mno2') {
+                addMoleculeToFlask(type);
+            }
+        });
+        o2ResetButton.addEventListener('click', initializeOxygenSim);
+
+        // --- CO2 시뮬레이션 로직 ---
+        function initializeCo2Sim() {
+            beaker.innerHTML = '';
+            vinegarInBeaker = 0;
+            bakingSodaInBeaker = 0;
+            co2Count = 0;
+            updateCo2Displays();
+            co2MessageDisplay.textContent = '반응물을 비커에 넣어주세요.';
+        }
+
+        function updateCo2Displays() {
+            vinegarCountDisplay.textContent = vinegarInBeaker;
+            bakingSodaCountDisplay.textContent = bakingSodaInBeaker;
+            co2CountDisplay.textContent = co2Count;
+        }
+
+        function addMoleculeToBeaker(type) {
+            const molecule = document.createElement('div');
+            let text, className;
+            if (type === 'vinegar') {
+                vinegarInBeaker++;
+                text = '식초\nCH₃COOH';
+                className = 'vinegar-molecule w-32 h-14 bg-blue-200 border-2 border-blue-400 rounded-lg flex items-center justify-center text-center font-bold resizable-text';
+            } else {
+                bakingSodaInBeaker++;
+                text = '베이킹 소다\nNaHCO₃';
+                className = 'baking-soda-molecule w-32 h-14 bg-green-200 border-2 border-green-400 rounded-lg flex items-center justify-center text-center font-bold resizable-text';
+            }
+            molecule.className = className;
+            molecule.textContent = text;
+            beaker.appendChild(molecule);
+            updateCo2Displays();
+            updateFontSize();
+            checkForCo2Reaction();
+        }
+
+        function checkForCo2Reaction() {
+            if (vinegarInBeaker > 0 && bakingSodaInBeaker > 0) {
+                co2MessageDisplay.textContent = '반응물이 모두 모여 반응이 일어납니다!';
+                setTimeout(runCo2Reaction, 500);
+            } else if(vinegarInBeaker > 0 || bakingSodaInBeaker > 0) {
+                 co2MessageDisplay.textContent = '다른 반응물도 넣어주세요!';
+            }
+        }
+
+        function runCo2Reaction() {
+            const vinegarMolecule = beaker.querySelector('.vinegar-molecule');
+            const bakingSodaMolecule = beaker.querySelector('.baking-soda-molecule');
+            
+            if (vinegarMolecule && bakingSodaMolecule) {
+                vinegarInBeaker--;
+                bakingSodaInBeaker--;
+                co2Count++;
+
+                vinegarMolecule.remove();
+                bakingSodaMolecule.remove();
+                
+                const product = document.createElement('div');
+                product.className = 'w-48 h-14 bg-yellow-200 border-2 border-yellow-400 rounded-lg flex items-center justify-center text-center font-bold resizable-text';
+                product.innerHTML = '아세트산나트륨 + 물<br>+ ↑이산화탄소(CO₂)</span>';
+                beaker.appendChild(product);
+                
+                const bubble = document.createElement('div');
+                bubble.className = 'co2-bubble';
+                bubble.textContent = 'CO₂';
+                bubble.style.left = `${Math.random() * (beaker.clientWidth - 120)}px`;
+                beaker.appendChild(bubble);
+                setTimeout(() => bubble.remove(), 2500);
+            }
+            updateCo2Displays();
+            updateFontSize();
+        }
+
+        [vinegarSupply, bakingSodaSupply].forEach(supply => {
+            supply.addEventListener('dragstart', (e) => {
+                const type = e.target.id === 'vinegar-supply' ? 'vinegar' : 'baking-soda';
+                e.dataTransfer.setData('text/plain', type);
+                e.target.style.opacity = '0.5';
+            });
+            supply.addEventListener('dragend', (e) => e.target.style.opacity = '1');
+        });
+        beaker.addEventListener('dragover', (e) => e.preventDefault());
+        beaker.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const type = e.dataTransfer.getData('text/plain');
+            if (type === 'vinegar' || type === 'baking-soda') {
+                addMoleculeToBeaker(type);
+            }
+        });
+        co2ResetButton.addEventListener('click', initializeCo2Sim);
+
+    });
+    </script>
+</body>
+</html>
+
