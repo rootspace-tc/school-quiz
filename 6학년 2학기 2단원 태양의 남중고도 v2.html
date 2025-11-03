@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>태양 고도와 그림자 시뮬레이터</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Jua 글꼴 및 전체 화면 설정 */
+        body, html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Jua', sans-serif;
+            background-color: #f0f4f8; /* 현실적인 하늘색 배경 */
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        /* 시뮬레이션 컨테이너 (하늘) */
+        .simulation-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            background: linear-gradient(to bottom, #87CEEB 0%, #f0f4f8 70%); /* 하늘 그라데이션 */
+            position: relative; /* 태양 배치를 위해 추가 */
+        }
+
+        /* 3D 모드 지면 */
+        .ground {
+            width: 70vh;
+            height: 70vh;
+            background-color: #7CFC00;
+            background-image: radial-gradient(rgba(0, 0, 0, 0.1) 10%, transparent 10%);
+            background-size: 10px 10px;
+            border-radius: 50%;
+            border: 5px solid #8B4513;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.5s ease-in-out;
+        }
+        
+        /* 2D 모드 지면 */
+        body.mode-2d .ground {
+            width: 100%; /* 가로 100% */
+            height: 300px; /* 고정된 높이 */
+            border-radius: 0;
+            background-image: none;
+            background-color: #ad8a56; /* 흙색 지면 */
+            border: none;
+            border-top: 5px solid #5d4a2a;
+            box-shadow: none;
+            position: absolute;
+            bottom: 0; /* 화면 하단에 고정 */
+            left: 0;
+            display: block; 
+        }
+
+
+        /* 3D 모드 방위 표시 */
+        .direction {
+            position: absolute;
+            font-size: 1.5rem;
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 5px 10px;
+            border-radius: 5px;
+            text-shadow: 1px 1px 2px #000;
+        }
+        .north { top: 2%; }
+        .south { bottom: 2%; }
+        .east { right: 2%; } 
+        .west { left: 2%; }
+        body.mode-2d .direction { display: none; } /* 2D 모드에서는 방위 숨김 */
+
+        /* 3D 모드 막대 */
+        .gnomon {
+            width: 15px;
+            height: 15px;
+            background-color: #B22222;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            transition: all 0.5s ease-in-out;
+            position: relative; /* 3D 모드 기본값 */
+        }
+        
+        /* 2D 모드 막대 */
+        body.mode-2d .gnomon {
+            position: absolute;
+            bottom: 300px; /* 지면(높이 300px) 바로 위 */
+            left: 50%; /* ★ 화면 가로 중앙 */
+            width: 10px;
+            height: 150px; /* 막대 높이 150px로 고정 */
+            background-color: #8B4513; /* 나무 막대 색상 */
+            border-radius: 2px;
+            transform: translateX(-50%); /* 정확한 중앙 정렬 */
+            border: none;
+            box-shadow: none;
+            z-index: 10; /* 그림자보다 위에 보이도록 */
+        }
+
+
+        /* 3D 모드 그림자 */
+        .shadow {
+            width: 0px;
+            height: 8px;
+            background-color: rgba(0, 0, 0, 0.4);
+            border-radius: 4px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: 0% 50%;
+            z-index: 5;
+            transition: width 0.05s linear, transform 0.05s linear;
+        }
+        
+        /* 2D 모드 그림자 */
+        body.mode-2d .shadow {
+            position: absolute;
+            bottom: 300px; /* 지면 위 */
+            left: 50%; /* ★ 막대와 동일하게 중앙에서 시작 */
+            height: 3px; 
+            background-color: rgba(0, 0, 0, 0.6);
+            border-radius: 0;
+            transform-origin: 0% 50%; /* 왼쪽 끝에서 시작 */
+            transform: rotate(0deg); /* 2D에서는 항상 0도 (수평) */
+            z-index: 4;
+            transition: width 0.05s linear, transform 0.05s linear;
+            top: auto; /* 3D 모드 값 초기화 */
+        }
+
+        /* 3D 모드 태양 */
+        .sun {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, #FFD700 0%, #FFA500 50%, transparent 80%);
+            border-radius: 50%;
+            box-shadow: 0 0 40px 15px rgba(255, 165, 0, 0.7);
+            transform: translate(-50%, -50%); /* 중앙 정렬 */
+            z-index: 20;
+            transition: top 0.05s linear, left 0.05s linear;
+        }
+        
+        /* 2D 모드 태양 */
+        body.mode-2d .sun {
+            width: 60px;
+            height: 60px;
+            box-shadow: 0 0 20px 10px rgba(255, 165, 0, 0.7);
+            /* 2D 모드에서는 top과 left가 JS에서 계산됨 */
+            z-index: 20;
+        }
+
+        /* 정보 패널 */
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border: 1px solid #ddd;
+            z-index: 30;
+        }
+        .info-panel p {
+            margin: 10px 0;
+            font-size: 1.2rem;
+        }
+        .note {
+            font-size: 0.9rem !important;
+            color: #555;
+            margin-top: 15px !important;
+        }
+
+        /* 컨트롤러 (슬라이더) */
+        .controller {
+            width: 80%;
+            max-width: 800px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px 10px 0 0;
+            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            position: absolute;
+            bottom: 0;
+            z-index: 30;
+        }
+        body.mode-2d .controller {
+            background-color: rgba(255, 255, 255, 0.7); /* 2D 모드에서 지면 위에 있으므로 반투명 */
+        }
+        .controller label {
+            font-size: 1.3rem;
+            display: block;
+            margin-bottom: 10px;
+        }
+        #time-slider {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        /* 계절 버튼 및 보기 모드 버튼 */
+        .top-right-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column; /* 세로로 정렬 */
+            gap: 10px;
+            z-index: 30;
+        }
+        .season-buttons, .view-mode-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .top-right-controls button {
+            font-family: 'Jua', sans-serif;
+            font-size: 1.1rem;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background-color: #4CAF50; /* 기본 녹색 */
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+        .top-right-controls button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+        .top-right-controls button.active {
+            background-color: #2196F3; /* 선택된 버튼 파란색 */
+            box-shadow: 0 0 0 3px #2196F3, 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 2D 모드 전용 요소 (빛줄기, 각도 호, 각도 텍스트) */
+        .light-ray, .angle-arc, .angle-text {
+            display: none; /* 3D 모드에서는 숨김 */
+            position: absolute;
+            transition: all 0.05s linear;
+            z-index: 15;
+        }
+        body.mode-2d .light-ray,
+        body.mode-2d .angle-arc,
+        body.mode-2d .angle-text {
+            display: block; /* 2D 모드에서만 표시 */
+        }
+        
+        /* ★ 태양 빛줄기 (막대 끝과 그림자 끝을 잇는 선) */
+        .light-ray {
+            background: linear-gradient(to right, rgba(255, 220, 0, 0.7), rgba(255, 220, 0, 0.3));
+            height: 3px;
+            transform-origin: 0% 50%; /* 왼쪽(시작점)에서 시작 */
+            z-index: 18;
+        }
+        
+        /* ★ 각도 호 */
+        .angle-arc {
+            border: 2px dashed blue;
+            border-top-color: transparent;
+            border-left-color: transparent;
+            border-radius: 0 0 100% 0; /* 오른쪽 아래 호 모양 */
+            background: rgba(0, 0, 255, 0.1);
+            transform-origin: 0% 100%; /* ★ 그림자 끝, 지면과 만나는 지점 기준 */
+            box-sizing: border-box;
+            z-index: 16;
+        }
+        
+        /* ★ 각도 텍스트 */
+        .angle-text {
+            font-size: 1.1rem;
+            color: blue;
+            font-weight: bold;
+            z-index: 17;
+            transform: none; /* 이전 transform 초기화 */
+        }
+    </style>
+</head>
+<body class="mode-3d"> 
+<div class="simulation-container">
+        <div class="sun"></div>
+        <div class="ground">
+            <div class="direction north">북</div>
+            <div class="direction south">남</div>
+            <div class="direction east">동</div>
+            <div class="direction west">서</div>
+        </div>
+        
+        <div class="gnomon"></div>
+        <div class="shadow"></div>
+        
+        <div class="light-ray"></div>
+        <div class="angle-arc"></div>
+        <div class="angle-text"></div>
+    </div>
+
+    <div class="info-panel">
+        <div class="info-box">
+            <h3>시뮬레이션 정보</h3>
+            <p><strong>시간:</strong> <span id="time-display">06:00</span></p>
+            <p><strong>태양 고도:</strong> <span id="altitude-display">0.0°</span></p>
+            <p><strong>그림자 길이:</strong> <span id="shadow-display">무한대</span></p>
+            <p class="note">(막대 높이 1m 기준)</p>
+        </div>
+    </div>
+
+    <div class="top-right-controls">
+        <div class="season-buttons">
+            <button id="season-spring-autumn" class="active">봄/가을</button>
+            <button id="season-summer">여름</button>
+            <button id="season-winter">겨울</button>
+        </div>
+        <div class="view-mode-buttons">
+            <button id="mode-3d-btn" class="active">3D 보기</button>
+            <button id="mode-2d-btn">2D 단면 보기</button>
+        </div>
+    </div>
+
+    <div class="controller">
+        <label for="time-slider">시간 조절 (06:00 ~ 18:00)</label>
+        <input type="range" id="time-slider" min="0" max="100" value="0">
+    </div>
+
+    <script>
+        // DOM 요소 가져오기
+        const body = document.body;
+        const slider = document.getElementById('time-slider');
+        const shadow = document.querySelector('.shadow');
+        const timeDisplay = document.getElementById('time-display');
+        const altitudeDisplay = document.getElementById('altitude-display');
+        const shadowDisplay = document.getElementById('shadow-display');
+        const sun = document.querySelector('.sun'); 
+        const gnomon = document.querySelector('.gnomon');
+        const ground = document.querySelector('.ground');
+        const simulationContainer = document.querySelector('.simulation-container');
+
+        const seasonSpringAutumnBtn = document.getElementById('season-spring-autumn');
+        const seasonSummerBtn = document.getElementById('season-summer');
+        const seasonWinterBtn = document.getElementById('season-winter');
+        const seasonButtons = [seasonSpringAutumnBtn, seasonSummerBtn, seasonWinterBtn];
+
+        const mode3dBtn = document.getElementById('mode-3d-btn');
+        const mode2dBtn = document.getElementById('mode-2d-btn');
+
+        // 2D 단면 보기 전용 요소
+        const lightRay = document.querySelector('.light-ray');
+        const angleArc = document.querySelector('.angle-arc');
+        const angleText = document.querySelector('.angle-text');
+
+        // 가상의 막대 높이 (m) - 실제 시뮬레이션에 사용될 기준값
+        const gnomonHeight = 1; 
+        // 2D 모드에서 막대 시각적 높이 (px)
+        const gnomonHeight2D_PX = 150; 
+        // 2D 모드에서 지면 높이 (px) - CSS와 동일하게 설정
+        const groundHeight2D_PX = 300; 
+
+        // 계절별 남중고도
+        const SEASON_ALTITUDE = {
+            SPRING_AUTUMN: 45, 
+            SUMMER: 72,       
+            WINTER: 28        
+        };
+
+        let currentMaxAltitude = SEASON_ALTITUDE.SPRING_AUTUMN; 
+        let currentViewMode = '3d'; 
+
+        // 이벤트 리스너 설정
+        slider.addEventListener('input', updateSimulation);
+        seasonSpringAutumnBtn.addEventListener('click', () => setSeason(SEASON_ALTITUDE.SPRING_AUTUMN, seasonSpringAutumnBtn));
+        seasonSummerBtn.addEventListener('click', () => setSeason(SEASON_ALTITUDE.SUMMER, seasonSummerBtn));
+        seasonWinterBtn.addEventListener('click', () => setSeason(SEASON_ALTITUDE.WINTER, seasonWinterBtn));
+        mode3dBtn.addEventListener('click', () => setViewMode('3d', mode3dBtn));
+        mode2dBtn.addEventListener('click', () => setViewMode('2d', mode2dBtn));
+        window.addEventListener('resize', updateSimulation); // 창 크기 변경 시 업데이트
+
+        // 페이지 로드 시 초기 상태 설정
+        updateSimulation();
+
+        // 계절 설정 함수
+        function setSeason(altitude, activeButton) {
+            currentMaxAltitude = altitude;
+            seasonButtons.forEach(btn => btn.classList.remove('active'));
+            activeButton.classList.add('active');
+            updateSimulation(); 
+        }
+
+        // 보기 모드 설정 함수
+        function setViewMode(mode, activeButton) {
+            currentViewMode = mode;
+            body.classList.remove('mode-3d', 'mode-2d');
+            body.classList.add(`mode-${mode}`);
+            mode3dBtn.classList.remove('active');
+            mode2dBtn.classList.remove('active');
+            activeButton.classList.add('active');
+            updateSimulation(); 
+        }
+
+        function updateSimulation() {
+            // ----- 1. 공통 계산 (시간, 고도, 실제 그림자 길이) -----
+            const sliderValue = slider.value;
+            const percentOfDay = sliderValue / 100; // 0.0 (일출) ~ 1.0 (일몰)
+            
+            const totalMinutes = 360 + (percentOfDay * 720); // 06:00 ~ 18:00
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = Math.floor(totalMinutes % 60);
+            
+            timeDisplay.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+            
+            const altitudeDeg = Math.sin(percentOfDay * Math.PI) * currentMaxAltitude;
+            altitudeDisplay.textContent = `${altitudeDeg.toFixed(1)}°`;
+
+            let realShadowLength; // 미터 단위 그림자 길이
+            let shadowLengthText;
+            const altitudeRad = altitudeDeg * (Math.PI / 180); // 라디안 변환
+            
+            if (altitudeDeg < 0.5) { // 고도가 매우 낮을 때
+                realShadowLength = Infinity;
+                shadowLengthText = "무한대";
+            } else {
+                realShadowLength = gnomonHeight / Math.tan(altitudeRad);
+                shadowLengthText = `${realShadowLength.toFixed(1)}m`;
+            }
+            shadowDisplay.textContent = shadowLengthText;
+
+            // ----- 2. 시뮬레이션 컨테이너 크기 가져오기 -----
+            const containerWidth = simulationContainer.offsetWidth;
+            const containerHeight = simulationContainer.offsetHeight;
+
+            // ----- 3. 뷰 모드에 따라 분기 -----
+            if (currentViewMode === '3d') {
+                // ----- 3D 모드 스타일 초기화 (버그 방지) -----
+                // CSS 클래스('mode-3d')가 적용되지만, JS로 덮어썼던 인라인 스타일을 초기화합니다.
+                ground.style.position = 'relative';
+                ground.style.bottom = 'auto';
+                ground.style.left = 'auto';
+                ground.style.transform = 'none';
+                ground.style.width = '70vh';
+                ground.style.height = '70vh';
+
+                gnomon.style.position = 'relative';
+                gnomon.style.bottom = 'auto';
+                gnomon.style.left = 'auto';
+                gnomon.style.transform = 'none';
+                gnomon.style.width = '15px';
+                gnomon.style.height = '15px';
+                
+                shadow.style.position = 'absolute';
+                shadow.style.top = '50%';
+                shadow.style.left = '50%';
+                shadow.style.bottom = 'auto';
+                shadow.style.height = '8px';
+                
+                sun.style.transform = 'translate(-50%, -50%)';
+                sun.style.width = '80px';
+                sun.style.height = '80px';
+
+                // 3D 그림자 계산 (방향, 길이)
+                const sunAzimuthDeg = percentOfDay * 180; // 0(동) ~ 180(서)
+                const shadowAngleDeg = sunAzimuthDeg + 180; // 180(서) ~ 360(동)
+                
+                let displayShadowLength;
+                if (!isFinite(realShadowLength)) {
+                    displayShadowLength = 300;
+                } else {
+                    const groundRadius = ground.offsetWidth / 2; 
+                    displayShadowLength = (realShadowLength / gnomonHeight) * (groundRadius / 5); 
+                    displayShadowLength = Math.max(displayShadowLength, 20); 
+                    displayShadowLength = Math.min(displayShadowLength, groundRadius * 0.9);
+                }
+                
+                shadow.style.width = `${displayShadowLength}px`;
+                shadow.style.transform = `translateY(-50%) rotate(${shadowAngleDeg}deg)`;
+                
+                // 3D 태양 위치 (동 -> 남 -> 서)
+                const sunLeft = (1 - percentOfDay) * containerWidth; // 우측(동)에서 좌측(서)으로
+                const altitudePercent = altitudeDeg / (currentMaxAltitude + 0.01);
+                const horizonY = containerHeight * 0.4; 
+                const maxDip = containerHeight * 0.5; 
+                const sunTop = horizonY + (altitudePercent * maxDip);
+
+                sun.style.left = `${sunLeft}px`;
+                sun.style.top = `${sunTop}px`;
+
+            } else {
+                // ----- 2D 모드 로직 -----
+                
+                // 2D 모드 스타일 강제 적용 (버그 방지)
+                gnomon.style.width = '10px';
+                gnomon.style.height = `${gnomonHeight2D_PX}px`;
+                gnomon.style.bottom = `${groundHeight2D_PX}px`;
+                gnomon.style.left = '50%';
+                gnomon.style.transform = 'translateX(-50%)';
+                gnomon.style.position = 'absolute';
+
+                shadow.style.height = '3px';
+                shadow.style.top = 'auto';
+                shadow.style.bottom = `${groundHeight2D_PX}px`;
+                shadow.style.transformOrigin = '0% 50%';
+
+                sun.style.transform = 'translate(-50%, -50%)';
+                sun.style.width = '60px';
+                sun.style.height = '60px';
+                
+                // 2D 기준 좌표 계산
+                const gnomonCenterX_Abs = containerWidth / 2; // 막대 X 위치 (중앙)
+                const gnomonBottomY_Abs = containerHeight - groundHeight2D_PX; // 지면의 Y 좌표
+                const gnomonTopY_Abs = gnomonBottomY_Abs - gnomonHeight2D_PX; // 막대 상단 Y 좌표
+
+                // 2D 그림자 길이 계산
+                let displayShadowLength; // 픽셀 단위 그림자 길이
+                if (!isFinite(realShadowLength)) {
+                    displayShadowLength = containerWidth / 2; // 무한대
+                } else {
+                    displayShadowLength = gnomonHeight2D_PX / Math.tan(altitudeRad);
+                }
+                
+                shadow.style.width = `${displayShadowLength}px`;
+                
+                // ★ 그림자 위치: 태양 위치(percentOfDay)에 따라 결정
+                // percentOfDay 0.0 (아침) -> 0.5 (정오) -> 1.0 (저녁)
+                let shadowStartX_Abs, shadowEndX_Abs;
+                if (percentOfDay < 0.5) { // 오전 (태양: 동쪽/오른쪽)
+                    shadow.style.transform = 'translateX(-100%)'; // 오른쪽에서 왼쪽으로
+                    shadowStartX_Abs = gnomonCenterX_Abs;
+                    shadowEndX_Abs = gnomonCenterX_Abs - displayShadowLength; // 그림자 끝(왼쪽)
+                } else { // 오후 (태양: 서쪽/왼쪽)
+                    shadow.style.transform = 'translateX(0%)'; // 왼쪽에서 오른쪽으로
+                    shadowStartX_Abs = gnomonCenterX_Abs;
+                    shadowEndX_Abs = gnomonCenterX_Abs + displayShadowLength; // 그림자 끝(오른쪽)
+                }
+                shadow.style.left = `${shadowStartX_Abs}px`;
+
+                // ★ 태양 빛줄기 (light-ray) 계산: 막대 상단 ~ 그림자 끝
+                const lightRayStartX_Abs = gnomonCenterX_Abs; // 막대 상단 X
+                const lightRayStartY_Abs = gnomonTopY_Abs;    // 막대 상단 Y
+
+                const lightRayEndX_Abs = shadowEndX_Abs;      // 그림자 끝 X
+                const lightRayEndY_Abs = gnomonBottomY_Abs;   // 그림자 끝 Y (지면)
+
+                const deltaX_ray = lightRayEndX_Abs - lightRayStartX_Abs;
+                const deltaY_ray = lightRayEndY_Abs - lightRayStartY_Abs;
+                const rayLength = Math.sqrt(deltaX_ray * deltaX_ray + deltaY_ray * deltaY_ray);
+                const rayAngleDeg = Math.atan2(deltaY_ray, deltaX_ray) * (180 / Math.PI);
+
+                lightRay.style.left = `${lightRayStartX_Abs}px`;
+                lightRay.style.top = `${lightRayStartY_Abs}px`;
+                lightRay.style.width = `${rayLength}px`;
+                lightRay.style.transform = `rotate(${rayAngleDeg}deg)`;
+
+                // ★ 태양 위치 (동 -> 서, 아치형 궤도)
+                const sunX_Abs = (1 - percentOfDay) * (containerWidth * 0.9) + (containerWidth * 0.05); // 5%~95%
+                const altitudePercent = altitudeDeg / (currentMaxAltitude + 0.01);
+                const horizonY = containerHeight * 0.6; // 2D 지평선 (지면보다 위)
+                const sunY_Abs = horizonY - (altitudePercent * (horizonY * 0.8)); // 고도 높을수록 위로
+
+                sun.style.left = `${sunX_Abs}px`;
+                sun.style.top = `${sunY_Abs}px`;
+
+                // ★ 각도 호 (그림자 끝 지점)
+                const arcRadius = 60; 
+                angleArc.style.width = `${arcRadius * 2}px`; 
+                angleArc.style.height = `${arcRadius * 2}px`;
+                angleArc.style.left = `${shadowEndX_Abs}px`;
+                angleArc.style.top = `${gnomonBottomY_Abs - arcRadius}px`;
+                
+                // 그림자가 왼쪽에 생길 때(오전)
+                if (percentOfDay < 0.5) {
+                    angleArc.style.transform = `translateX(-${arcRadius}px) translateY(-${arcRadius}px)`;
+                    angleArc.style.borderRadius = "0 0 0 100%"; // 왼쪽 아래 호
+                    angleArc.style.borderRightColor = 'transparent';
+                    angleArc.style.borderTopColor = 'transparent';
+                    angleArc.style.borderLeftColor = 'blue';
+                    angleArc.style.borderBottomColor = 'blue';
+                } else { // 그림자가 오른쪽에 생길 때(오후)
+                    angleArc.style.transform = `translateX(-${arcRadius}px) translateY(-${arcRadius}px)`;
+                    angleArc.style.borderRadius = "0 0 100% 0"; // 오른쪽 아래 호
+                    angleArc.style.borderLeftColor = 'transparent';
+                    angleArc.style.borderTopColor = 'transparent';
+                    angleArc.style.borderRightColor = 'blue';
+                    angleArc.style.borderBottomColor = 'blue';
+                }
+
+                // ★ 각도 텍스트 (호의 중앙 부근)
+                const textOffset = 15; // 텍스트를 호 안쪽으로
+                const textAngleRad = (percentOfDay < 0.5) ? Math.PI - (altitudeRad / 2) : (altitudeRad / 2);
+                const textX = shadowEndX_Abs + (arcRadius + textOffset) * Math.cos(textAngleRad);
+                const textY = gnomonBottomY_Abs - (arcRadius + textOffset) * Math.sin(textAngleRad);
+                
+                angleText.style.left = `${textX}px`;
+                angleText.style.top = `${textY}px`;
+                angleText.textContent = `${altitudeDeg.toFixed(1)}°`;
+            }
+        }
+    </script>
+</body>
+</html>
