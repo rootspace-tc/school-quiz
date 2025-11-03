@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>밀물과 썰물의 원리</title>
+    <!-- Jua 글꼴 불러오기 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS 불러오기 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 기본 스타일과 Jua 글꼴 적용 */
+        body {
+            font-family: 'Jua', sans-serif;
+            overflow: hidden; /* 스크롤바 숨기기 */
+            margin: 0;
+            padding: 0;
+            background-color: #000020; /* 어두운 우주 배경색 */
+        }
+        canvas {
+            display: block;
+            background-color: #000020;
+        }
+    </style>
+</head>
+<body class="text-white">
+
+    <!-- 메인 컨테이너 -->
+    <div id="container" class="relative w-screen h-screen">
+        <canvas id="tideCanvas"></canvas>
+
+        <!-- 상단 컨트롤 패널 -->
+        <div id="controls" class="absolute top-4 left-4 p-4 bg-black bg-opacity-50 rounded-lg shadow-lg flex flex-col gap-4">
+            <div class="flex items-center gap-2">
+                <label for="fontSizeSlider" class="whitespace-nowrap">글씨 크기:</label>
+                <input type="range" id="fontSizeSlider" min="14" max="40" value="20" class="w-32">
+            </div>
+             <div class="flex items-center gap-2">
+                <label for="simulationSpeedSlider" class="whitespace-nowrap">시뮬레이션 속도:</label>
+                <input type="range" id="simulationSpeedSlider" min="0" max="0.05" step="0.001" value="0.01" class="w-32">
+            </div>
+            <button id="pauseButton" class="px-4 py-2 bg-blue-500 hover:bg-blue-700 rounded-lg">일시정지</button>
+            <button id="moonToggleButton" class="px-4 py-2 bg-purple-500 hover:bg-purple-700 rounded-lg">달 숨기기</button>
+        </div>
+
+        <!-- 하단 설명 패널 -->
+        <div id="explanation" class="absolute bottom-4 left-4 p-4 max-w-lg bg-black bg-opacity-50 rounded-lg shadow-lg text-lg">
+            <h2 id="title" class="text-2xl font-bold mb-2">밀물과 썰물은 왜 생길까?</h2>
+            <p id="desc">
+                달이 지구의 바닷물을 잡아당겨서 물이 달 쪽으로 불룩! 튀어나와요. 이걸 <strong>밀물</strong>이라고 해요. 신기하게도, 그 반대편 바다도 똑같이 불룩! 튀어나온답니다. 지구가 빙글빙글 돌면서, 우리는 하루에 두 번씩 이 불룩한 곳을 지나가게 돼요. 그래서 밀물이 두 번 오는 거랍니다!
+            </p>
+        </div>
+
+        <!-- 지구 위 사람의 상태 표시 라벨 -->
+        <div id="personLabel" class="absolute p-2 bg-black bg-opacity-70 rounded-md text-center text-yellow-200" style="transform: translate(-50%, -150%); transition: all 0.1s;">
+            <!-- 내용은 JavaScript로 채워집니다 -->
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('tideCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // UI 요소 가져오기
+        const title = document.getElementById('title');
+        const desc = document.getElementById('desc');
+        const fontSizeSlider = document.getElementById('fontSizeSlider');
+        const simulationSpeedSlider = document.getElementById('simulationSpeedSlider');
+        const pauseButton = document.getElementById('pauseButton');
+        const moonToggleButton = document.getElementById('moonToggleButton');
+        const personLabel = document.getElementById('personLabel');
+
+        let moonAngle = 0;
+        let earthRotation = 0;
+        
+        const LUNAR_ORBIT_RATIO = 27.3; 
+        
+        let simulationSpeed = 0.01;
+        let isPaused = false;
+        let isMoonVisible = true;
+
+        // --- 이벤트 리스너 설정 ---
+        fontSizeSlider.addEventListener('input', (e) => {
+            const newSize = e.target.value;
+            title.style.fontSize = `${parseInt(newSize) + 8}px`;
+            desc.style.fontSize = `${newSize}px`;
+            personLabel.style.fontSize = `${newSize}px`;
+        });
+        
+        simulationSpeedSlider.addEventListener('input', (e) => {
+            simulationSpeed = parseFloat(e.target.value);
+        });
+
+        pauseButton.addEventListener('click', () => {
+            isPaused = !isPaused;
+            pauseButton.textContent = isPaused ? '재생' : '일시정지';
+            pauseButton.classList.toggle('bg-blue-500', !isPaused);
+            pauseButton.classList.toggle('hover:bg-blue-700', !isPaused);
+            pauseButton.classList.toggle('bg-green-500', isPaused);
+            pauseButton.classList.toggle('hover:bg-green-700', isPaused);
+        });
+
+        moonToggleButton.addEventListener('click', () => {
+            isMoonVisible = !isMoonVisible;
+            moonToggleButton.textContent = isMoonVisible ? '달 숨기기' : '달 보이기';
+            moonToggleButton.classList.toggle('bg-purple-500', isMoonVisible);
+            moonToggleButton.classList.toggle('hover:bg-purple-700', isMoonVisible);
+            moonToggleButton.classList.toggle('bg-indigo-500', !isMoonVisible);
+            moonToggleButton.classList.toggle('hover:bg-indigo-700', !isMoonVisible);
+        });
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function animate() {
+            if (!isPaused) {
+                const earthSpeed = simulationSpeed;
+                const moonSpeed = simulationSpeed / LUNAR_ORBIT_RATIO;
+                
+                moonAngle += moonSpeed;
+                earthRotation += earthSpeed;
+
+                ctx.fillStyle = '#000020';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const earthRadius = Math.min(canvas.width, canvas.height) * 0.15;
+                const waterThickness = earthRadius * 0.25;
+                const moonRadius = earthRadius * 0.27;
+                const orbitRadius = Math.min(centerX - moonRadius, centerY - moonRadius) * 0.8;
+                
+                // 1. 바다 그리기 (달 유무에 따라 모양 변경)
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                if (isMoonVisible) {
+                    // 달이 있을 때: 타원형 조수
+                    ctx.rotate(moonAngle);
+                    ctx.beginPath();
+                    ctx.fillStyle = 'rgba(100, 150, 255, 0.9)';
+                    const bulgeAmount = waterThickness * 1.5;
+                    ctx.ellipse(0, 0, earthRadius + waterThickness + bulgeAmount, earthRadius + waterThickness, 0, 0, 2 * Math.PI);
+                    ctx.fill();
+                } else {
+                    // 달이 없을 때: 완벽한 원형 바다
+                    ctx.beginPath();
+                    ctx.fillStyle = 'rgba(100, 150, 255, 0.9)';
+                    ctx.arc(0, 0, earthRadius + waterThickness, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+                ctx.restore();
+
+                // 2. 지구와 사람 그리기
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(earthRotation);
+
+                ctx.beginPath();
+                ctx.arc(0, 0, earthRadius, 0, 2 * Math.PI);
+                ctx.fillStyle = '#2E7D32';
+                ctx.fill();
+                
+                const personX_onEarth = earthRadius;
+                const personY_onEarth = 0;
+                ctx.beginPath();
+                ctx.arc(personX_onEarth, personY_onEarth, 8, 0, 2 * Math.PI);
+                ctx.fillStyle = 'red';
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.restore();
+
+                // 3. 달과 라벨 그리기 (달이 보일 때만)
+                ctx.fillStyle = "white";
+                ctx.font = "24px Jua";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText("지구", centerX, centerY);
+
+                if (isMoonVisible) {
+                    const moonX = centerX + orbitRadius * Math.cos(moonAngle);
+                    const moonY = centerY + orbitRadius * Math.sin(moonAngle);
+                    ctx.beginPath();
+                    ctx.arc(moonX, moonY, moonRadius, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#DDDDDD';
+                    ctx.fill();
+                    ctx.fillText("달", moonX, moonY);
+
+                    // 4. 사람 위치 라벨 업데이트
+                    personLabel.style.display = 'block';
+                    const personScreenAngle = earthRotation;
+                    const personScreenX = centerX + earthRadius * Math.cos(personScreenAngle);
+                    const personScreenY = centerY + earthRadius * Math.sin(personScreenAngle);
+                    
+                    personLabel.style.left = `${personScreenX}px`;
+                    personLabel.style.top = `${personScreenY}px`;
+                    
+                    let angleDiff = (personScreenAngle % (2 * Math.PI)) - (moonAngle % (2 * Math.PI));
+                    angleDiff = Math.abs((angleDiff + Math.PI) % (2 * Math.PI) - Math.PI);
+
+                    if (angleDiff < Math.PI / 4 || angleDiff > Math.PI * 3 / 4) {
+                        personLabel.innerHTML = '여기는 지금<br><strong class="text-xl text-blue-300">밀물!</strong>';
+                    } else {
+                        personLabel.innerHTML = '여기는 지금<br><strong class="text-xl text-yellow-300">썰물!</strong>';
+                    }
+                } else {
+                    personLabel.style.display = 'none';
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        // 초기 설정 및 애니메이션 시작
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        fontSizeSlider.dispatchEvent(new Event('input')); 
+        animate();
+    </script>
+
+</body>
+</html>
+
