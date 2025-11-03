@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4학년 과학: 생태계와 먹이그물</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        /* Jua 폰트를 기본 폰트로 설정 */
+        body {
+            font-family: 'Jua', sans-serif;
+            overscroll-behavior: none; /* 스크롤 바운스 효과 제거 */
+        }
+        
+        /* 커스텀 스타일 */
+        /* 드래그 중인 요소 */
+        .dragging {
+            opacity: 0.6;
+            transform: scale(1.1);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+
+        /* 게임 영역의 생물 아이템 */
+        .creature {
+            touch-action: none; /* 모바일 터치 드래그 지원 */
+            position: absolute;
+            cursor: grab;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 1rem;
+            background-color: white;
+            padding: 0.75rem 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease-in-out;
+            user-select: none; /* 텍스트 선택 방지 */
+            border: 2px solid transparent;
+        }
+
+        /* 생물이 선택되었을 때 테두리 */
+        .creature.selected {
+            border-color: #3b82f6; /* blue-500 */
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.7);
+            transform: scale(1.05);
+        }
+
+        /* *** 추가된 스타일: 드래그 드롭 대상 강조 *** */
+        .creature.creature-target {
+            transform: scale(1.15);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.8); /* red-500 glow */
+            border-color: #ef4444; /* red-500 border */
+        }
+
+        /* 정답/오답 표시 */
+        #message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 2rem 3rem;
+            border-radius: 1.5rem;
+            font-size: 8rem; /* 텍스트 크기 키움 */
+            font-weight: bold;
+            color: white;
+            z-index: 200;
+            opacity: 0;
+            transition: all 0.3s ease-out;
+            pointer-events: none; /* 메시지 박스가 클릭 방해하지 않도록 */
+        }
+
+        #message-box.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        /* *** 수정된 부분: 게임 안내 메시지 스타일 *** */
+        #game-prompt {
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 1rem;
+            font-size: 1.5rem; /* 텍스트 크기 키움 */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            
+            /* 자동 숨김을 위한 스타일 */
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+            pointer-events: none; /* 숨겨졌을 때 클릭 방해 방지 */
+        }
+        
+        /* 프롬프트 보이기 클래스 */
+        #game-prompt.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        /* *** 수정 끝 *** */
+
+
+        /* 화살표 스타일 */
+        .arrow-line {
+            stroke: #1f2937; /* gray-800 */
+            stroke-width: 3; /* 선 굵기 */
+            opacity: 0.8;
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-amber-50 h-screen w-screen overflow-hidden text-gray-800">
+
+    <div id="app-container" class="h-full w-full">
+
+        <div id="content-view" class="h-full w-full flex flex-col items-center justify-center p-4 md:p-12 transition-all duration-500">
+            
+            <header class="w-full max-w-5xl flex justify-between items-center mb-6 px-4">
+                <h1 class="text-4xl md:text-5xl font-bold text-cyan-700">생태계와 먹이그물 🌿</h1>
+                
+                <div class="flex items-center space-x-2">
+                    <span class="text-lg hidden md:inline">글씨 크기:</span>
+                    <button id="font-decrease" class="bg-white hover:bg-gray-100 shadow-md border border-gray-200 text-gray-700 font-bold w-10 h-10 rounded-full text-2xl transition-transform transform hover:scale-110">-</button>
+                    <button id="font-increase" class="bg-white hover:bg-gray-100 shadow-md border border-gray-200 text-gray-700 font-bold w-10 h-10 rounded-full text-2xl transition-transform transform hover:scale-110">+</button>
+                </div>
+            </header>
+
+            <main id="content-main" class="w-full max-w-5xl h-full bg-white bg-opacity-80 backdrop-blur-sm shadow-2xl rounded-2xl p-6 md:p-10 overflow-y-auto text-xl md:text-2xl leading-relaxed md:leading-loose transition-all duration-300">
+                
+                <h2 class="text-3xl md:text-4xl font-bold text-green-700 mb-4">🌱 먹이사슬이란 무엇일까요?</h2>
+                <p class="mb-8 pl-4 border-l-4 border-green-700">
+                    생태계의 생물들은 먹고 먹히는 먹이 관계를 맺습니다.
+                    예를 들어, 참새는 벼를 먹고, 황조롱이는 참새를 먹습니다.
+                    이와 같이 <strong class="text-green-800">생물들의 먹이 관계가 사슬처럼 연결되어 있는 것</strong>을 <strong class="text-green-800">먹이사슬</strong>이라고 합니다.
+                </p>
+
+                <h2 class="text-3xl md:text-4xl font-bold text-blue-700 mb-4">🕸️ 먹이그물이란 무엇일까요?</h2>
+                <p class="mb-8 pl-4 border-l-4 border-blue-700">
+                    실제 생태계에서 생물은 한 가지 생물만 먹는 것이 아니라 여러 생물을 먹습니다.
+                    그래서 <strong class="text-blue-800">여러 개의 먹이사슬이 서로 얽혀 그물처럼 복잡하게 연결</strong>됩니다.
+                    이와 같이 복잡한 먹이 관계를 <strong class="text-blue-800">먹이그물</strong>이라고 합니다.
+                </p>
+                
+                <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                    <h3 class="text-2xl md:text-3xl font-bold text-center text-gray-700 mb-4">우리 주변의 먹이그물 예시</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-center text-lg md:text-xl">
+                        <div class="bg-white p-3 rounded-lg shadow"><strong>생산자 (식물)</strong><br>벼, 강낭콩, 유채</div>
+                        <div class="bg-white p-3 rounded-lg shadow"><strong>1차 소비자 (초식)</strong><br>메뚜기, 배추흰나비, 쥐, 참새</div>
+                        <div class="bg-white p-3 rounded-lg shadow"><strong>2차 소비자 (육식/잡식)</strong><br>개구리, 참새, 쥐</div> <div class="col-span-2 md:col-span-3 bg-white p-3 rounded-lg shadow"><strong>최종 소비자 (육식)</strong><br>황조롱이 (개구리, 참새, 쥐, 메뚜기, 배추흰나비 등을 먹음)</div> </div>
+                </div>
+
+            </main>
+
+            <footer class="w-full max-w-5xl mt-6 px-4">
+                <button id="start-game-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-full shadow-lg text-2xl md:text-3xl transition-transform transform hover:scale-105 duration-300">
+                    🎮 먹이그물 게임 시작하기
+                </button>
+            </footer>
+
+        </div>
+
+        <div id="game-view" class="h-full w-full flex-col p-4 md:p-8 transition-all duration-500 hidden">
+            
+            <header class="w-full flex justify-between items-center mb-4">
+                <button id="back-to-content-btn" class="bg-white hover:bg-gray-100 shadow-lg border border-gray-200 text-gray-700 font-bold py-3 px-6 rounded-full text-xl md:text-2xl transition-transform transform hover:scale-105">
+                    &lt; 학습으로 돌아가기
+                </button>
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-800">먹이그물 게임</h1>
+                <div class="flex space-x-2">
+                    <button id="show-all-arrows-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full text-lg md:text-xl shadow-md transition-transform transform hover:scale-105">모든 화살표 보기</button>
+                    <button id="clear-arrows-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-full text-lg md:text-xl shadow-md transition-transform transform hover:scale-105">화살표 지우기</button>
+                    <button id="reset-game-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-full text-lg md:text-xl shadow-md transition-transform transform hover:scale-105">처음 위치로</button>
+                </div>
+            </header>
+ 
+            <main id="game-area" class="w-full flex-1 relative bg-white bg-opacity-50 backdrop-blur-sm rounded-lg shadow-inner overflow-hidden">
+                
+                <div id="game-prompt" class="absolute top-4 left-1/2 -translate-x-1/2 z-10 text-center">
+                    </div>
+
+                <svg id="arrow-canvas" class="absolute top-0 left-0 w-full h-full pointer-events-none z-0">
+                    <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+                        refX="9" refY="3.5" orient="auto" fill="#1f2937">
+                            <polygon points="0 0, 10 3.5, 0 7" />
+                        </marker>
+                    </defs>
+                </svg>
+
+                </main>
+        </div>
+
+    </div>
+
+    <div id="message-box"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- DOM 요소 선택 ---
+            const contentView = document.getElementById('content-view');
+            const gameView = document.getElementById('game-view');
+            const startGameBtn = document.getElementById('start-game-btn');
+            const backToContentBtn = document.getElementById('back-to-content-btn');
+            
+            const fontDecreaseBtn = document.getElementById('font-decrease');
+            const fontIncreaseBtn = document.getElementById('font-increase');
+            const contentMain = document.getElementById('content-main');
+            
+            const gameArea = document.getElementById('game-area');
+            const arrowCanvas = document.getElementById('arrow-canvas');
+            const showAllArrowsBtn = document.getElementById('show-all-arrows-btn');
+            const clearArrowsBtn = document.getElementById('clear-arrows-btn');
+            const resetGameBtn = document.getElementById('reset-game-btn'); // 리셋 버튼 추가
+            const messageBox = document.getElementById('message-box');
+            const gamePrompt = document.getElementById('game-prompt');
+ 
+            // --- 상태 변수 ---
+            let currentFontSize = 1; // 0: small, 1: medium, 2: large
+            const fontSizes = ['text-lg md:text-xl', 'text-xl md:text-2xl', 'text-2xl md:text-3xl', 'text-3xl md:text-4xl']; // 폰트 크기 단계 추가
+            const fontLeadings = ['leading-relaxed md:leading-loose', 'leading-relaxed md:leading-loose', 'leading-relaxed md:leading-loose', 'leading-relaxed md:leading-loose']; // 폰트 크기 단계 추가
+            
+            let selectedCreatureId = null;
+            let gameStep = 0; // 0: none selected, 1: find food, 2: find predator
+            let drawnArrows = []; // { from: 'id', to: 'id' }
+            let foundFood = new Set();
+            let foundPredators = new Set();
+            
+            /* *** 추가된 부분: 게임 프롬프트 타이머 변수 *** */
+            let gamePromptTimer = null; 
+
+            // --- 드래그 상태 변수 ---
+            let draggedElement = null;
+            let isDragging = false;
+            let offsetX, offsetY;
+            let startX, startY;
+            let currentTargetElement = null; // *** 추가: 드롭 대상 강조용 ***
+
+            // --- 생물 데이터 ---
+            // (원본 위치 데이터는 절대 수정되지 않음)
+            
+            /* ************************************************
+            *** 수정된 부분: 생물 데이터 (먹이그물 로직) ***
+            ************************************************
+            */
+            const creatures = {
+                // 생산자 (Producers)
+                'rice': { name: '벼', emoji: '🌾', eats: [], eatenBy: ['grasshopper', 'mouse', 'sparrow'], pos: { x: 30, y: 80 } }, // 'butterfly' 제거
+                'bean': { name: '강낭콩', emoji: '🌱', eats: [], eatenBy: ['grasshopper', 'mouse', 'sparrow'], pos: { x: 50, y: 80 } }, // 'butterfly' 제거
+                'rape': { name: '유채', emoji: '🌼', eats: [], eatenBy: ['mouse', 'butterfly', 'sparrow', 'grasshopper'], pos: { x: 70, y: 80 } },
+                
+                // 1차 소비자 (Primary Consumers)
+                'grasshopper': { name: '메뚜기', emoji: '🦗', eats: ['rice', 'bean', 'rape'], eatenBy: ['frog', 'sparrow', 'kestrel', 'mouse'], pos: { x: 20, y: 50 } }, // 'mouse' 추가
+                'butterfly': { name: '배추흰나비', emoji: '🦋', eats: ['rape'], eatenBy: ['frog', 'sparrow', 'mouse', 'kestrel'], pos: { x: 80, y: 50 } }, // 'rape'만 먹음
+                'mouse': { name: '쥐', emoji: '🐁', eats: ['rice', 'bean', 'rape', 'grasshopper', 'butterfly'], eatenBy: ['kestrel'], pos: { x: 65, y: 35 } }, // 'grasshopper', 'butterfly' 추가
+                
+                // 2차 소비자 (Secondary Consumers)
+                'sparrow': { name: '참새', emoji: '🐦', eats: ['rice', 'bean', 'grasshopper', 'rape', 'butterfly'], eatenBy: ['kestrel'], pos: { x: 35, y: 30 } },
+                'frog': { name: '개구리', emoji: '🐸', eats: ['grasshopper', 'butterfly'], eatenBy: ['kestrel'], pos: { x: 50, y: 55 } },
+
+                // 3차 소비자 (Tertiary Consumer)
+                'kestrel': { name: '황조롱이', emoji: '🦅', eats: ['frog', 'sparrow', 'mouse', 'grasshopper', 'butterfly'], eatenBy: [], pos: { x: 50, y: 10 } } // 'butterfly' 추가
+            };
+            /* ************************************************
+            *** 수정 끝 ***
+            ************************************************
+            */
+
+
+            // --- 1. 뷰 전환 로직 ---
+            startGameBtn.addEventListener('click', () => {
+                contentView.classList.add('hidden');
+                gameView.classList.remove('hidden');
+                gameView.classList.add('flex');
+                initializeGame();
+            });
+
+            backToContentBtn.addEventListener('click', () => {
+                gameView.classList.add('hidden');
+                gameView.classList.remove('flex');
+                contentView.classList.remove('hidden');
+                resetGame();
+            });
+
+            // --- 2. 폰트 크기 조절 로직 ---
+            function updateFontSize() {
+                fontSizes.forEach(clsString => {
+                    contentMain.classList.remove(...clsString.split(' '));
+                });
+                fontLeadings.forEach(clsString => {
+                    contentMain.classList.remove(...clsString.split(' '));
+                });
+                contentMain.classList.add(...fontSizes[currentFontSize].split(' '));
+                contentMain.classList.add(...fontLeadings[currentFontSize].split(' '));
+            }
+
+            fontIncreaseBtn.addEventListener('click', () => {
+                if (currentFontSize < fontSizes.length - 1) {
+                    currentFontSize++;
+                    updateFontSize();
+                }
+            });
+
+            fontDecreaseBtn.addEventListener('click', () => {
+                if (currentFontSize > 0) {
+                    currentFontSize--;
+                    updateFontSize();
+                }
+            });
+            updateFontSize(); // 초기 설정
+
+            // --- 3. 게임 로직 ---
+
+            // 게임 헤더 버튼 이벤트 (한 번만 설정)
+            showAllArrowsBtn.addEventListener('click', showAllArrows);
+            clearArrowsBtn.addEventListener('click', () => clearArrows(true));
+            resetGameBtn.addEventListener('click', resetCreaturePositions);
+
+            // 게임 초기화 (생물 아이템 생성)
+            function initializeGame() {
+                // 기존 생물 아이템(.creature)만 삭제
+                gameArea.querySelectorAll('.creature').forEach(el => el.remove());
+                // 기존 화살표(<line>)만 삭제
+                arrowCanvas.querySelectorAll('.arrow-line').forEach(line => line.remove());
+                drawnArrows = []; // 화살표 데이터 리셋
+                resetGameStep(); // 프롬프트 리셋
+                
+                Object.keys(creatures).forEach(id => {
+                    const data = creatures[id];
+                    const el = document.createElement('div');
+                    el.className = 'creature';
+                    el.dataset.id = id;
+                    el.style.left = `${data.pos.x}%`;
+                    el.style.top = `${data.pos.y}%`;
+                    el.innerHTML = `
+                        <span class="text-3xl md:text-4xl">${data.emoji}</span>
+                        <span class="text-lg md:text-xl font-medium">${data.name}</span>
+                    `;
+                    
+                    el.addEventListener('click', onCreatureClick);
+                    
+                    // 드래그 앤 드롭 이벤트 리스너 (PC + Mobile)
+                    el.addEventListener('mousedown', onDragStart);
+                    el.addEventListener('touchstart', onDragStart, { passive: false });
+                    
+                    gameArea.appendChild(el);
+                });
+
+                // 드롭 영역 설정 (document 전체)
+                document.addEventListener('mousemove', onDragMove);
+                document.addEventListener('touchmove', onDragMove, { passive: false });
+                
+                document.addEventListener('mouseup', onDragEnd);
+                document.addEventListener('touchend', onDragEnd);
+            }
+            
+            // 생물 클릭 이벤트
+            function onCreatureClick(e) {
+                const clickedEl = e.currentTarget;
+                const id = clickedEl.dataset.id;
+
+                // 이미 게임이 진행 중일 때 (선택된 생물이 있을 때)
+                if (gameStep > 0) {
+                    // 1단계(먹이 찾기)에서, 만약 선택된 생물 '자신'을 다시 클릭하면 선택 해제
+                    if (gameStep === 1 && id === selectedCreatureId) {
+                        resetGameStep();
+                    }
+                    // 2단계(포식자 찾기)에서는, 자신을 클릭하는 것이 드래그의 시작이므로 아무것도 하지 않음.
+                    // 1단계든 2단계든, 다른 생물을 클릭하면 (드래그 시작을 위해) 아무것도 하지 않음 (선택 변경 방지)
+                    return;
+                }
+
+                // 게임이 진행 중이 아닐 때 (gameStep === 0)
+                resetGameStep(); // 이전 상태 초기화
+                selectedCreatureId = id;
+                gameStep = 1; // 1단계: 먹이 찾기
+                foundFood.clear();
+                foundPredators.clear();
+
+                clickedEl.classList.add('selected');
+                
+                const creatureData = creatures[selectedCreatureId];
+                if (creatureData.eats.length > 0) {
+                    setGamePrompt(`[1단계] ${creatureData.name}은(는) 무엇을 먹을까요? <br> 먹이를 ${creatureData.name}에게 드래그하세요.`);
+                } else {
+                    // 먹을 것이 없는 생산자인 경우, 바로 2단계로
+                    gameStep = 2;
+                    checkPredatorStep();
+                }
+            }
+
+            // 게임 단계 초기화
+            function resetGameStep() {
+                selectedCreatureId = null;
+                gameStep = 0;
+                foundFood.clear();
+                foundPredators.clear();
+                setGamePrompt('관계를 알아보고 싶은 생물을 클릭하세요!');
+                document.querySelectorAll('.creature.selected').forEach(el => el.classList.remove('selected'));
+            }
+
+            /* *** 수정된 부분: 게임 프롬프트 설정 함수 *** */
+            function setGamePrompt(html) {
+                // 1. 기존 타이머가 있으면 취소 (새 메시지가 덮어쓰므로)
+                if (gamePromptTimer) {
+                    clearTimeout(gamePromptTimer);
+                }
+
+                // 2. 내용 설정 및 'show' 클래스 추가 (보이게)
+                gamePrompt.innerHTML = html;
+                gamePrompt.classList.add('show');
+
+                // 3. 3초(3000ms) 후에 'show' 클래스 제거 (숨기기)
+                gamePromptTimer = setTimeout(() => {
+                    gamePrompt.classList.remove('show');
+                }, 3000);
+            }
+            /* *** 수정 끝 *** */
+
+
+            // --- 4. 드래그 앤 드롭 로직 (Mouse & Touch) ---
+            
+            function onDragStart(e) {
+                if (e.target.closest('.creature')) {
+                    draggedElement = e.target.closest('.creature');
+                    draggedElement.classList.add('dragging');
+                    draggedElement.style.cursor = 'grabbing';
+                    isDragging = true;
+                    
+                    const rect = draggedElement.getBoundingClientRect();
+                    const gameRect = gameArea.getBoundingClientRect();
+
+                    let clientX, clientY;
+                    if (e.type === 'touchstart') {
+                        clientX = e.touches[0].clientX;
+                        clientY = e.touches[0].clientY;
+                        e.preventDefault(); // 스크롤 방지
+                    } else {
+                        clientX = e.clientX;
+                        clientY = e.clientY;
+                    }
+                    
+                    offsetX = clientX - rect.left;
+                    offsetY = clientY - rect.top;
+                    
+                    startX = (clientX - gameRect.left) / gameRect.width * 100;
+                    startY = (clientY - gameRect.top) / gameRect.height * 100;
+                }
+            }
+            
+            function onDragMove(e) {
+                if (!isDragging || !draggedElement) return;
+
+                let clientX, clientY;
+                if (e.type === 'touchmove') {
+                    e.preventDefault(); // 스크롤 방지
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+                
+                const gameRect = gameArea.getBoundingClientRect();
+                let newX = (clientX - gameRect.left - offsetX) / gameRect.width * 100;
+                let newY = (clientY - gameRect.top - offsetY) / gameRect.height * 100;
+
+                // gameArea 경계 체크
+                newX = Math.max(0, Math.min(newX, 100 - (draggedElement.offsetWidth / gameRect.width * 100)));
+                newY = Math.max(0, Math.min(newY, 100 - (draggedElement.offsetHeight / gameRect.height * 100)));
+
+                draggedElement.style.left = `${newX}%`;
+                draggedElement.style.top = `${newY}%`;
+                
+                // *** 추가: 드롭 대상 강조 로직 ***
+                // 드래그 요소를 잠시 숨김
+                draggedElement.style.display = 'none';
+                const elementUnder = document.elementFromPoint(clientX, clientY);
+                draggedElement.style.display = 'flex'; // 다시 표시
+
+                const targetElement = elementUnder ? elementUnder.closest('.creature') : null;
+
+                // 기존 대상에서 강조 제거
+                if (currentTargetElement && currentTargetElement !== targetElement) {
+                    currentTargetElement.classList.remove('creature-target');
+                    currentTargetElement = null;
+                }
+
+                // 새 대상에 강조 추가
+                if (targetElement && targetElement !== draggedElement) {
+                    targetElement.classList.add('creature-target');
+                    currentTargetElement = targetElement;
+                }
+                // *** 추가 끝 ***
+
+                updateArrowsForDraggedElement(draggedElement.dataset.id);
+            }
+            
+            function onDragEnd(e) {
+                if (!isDragging || !draggedElement) return;
+
+                // *** 추가: 드롭 대상 강조 제거 ***
+                if (currentTargetElement) {
+                    currentTargetElement.classList.remove('creature-target');
+                    currentTargetElement = null;
+                }
+                // *** 추가 끝 ***
+
+                isDragging = false;
+                draggedElement.classList.remove('dragging');
+                draggedElement.style.cursor = 'grab';
+
+                const gameRect = gameArea.getBoundingClientRect();
+                let clientX, clientY;
+                
+                if (e.type === 'touchend') {
+                    clientX = e.changedTouches[0].clientX;
+                    clientY = e.changedTouches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+                
+                draggedElement.style.display = 'none';
+                const elementUnder = document.elementFromPoint(clientX, clientY);
+                draggedElement.style.display = 'flex'; 
+
+                const targetElement = elementUnder ? elementUnder.closest('.creature') : null;
+                const draggedId = draggedElement.dataset.id;
+                
+                const endX = (clientX - gameRect.left) / gameRect.width * 100;
+                const endY = (clientY - gameRect.top) / gameRect.height * 100;
+                const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+ 
+                let didDropOnTarget = false;
+                if (targetElement && targetElement !== draggedElement && distance >= 2) {
+                    const targetId = targetElement.dataset.id;
+                    if (checkGameLogic(draggedId, targetId)) {
+                        didDropOnTarget = true;
+                    }
+                }
+                
+                if (didDropOnTarget) {
+                    // O, X 로직이 실행되었으면 (정답/오답) 원래 자리로 스냅백
+                    snapBack(draggedElement, true);
+                } else if (distance >= 2) { 
+                    // 드롭 타겟이 없었고, 그냥 '이동'한 거라면
+                    // *** 수정: 원본 데이터를 수정하지 않음 ***
+                    // const creatureData = creatures[draggedId];
+                    // creatureData.pos.x = parseFloat(draggedElement.style.left);
+                    // creatureData.pos.y = parseFloat(draggedElement.style.top);
+                    
+                    // 이 경우에도 화살표 다시 그려야 함
+                    drawAllArrows();
+                } else {
+                    // 클릭이었음 (distance < 2).
+                    // 위치를 원래대로 돌려놓음 (클릭 시 미세한 움직임 보정)
+                    snapBack(draggedElement, false);
+                }
+                
+                draggedElement = null;
+            }
+
+            // 게임 로직 체크 (드롭 시)
+            function checkGameLogic(draggedId, targetId) {
+                if (!selectedCreatureId || gameStep === 0) return false; 
+
+                const selectedData = creatures[selectedCreatureId];
+
+                // 1단계: 먹이 찾기 (먹이를 -> 선택된 생물에게 드롭)
+                if (gameStep === 1 && targetId === selectedCreatureId) {
+                    if (selectedData.eats.includes(draggedId)) {
+                        if (!foundFood.has(draggedId)) {
+                            showFeedback(true); // 'O'
+                            foundFood.add(draggedId);
+                            addArrow(draggedId, targetId);
+                        }
+                    } else {
+                        showFeedback(false); // 'X'
+                    }
+
+                    // 모든 먹이를 찾았는지 확인
+                    if (foundFood.size === selectedData.eats.length) {
+                        gameStep = 2;
+                        setTimeout(checkPredatorStep, 1000); // 1초 후 다음 단계 안내
+                    }
+                    return true; 
+                }
+                // 2단계: 포식자 찾기 (선택된 생물을 -> 포식자에게 드롭)
+                else if (gameStep === 2 && draggedId === selectedCreatureId) {
+                    if (selectedData.eatenBy.includes(targetId)) {
+                        if (!foundPredators.has(targetId)) {
+                            showFeedback(true); // 'O'
+                            foundPredators.add(targetId);
+                            addArrow(draggedId, targetId);
+                        }
+                    } else {
+                        showFeedback(false); // 'X'
+                    }
+
+                    // 모든 포식자를 찾았는지 확인
+                    if (foundPredators.size === selectedData.eatenBy.length) {
+                        // *** 수정: 팝업 후 즉시 리셋되도록 ***
+                        setTimeout(() => {
+                            setGamePrompt('🎉 성공! 모든 관계를 찾았습니다. 다른 생물을 선택하세요.');
+                            resetGameStep(); // gameStep=0, selectedCreatureId=null 등으로 초기화
+                        }, 1000); // 1초(O/X 팝업) 후에 실행
+                    }
+                    return true; 
+                }
+
+                return false; 
+            }
+            
+            // 2단계 (포식자 찾기) 시작 함수
+            function checkPredatorStep() {
+                const selectedData = creatures[selectedCreatureId];
+                if (selectedData.eatenBy.length > 0) {
+                     setGamePrompt(`[2단계] ${selectedData.name}을(를) 먹는 동물은 무엇일까요? <br> ${selectedData.name}을(를) 포식자에게 드래그하세요.`);
+                } else {
+                    // 포식자가 없는 경우 (최종 소비자)
+                    setGamePrompt('🎉 성공! 이 생물은 다른 동물에게 먹히지 않습니다. 다른 생물을 선택하세요.');
+                    setTimeout(resetGameStep, 2000);
+                }
+            }
+
+            // O/X 피드백 표시
+            function showFeedback(isCorrect) {
+                if (isCorrect) {
+                    messageBox.innerHTML = 'O';
+                    messageBox.classList.add('bg-green-500');
+                    messageBox.classList.remove('bg-red-500');
+                } else {
+                    messageBox.innerHTML = 'X';
+                    messageBox.classList.add('bg-red-500');
+                    messageBox.classList.remove('bg-green-500');
+                }
+
+                messageBox.classList.add('show');
+
+                // 1초 후에 메시지 숨기기
+                setTimeout(() => {
+                    messageBox.classList.remove('show');
+                }, 1000);
+            }
+
+            // --- 5. 화살표 그리기 로직 ---
+            
+            // 화살표 추가 (중복 방지)
+            function addArrow(fromId, toId) {
+                const exists = drawnArrows.some(arrow => arrow.from === fromId && arrow.to === toId);
+                if (!exists) {
+                    drawnArrows.push({ from: fromId, to: toId });
+                }
+            }
+
+            // 모든 화살표 그리기
+            function drawAllArrows() {
+                const lines = arrowCanvas.querySelectorAll('.arrow-line');
+                lines.forEach(line => line.remove());
+
+                drawnArrows.forEach(arrow => {
+                    createSvgLine(arrow.from, arrow.to);
+                });
+            }
+            
+            // 드래그 중인 요소에 연결된 화살표만 업데이트
+            function updateArrowsForDraggedElement(draggedId) {
+                const lines = arrowCanvas.querySelectorAll(`[data-from="${draggedId}"], [data-to="${draggedId}"]`);
+                lines.forEach(line => line.remove());
+                
+                drawnArrows.forEach(arrow => {
+                    if (arrow.from === draggedId || arrow.to === draggedId) {
+                        createSvgLine(arrow.from, arrow.to);
+                    }
+                });
+            }
+ 
+            // SVG 선(화살표) 생성
+            function createSvgLine(fromId, toId) {
+                const fromEl = document.querySelector(`.creature[data-id="${fromId}"]`);
+                const toEl = document.querySelector(`.creature[data-id="${toId}"]`);
+
+                if (!fromEl || !toEl) return;
+
+                const fromRect = fromEl.getBoundingClientRect();
+                const toRect = toEl.getBoundingClientRect();
+                const canvasRect = arrowCanvas.getBoundingClientRect();
+
+                // 각 요소의 중심점 계산
+                const from = {
+                    x: fromRect.left - canvasRect.left + fromRect.width / 2,
+                    y: fromRect.top - canvasRect.top + fromRect.height / 2
+                };
+                const to = {
+                    x: toRect.left - canvasRect.left + toRect.width / 2,
+                    y: toRect.top - canvasRect.top + toRect.height / 2
+                };
+                
+                const angle = Math.atan2(to.y - from.y, to.x - from.x);
+                
+                const toPadding = toRect.width > toRect.height ? toRect.width / 2 : toRect.height / 2;
+                const adjustedTo = {
+                    x: to.x - Math.cos(angle) * (toPadding + 10), // 10은 화살촉 길이
+                    y: to.y - Math.sin(angle) * (toPadding + 10)
+                };
+
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', from.x);
+                line.setAttribute('y1', from.y);
+                line.setAttribute('x2', adjustedTo.x);
+                line.setAttribute('y2', adjustedTo.y);
+                line.setAttribute('class', 'arrow-line');
+                line.setAttribute('marker-end', 'url(#arrowhead)');
+                line.setAttribute('data-from', fromId);
+                line.setAttribute('data-to', toId);
+                
+                arrowCanvas.appendChild(line);
+            }
+            
+            function snapBack(element, redraw = false) { 
+                const id = element.dataset.id;
+                // *** 수정: 원본 데이터(creatures)에서 위치를 읽어옴 ***
+                const originalPos = creatures[id].pos;
+                
+                element.style.transition = 'left 0.3s ease-out, top 0.3s ease-out';
+                element.style.left = `${originalPos.x}%`;
+                element.style.top = `${originalPos.y}%`;
+                
+                setTimeout(() => {
+                    element.style.transition = 'all 0.2s ease-in-out';
+                    if (redraw) {
+                        drawAllArrows();
+                    }
+                }, 300);
+            }
+
+            // 모든 생물 위치 리셋
+            function resetCreaturePositions() {
+                clearArrows(true); // 화살표 지우고 프롬프트 리셋
+                document.querySelectorAll('.creature').forEach(el => {
+                    const id = el.dataset.id;
+                    // *** 수정: 원본 데이터(creatures)에서 위치를 읽어옴 ***
+                    const pos = creatures[id].pos; 
+                    el.style.transition = 'left 0.5s ease, top 0.5s ease'; 
+                    el.style.left = `${pos.x}%`; 
+                    el.style.top = `${pos.y}%`;
+                    
+                    // *** 삭제: 원본 데이터를 수정하던 코드 삭제 ***
+                    // creatures[id].pos.x = pos.x;
+                    // creatures[id].pos.y = pos.y;
+
+                    setTimeout(() => {
+                        el.style.transition = 'all 0.2s ease-in-out'; 
+                    }, 500);
+                });
+            }
+
+            // 모든 화살표 보기
+            function showAllArrows() {
+                clearArrows(false); 
+                const allCorrectArrows = [];
+                Object.keys(creatures).forEach(id => {
+                    const data = creatures[id];
+                    data.eatenBy.forEach(predatorId => {
+                        allCorrectArrows.push({ from: id, to: predatorId });
+                    });
+                });
+                drawnArrows = allCorrectArrows;
+                drawAllArrows();
+                resetGameStep();
+                setGamePrompt('생태계의 모든 먹이 관계입니다.');
+            }
+
+            // 화살표 지우기
+            function clearArrows(resetPrompt) {
+                drawnArrows = [];
+                drawAllArrows();
+                if (resetPrompt) {
+                    resetGameStep();
+                }
+            }
+            
+            // 게임 리셋 (학습 뷰로 돌아갈 때)
+            function resetGame() {
+                clearArrows(true);
+                gameArea.querySelectorAll('.creature').forEach(el => el.remove());
+            }
+
+        });
+    </script>
+</body>
+</html>
