@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고기압과 저기압 시뮬레이터</title>
+    <!-- Tailwind CSS 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Jua 글꼴 로드 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Jua 글꼴 및 기본 글꼴 크기 설정 */
+        body {
+            font-family: 'Jua', sans-serif;
+            font-size: 20pt; /* 초기 글꼴 크기 */
+            overflow: hidden; /* 전체 스크롤바 숨기기 */
+        }
+
+        /* 플라스틱 통 시각화 스타일 */
+        .container-visual {
+            width: 150px;
+            height: 200px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 4px solid #f97316; /* 주황색 뚜껑 테두리 (몸체 부분) */
+            border-top: none; /* 뚜껑은 별도 div로 분리 */
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+            position: relative;
+            margin-bottom: -10px; /* 저울 위에 살짝 걸치도록 */
+            transition: all 1s ease-in-out; /* 부드러운 이동 효과 */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            z-index: 10;
+            overflow: hidden; /* 공기 입자가 밖으로 나갈 때 숨김 -> JS로 제어 */
+        }
+        
+        /* 뚜껑(별도 div) */
+        .lid-visual {
+            width: 142px; /* 150 - 4 - 4 */
+            height: 20px;
+            background-color: #f97316;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            z-index: 11;
+            transition: all 0.5s ease-out;
+            transform-origin: center;
+        }
+
+        /* 뚜껑 열기 애니메이션 */
+        .container-visual.lid-open .lid-visual {
+            transform: translateY(-50px) rotate(90deg);
+            opacity: 0;
+        }
+
+
+        /* 공기 입자 스타일 */
+        .air-particle-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        .air-particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: rgba(156, 163, 175, 0.4); /* gray-400 with opacity */
+            border-radius: 50%;
+            transition: all 1.5s ease-in-out; /* 부드러운 애니메이션 */
+        }
+        .air-particle.escaping {
+            transition: all 1.5s ease-out; /* 나갈 때는 다른 트랜지션 */
+        }
+        .air-particle.entering {
+            transition: all 1.5s ease-out; /* 들어올 때는 다른 트랜지션 */
+        }
+
+        /* 주변 공기 입자 */
+        .ambient-air-particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background-color: rgba(107, 114, 128, 0.2); /* gray-500 */
+            border-radius: 50%;
+            animation: drift 15s infinite linear alternate;
+        }
+        @keyframes drift {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(100px, 50px); }
+        }
+
+
+        /* 전자저울 시각화 스타일 */
+        .scale-visual {
+            width: 200px;
+            height: 100px;
+            background-color: #d1d5db; /* 회색 */
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2) inset; /* 안쪽 그림자 */
+        }
+        .scale-display {
+            width: 90%;
+            height: 50px;
+            background-color: #1f2937; /* 어두운 배경 */
+            color: #22c55e; /* 초록색 글씨 */
+            font-family: 'Jua', sans-serif; /* Jua 글꼴 적용 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            font-size: 1.2em; /* 부모(body) 기준 1.2배 */
+            line-height: 1;
+            padding-top: 0.1em; /* Jua 글꼴 세로 정렬 미세 조정 */
+        }
+        .scale-base {
+            width: 100%;
+            height: 20px;
+            background-color: #9ca3af;
+            border-radius: 5px;
+        }
+
+        /* 물통 시각화 스타일 */
+        .tub-visual {
+            width: 250px;
+            height: 200px;
+            border: 5px solid #6b7280;
+            border-top: none;
+            border-radius: 10px;
+            position: relative;
+            background: linear-gradient(to top, var(--tub-color-1), var(--tub-color-2));
+            overflow: hidden;
+        }
+        #tub-warm {
+            --tub-color-1: #fca5a5; /* red-300 */
+            --tub-color-2: #fecaca; /* red-200 */
+        }
+        #tub-cold {
+            --tub-color-1: #93c5fd; /* blue-300 */
+            --tub-color-2: #bfdbfe; /* blue-200 */
+        }
+
+        /* 시뮬레이션용 입자(물방울, 얼음) */
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.7;
+            animation-duration: 3s;
+            animation-iteration-count: infinite;
+            animation-timing-function: linear;
+            z-index: 1;
+        }
+        /* 따뜻한 물방울 */
+        .bubble {
+            background-color: #ef4444;
+            animation-name: rise;
+        }
+        @keyframes rise {
+            0% {
+                bottom: 10px;
+                transform: translateX(0);
+                opacity: 0.7;
+            }
+            100% {
+                bottom: 200px;
+                transform: translateX(calc(var(--x-end) * 1px));
+                opacity: 0;
+            }
+        }
+        /* 얼음 조각 */
+        .ice {
+            background-color: #ffffff;
+            border: 1px solid #dbeafe;
+            border-radius: 2px;
+            animation-name: bob;
+            animation-duration: 2s;
+        }
+        @keyframes bob {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0); }
+        }
+
+        /* 제어 버튼 스타일 */
+        .btn {
+            font-family: 'Jua', sans-serif;
+            font-size: 1em; /* 부모(body) 기준 1배 */
+            padding: 0.5em 1em;
+            border-radius: 12px;
+            border: none;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            margin: 0.25em;
+            width: 100%; /* 버튼 너비 채우기 */
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        .btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .btn-blue { background-color: #3b82f6; }
+        .btn-blue:hover { background-color: #2563eb; }
+        .btn-green { background-color: #22c55e; }
+        .btn-green:hover { background-color: #16a34a; }
+        .btn-red { background-color: #ef4444; }
+        .btn-red:hover { background-color: #dc2626; }
+        .btn-yellow { background-color: #eab308; }
+        .btn-yellow:hover { background-color: #ca8a04; }
+        .btn-gray { background-color: #6b7280; }
+        .btn-gray:hover { background-color: #4b5563; }
+        .btn-indigo { background-color: #6366f1; } /* 4번 버튼용 */
+        .btn-indigo:hover { background-color: #4f46e5; }
+        .btn:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .tub-label {
+            font-size: 1.2em;
+            z-index: 5;
+            position: relative;
+            padding-top: 0.1em;
+        }
+        
+        /* 모달 (결론 팝업) 스타일 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 40;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 1.5em;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 80vw; /* 가로 폭을 80%로 대폭 확장 */
+            z-index: 50;
+            line-height: 1.6;
+            text-align: center; /* 넓어졌으므로 가운데 정렬 */
+        }
+    </style>
+</head>
+<body class="bg-blue-50 text-gray-800 flex flex-col h-screen">
+
+    <!-- 헤더 -->
+    <header class="text-center p-4 bg-white shadow-md">
+        <h1 class="font-bold text-blue-600" style="font-size: 2em; padding-top: 0.1em;">고기압과 저기압: 공기의 무게 비교 실험</h1>
+    </header>
+
+    <!-- 메인 컨텐츠 영역 (좌우 분할) -->
+    <div class="flex flex-row flex-grow overflow-hidden">
+        
+        <!-- 좌측: 제어판 (버튼, 설명) -->
+        <nav class="w-80 flex-shrink-0 p-6 bg-white shadow-lg h-full overflow-y-auto flex flex-col space-y-4">
+            <h2 class="text-xl font-bold text-center" style="font-size: 1.2em;">실험 순서</h2>
+            
+            <button id="btn-measure-initial" class="btn btn-blue">1. 처음 무게 측정</button>
+            <button id="btn-start-experiment" class="btn btn-green" disabled>2. 물에 넣기 (10초)</button>
+            <button id="btn-measure-final" class="btn btn-red" disabled>3. 나중 무게 측정</button>
+            <button id="btn-show-conclusion" class="btn btn-indigo" disabled>4. 결론 보기</button>
+            
+            <hr class="my-4">
+            
+            <button id="btn-reset" class="btn btn-gray">초기화</button>
+            
+            <!-- 글씨 크기 조절 (분할 버튼) -->
+            <div class="text-center" style="font-size: 0.9em; padding-top: 0.1em;">글씨 크기: <span id="font-size-display">20pt</span></div>
+            <div class="flex flex-row space-x-2">
+                <button id="btn-font-increase" class="btn btn-yellow w-1/2">크게 (+)</button>
+                <button id="btn-font-decrease" class="btn btn-yellow w-1/2">작게 (-)</button>
+            </div>
+
+            <!-- 설명 및 결과 창 -->
+            <div id="explanation-box" class="w-full flex-grow p-4 bg-gray-50 rounded-xl shadow-inner text-left" style="font-size: 0.9em; min-height: 200px; padding-top: 0.5em; line-height: 1.6;">
+                실험을 시작하려면 '1. 처음 무게 측정' 버튼을 눌러주세요.
+            </div>
+        </nav>
+
+        <!-- 우측: 메인 시뮬레이션 영역 -->
+        <main class="flex-grow flex flex-col items-center justify-center p-6 space-y-8 overflow-y-auto relative">
+            
+            <!-- 주변 공기 입자 래퍼 -->
+            <div id="ambient-air-wrapper" class="absolute inset-0 z-0 overflow-hidden"></div>
+
+            <!-- 실험 구역 -->
+            <div class="flex flex-col md:flex-row w-full max-w-6xl justify-around items-center space-y-8 md:space-y-0 md:space-x-8 z-10">
+
+                <!-- A: 따뜻한 공기 -->
+                <div class="flex flex-col items-center space-y-4">
+                    <h2 class="text-2xl font-bold text-red-500" style="font-size: 1.5em; padding-top: 0.1em;">A: 따뜻한 공기</h2>
+                    <div id="container-a-wrapper" class="relative" style="height: 350px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
+                        <div id="container-a" class="container-visual">
+                            <div class="lid-visual"></div> <!-- 뚜껑 -->
+                            <div class="air-particle-wrapper"></div> <!-- 공기 입자 -->
+                        </div>
+                        <div id="scale-a" class="scale-visual">
+                            <div id="display-a" class="scale-display">0.0 g</div>
+                            <div class="scale-base"></div>
+                        </div>
+                    </div>
+                    <div id="tub-warm" class="tub-visual flex items-center justify-center">
+                        <span class="font-bold text-red-700 tub-label">따뜻한 물</span>
+                        <!-- 파티클(물방울)이 여기에 주입됩니다 -->
+                    </div>
+                </div>
+
+                <!-- B: 차가운 공기 -->
+                <div class="flex flex-col items-center space-y-4">
+                    <h2 class="text-2xl font-bold text-blue-500" style="font-size: 1.5em; padding-top: 0.1em;">B: 차가운 공기</h2>
+                    <div id="container-b-wrapper" class="relative" style="height: 350px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
+                        <div id="container-b" class="container-visual">
+                            <div class="lid-visual"></div> <!-- 뚜껑 -->
+                            <div class="air-particle-wrapper"></div> <!-- 공기 입자 -->
+                        </div>
+                        <div id="scale-b" class="scale-visual">
+                            <div id="display-b" class="scale-display">0.0 g</div>
+                            <div class="scale-base"></div>
+                        </div>
+                    </div>
+                    <div id="tub-cold" class="tub-visual flex items-center justify-center">
+                        <span class="font-bold text-blue-700 tub-label">얼음물</span>
+                        <!-- 파티클(얼음)이 여기에 주입됩니다 -->
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- 결론 모달 (팝업) -->
+    <div id="conclusion-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 class="text-center font-bold" style="font-size: 1.5em; padding-top: 0.1em;">실험 결론</h2>
+            <hr class="my-3">
+            <div id="modal-body" style="font-size: 1.1em;">
+                <!-- JS로 내용 채워짐 -->
+            </div>
+            <button id="btn-close-modal" class="btn btn-blue mt-4">닫기</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- 상태 변수 ---
+            let currentFontSize = 20; // 현재 글꼴 크기 (pt)
+            const minFontSize = 10; // 최소 글꼴 크기
+            const maxFontSize = 100; // 최대 글꼴 크기
+            const fontStep = 5; // 증가/감소 단계
+            const initialWeight = 285.6; // 초기 무게
+            const warmAirWeight = 285.3; // 따뜻한 공기 무게
+            const coldAirWeight = 285.9; // 차가운 공기 무게
+            let timerInterval = null; // 타이머
+
+            // --- DOM 요소 ---
+            const tubWarm = document.getElementById('tub-warm');
+            const tubCold = document.getElementById('tub-cold');
+            const body = document.body;
+            const containerA = document.getElementById('container-a');
+            const containerB = document.getElementById('container-b');
+            const displayA = document.getElementById('display-a');
+            const displayB = document.getElementById('display-b');
+            const explanationBox = document.getElementById('explanation-box');
+            
+            const airWrapperA = document.querySelector('#container-a .air-particle-wrapper');
+            const airWrapperB = document.querySelector('#container-b .air-particle-wrapper');
+            const ambientAirWrapper = document.getElementById('ambient-air-wrapper');
+
+            const btnInitial = document.getElementById('btn-measure-initial');
+            const btnStart = document.getElementById('btn-start-experiment');
+            const btnFinal = document.getElementById('btn-measure-final');
+            const btnConclusion = document.getElementById('btn-show-conclusion');
+            const btnReset = document.getElementById('btn-reset');
+            const btnFontIncrease = document.getElementById('btn-font-increase');
+            const btnFontDecrease = document.getElementById('btn-font-decrease');
+            const fontSizeDisplay = document.getElementById('font-size-display');
+            
+            const modal = document.getElementById('conclusion-modal');
+            const modalBody = document.getElementById('modal-body');
+            const btnCloseModal = document.getElementById('btn-close-modal');
+
+            // --- 시각 효과 (파티클 생성) ---
+            function createParticles(tub, type, count) {
+                for (let i = 0; i < count; i++) {
+                    const particle = document.createElement('div');
+                    if (type === 'bubble') {
+                        particle.className = 'particle bubble';
+                        particle.style.width = `${Math.random() * 8 + 2}px`;
+                        particle.style.height = particle.style.width;
+                        particle.style.left = `${Math.random() * 95}%`;
+                        particle.style.animationDelay = `${Math.random() * 3}s`;
+                        particle.style.setProperty('--x-end', (Math.random() - 0.5) * 40);
+                    } else { // ice
+                        particle.className = 'particle ice';
+                        particle.style.width = `${Math.random() * 10 + 5}px`;
+                        particle.style.height = particle.style.width;
+                        particle.style.left = `${Math.random() * 90}%`;
+                        particle.style.bottom = `${Math.random() * 20 + 70}%`; // 물 상단 근처
+                        particle.style.animationDelay = `${Math.random() * 2}s`;
+                    }
+                    tub.appendChild(particle);
+                }
+            }
+            createParticles(tubWarm, 'bubble', 20); // 따뜻한 물에 물방울 20개
+            createParticles(tubCold, 'ice', 15); // 차가운 물에 얼음 15개
+
+            // --- 주변 공기 입자 채우기 ---
+            function populateAmbientAir(wrapper, count) {
+                wrapper.innerHTML = '';
+                for (let i = 0; i < count; i++) {
+                    const p = document.createElement('div');
+                    p.className = 'ambient-air-particle';
+                    p.style.left = `${Math.random() * 100}%`;
+                    p.style.top = `${Math.random() * 100}%`;
+                    p.style.animationDelay = `${Math.random() * -15}s`; // 애니메이션 시작 시점 랜덤화
+                    wrapper.appendChild(p);
+                }
+            }
+
+            // --- 공기 입자 채우기 ---
+            const initialAirCount = 150; // 초기 공기 입자 수 (50 -> 150)
+            const particlesToMove = Math.floor(initialAirCount * 0.5); // 50% 이동 (15 -> 75)
+            const particlesPerSecond = Math.max(1, Math.floor(particlesToMove / 10)); // 초당 7-8개 (1 -> 7)
+
+            function populateAir(wrapper, count) {
+                wrapper.innerHTML = ''; // Clear existing
+                for (let i = 0; i < count; i++) {
+                    const p = document.createElement('div');
+                    p.className = 'air-particle';
+                    p.style.left = `${Math.random() * 90 + 5}%`;
+                    p.style.top = `${Math.random() * 90 + 5}%`;
+                    p.style.opacity = '0.4';
+                    wrapper.appendChild(p);
+                }
+            }
+            // 시뮬레이터 시작 시 공기 입자 배치
+            populateAir(airWrapperA, initialAirCount);
+            populateAir(airWrapperB, initialAirCount);
+            populateAmbientAir(ambientAirWrapper, 200); // 주변 공기 입자 200개 배치
+
+
+            // --- 헬퍼 함수 (글꼴) ---
+            function updateFontSizeDisplay() {
+                body.style.fontSize = `${currentFontSize}pt`;
+                fontSizeDisplay.textContent = `${currentFontSize}pt`;
+                // 버튼 비활성화/활성화 로직
+                btnFontIncrease.disabled = currentFontSize >= maxFontSize;
+                btnFontDecrease.disabled = currentFontSize <= minFontSize;
+            }
+            
+            // --- 핵심 기능 함수 ---
+
+            // 1. 글씨 크기 조절 (증가)
+            btnFontIncrease.addEventListener('click', () => {
+                if (currentFontSize < maxFontSize) {
+                    currentFontSize += fontStep;
+                    updateFontSizeDisplay();
+                }
+            });
+            
+            // 1.1 글씨 크기 조절 (감소)
+            btnFontDecrease.addEventListener('click', () => {
+                 if (currentFontSize > minFontSize) {
+                    currentFontSize -= fontStep;
+                    updateFontSizeDisplay();
+                }
+            });
+
+            // 2. 처음 무게 측정
+            btnInitial.addEventListener('click', () => {
+                displayA.textContent = `${initialWeight.toFixed(1)} g`;
+                displayB.textContent = `${initialWeight.toFixed(1)} g`;
+                explanationBox.innerHTML = `두 통의 처음 무게는 <strong class="text-green-600">${initialWeight.toFixed(1)} g</strong>으로 같습니다.<br><br>'2. 물에 넣기' 버튼을 눌러 실험을 계속하세요.`;
+                
+                btnInitial.disabled = true;
+                btnStart.disabled = false;
+            });
+
+            // 3. 물에 넣기 (10초)
+            btnStart.addEventListener('click', () => {
+                // 뚜껑 열기
+                containerA.classList.add('lid-open');
+                containerB.classList.add('lid-open');
+
+                // 통을 물통으로 이동
+                containerA.style.transform = 'translateY(230px)';
+                containerB.style.transform = 'translateY(230px)';
+                
+                // A통의 overflow를 열어서 입자가 밖으로 나가는 게 보이도록 함
+                containerA.style.overflow = 'visible';
+
+                btnStart.disabled = true;
+                explanationBox.innerHTML = '뚜껑을 열고 통 안의 공기를 데우고 식히는 중입니다... (10초)';
+                
+                // --- 공기 입자 애니메이션 (Interval로 변경) ---
+                let countdown = 10;
+                let escapedCount = 0;
+                let enteredCount = 0;
+
+                timerInterval = setInterval(() => {
+                    explanationBox.innerHTML = `공기를 데우고 식히는 중... (${countdown}초)`;
+                    
+                    // A (따뜻한 공기): 팽창 및 탈출 (위로)
+                    if (escapedCount < particlesToMove) {
+                        const particlesA = airWrapperA.querySelectorAll('.air-particle:not(.escaping)');
+                        for (let i = 0; i < particlesPerSecond && (escapedCount + i) < particlesToMove && i < particlesA.length; i++) {
+                            const p = particlesA[i];
+                            if (p) { // 혹시 모를 오류 방지
+                                p.classList.add('escaping');
+                                p.style.backgroundColor = 'rgba(239, 68, 68, 0.6)'; // 붉은색
+                                p.style.transform = `translateY(-350px) translateX(${(Math.random() - 0.5) * 100}px)`; // 더 높이
+                                p.style.opacity = '0';
+                                setTimeout(() => p.remove(), 1500); // 애니메이션 후 제거
+                            }
+                        }
+                        escapedCount += particlesPerSecond;
+                    }
+                
+                    // B (차가운 공기): 수축 및 유입 (아래로)
+                    if (enteredCount < particlesToMove) {
+                        // 기존 입자 수축 (한 번만 실행) -> 삭제 (지적 사항: 뭉치는 문제)
+
+                        // 새 입자 유입 (위쪽 입구에서)
+                        for (let i = 0; i < particlesPerSecond && (enteredCount + i) < particlesToMove; i++) {
+                            const p = document.createElement('div');
+                            p.className = 'air-particle entering';
+                            p.style.backgroundColor = 'rgba(59, 130, 246, 0.6)'; // 푸른색
+                            p.style.left = `${Math.random() * 80 + 10}%`; 
+                            p.style.top = `-50px`; // 통의 윗부분(입구) 밖에서 시작
+                            p.style.opacity = '0.8'; 
+                            airWrapperB.appendChild(p);
+                            
+                            setTimeout(() => {
+                                // 통 전체에 골고루 퍼지도록 수정 (바닥에 뭉치지 않게)
+                                p.style.top = `${Math.random() * 80 + 15}%`; // 15% ~ 95% 사이로 안착
+                                p.style.opacity = '0.4';
+                            }, 100); // 즉시 애니메이션 시작
+                        }
+                        enteredCount += particlesPerSecond;
+                    }
+                    // --- 애니메이션 끝 ---
+
+                    countdown--;
+
+                    if (countdown < 0) {
+                        clearInterval(timerInterval);
+                        finishImmersion();
+                    }
+                }, 1000);
+            });
+
+            // 물에서 꺼내기 (타이머 종료 후)
+            function finishImmersion() {
+                // 뚜껑 닫기
+                containerA.classList.remove('lid-open');
+                containerB.classList.remove('lid-open');
+
+                // A통 overflow 원상복구
+                containerA.style.overflow = 'hidden';
+                
+                // 통을 다시 저울로 이동
+                containerA.style.transform = 'translateY(0)';
+                containerB.style.transform = 'translateY(0)';
+                
+                explanationBox.innerHTML = '뚜껑을 닫고 물기를 닦았습니다. <br><br><strong class="text-red-500">3. 나중 무게를 측정</strong>하세요.';
+                btnFinal.disabled = false;
+            }
+
+            // 4. 나중 무게 측정 (결론 분리)
+            btnFinal.addEventListener('click', () => {
+                displayA.textContent = `${warmAirWeight.toFixed(1)} g`;
+                displayB.textContent = `${coldAirWeight.toFixed(1)} g`;
+
+                // 결과 표시
+                explanationBox.innerHTML = `
+                    <div style="line-height: 1.6;">
+                        <p>측정 완료:</p>
+                        <p>A(따뜻): <strong class="text-red-500">${warmAirWeight.toFixed(1)} g</strong></p>
+                        <p>B(차가운): <strong class="text-blue-500">${coldAirWeight.toFixed(1)} g</strong></p>
+                        <hr class="my-3">
+                        <p>결과를 확인하려면 <strong class="text-indigo-600">4. 결론 보기</strong> 버튼을 누르세요.</p>
+                    </div>
+                `;
+                
+                btnFinal.disabled = true;
+                btnConclusion.disabled = false; // 4번 버튼 활성화
+            });
+
+            // 5. 결론 보기 (모달)
+            btnConclusion.addEventListener('click', () => {
+                modalBody.innerHTML = `
+                    <div style="line-height: 1.6;">
+                        <p style="font-size: 1.2em;">따뜻한 공기(A) 통:<br> <strong class="text-red-500" style="font-size: 1.3em;">${warmAirWeight.toFixed(1)} g</strong><br> (공기가 팽창해 빠져나가 가벼워짐)</p>
+                        <p class="mt-4" style="font-size: 1.2em;">차가운 공기(B) 통:<br> <strong class="text-blue-500" style="font-size: 1.3em;">${coldAirWeight.toFixed(1)} g</strong><br> (공기가 수축하고 찬 공기가 더 들어와 무거워짐)</p>
+                        <hr class="my-4">
+                        <p class="font-bold" style="font-size: 1.4em; line-height: 1.5;">
+                            결론: 같은 부피일 때, 차가운 공기가 따뜻한 공기보다 더 무겁습니다.<br>
+                            <span class="text-blue-700">고기압</span> (무거운 공기) / 
+                            <span class="text-red-700">저기압</span> (가벼운 공기)
+                        </p>
+                    </div>
+                `;
+                modal.classList.remove('hidden');
+            });
+            
+            // 모달 닫기
+            btnCloseModal.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                }
+            });
+
+            // 6. 초기화
+            btnReset.addEventListener('click', () => {
+                if (timerInterval) clearInterval(timerInterval); // 진행 중인 타이머 중지
+
+                displayA.textContent = '0.0 g';
+                displayB.textContent = '0.0 g';
+                explanationBox.textContent = "실험을 시작하려면 '1. 처음 무게 측정' 버튼을 눌러주세요.";
+
+                // 통 위치 초기화
+                containerA.style.transform = 'translateY(0)';
+                containerB.style.transform = 'translateY(0)';
+                
+                // A통 overflow 원상복구
+                containerA.style.overflow = 'hidden';
+
+                // 뚜껑 닫기
+                containerA.classList.remove('lid-open');
+                containerB.classList.remove('lid-open');
+
+                // 공기 입자 초기화
+                populateAir(airWrapperA, initialAirCount);
+                populateAir(airWrapperB, initialAirCount);
+                populateAmbientAir(ambientAirWrapper, 200); // 주변 공기 입자 초기화
+
+                // 글꼴 크기 초기화
+                currentFontSize = 20;
+                updateFontSizeDisplay();
+
+                // 버튼 상태 초기화
+                btnInitial.disabled = false;
+                btnStart.disabled = true;
+                btnFinal.disabled = true;
+                btnConclusion.disabled = true; // 4번 버튼 비활성화
+                modal.classList.add('hidden'); // 모달 숨기기
+            });
+
+            // 초기 글꼴 상태 설정
+            updateFontSizeDisplay();
+        });
+    </script>
+
+</body>
+</html>
+
