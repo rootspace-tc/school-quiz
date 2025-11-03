@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>물의 신기한 여행</title>
+    <!-- Tailwind CSS 로드 --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Jua) 로드 --><link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        /* Jua 글꼴 전체 적용 */
+        body {
+            font-family: 'Jua', sans-serif;
+            overscroll-behavior: none; /* 스크롤 바운스 효과 제거 */
+        }
+
+        /* --- 기존 애니메이션 --- */
+        /* 비 애니메이션 */
+        .rain-drop {
+            position: absolute;
+            bottom: 100%;
+            width: 2px;
+            height: 20px;
+            background-color: #60a5fa; /* blue-400 */
+            border-radius: 50%;
+            animation: fall 1s linear infinite;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(150px); /* 떨어지는 거리 */
+                opacity: 0;
+            }
+        }
+
+        /* 눈 애니메이션 */
+        .snow-flake {
+            position: absolute;
+            top: -20px;
+            width: 10px;
+            height: 10px;
+            background-color: white;
+            border-radius: 50%;
+            animation: snowfall 5s linear infinite;
+            opacity: 0.8;
+        }
+
+        @keyframes snowfall {
+            0% {
+                transform: translateY(0) translateX(0);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(150px) translateX(30px); /* 떨어지면서 옆으로 이동 */
+                opacity: 0;
+            }
+        }
+        
+        /* --- 새로 추가된 스타일 --- */
+        
+        /* 클릭 가능한 섹션 스타일 */
+        .clickable-section {
+            cursor: pointer;
+            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+        }
+        .clickable-section:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 시뮬레이션용 수증기 입자 */
+        .vapor-dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #cbd5e1; /* slate-300 */
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: drift 6s ease-in-out infinite alternate;
+            transition: all 0.5s ease;
+        }
+
+        /* 물방울 입자 (수정: 크기 키움) */
+        .water-dot {
+            background: #3b82f6; /* blue-500 */
+            opacity: 1;
+            animation: none; /* 드리프트 중지 */
+            width: 12px; /* 수정 */
+            height: 12px; /* 수정 */
+        }
+        
+        /* 얼음 입자 */
+        .ice-dot {
+            background: #ffffff;
+            opacity: 1;
+            border: 1px solid #93c5fd;
+            animation: none;
+            box-shadow: 0 0 5px white;
+        }
+
+        /* 수증기 애니메이션 */
+        @keyframes drift {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(10px, -15px); }
+            50% { transform: translate(-10px, 10px); }
+            75% { transform: translate(5px, 20px); }
+            100% { transform: translate(0, 0); }
+        }
+
+        /* 비/눈 떨어지는 애니메이션 */
+        @keyframes fall-sim {
+            from { top: 30%; opacity: 1; }
+            to { top: 90%; opacity: 0; }
+        }
+        .rain-drop-sim {
+            position: absolute;
+            width: 4px;
+            height: 10px;
+            background: #3b82f6;
+            border-radius: 50%;
+            animation: fall-sim 1s linear;
+        }
+        .snow-flake-sim {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            color: white;
+            animation: fall-sim 2s linear;
+        }
+        .snow-flake-sim::before {
+            content: '❄'; /* 눈송이 문자 */
+        }
+    </style>
+</head>
+<body class="bg-sky-100 text-gray-800 h-screen w-screen overflow-hidden">
+
+    <!-- 글꼴 크기 조절 버튼 (기존) --><div class="fixed top-4 right-4 z-50 flex gap-2">
+        <button id="zoom-out" class="bg-white/70 backdrop-blur-sm shadow-md rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold hover:bg-white transition-all">-</button>
+        <button id="zoom-reset" class="bg-white/70 backdrop-blur-sm shadow-md rounded-full w-10 h-10 flex items-center justify-center text-base font-bold hover:bg-white transition-all">가</button>
+        <button id="zoom-in" class="bg-white/70 backdrop-blur-sm shadow-md rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold hover:bg-white transition-all">+</button>
+    </div>
+
+    <!-- 메인 콘텐츠 영역 --><div id="main-content-wrapper" class="h-full w-full overflow-auto">
+        <div id="content-area" class="container mx-auto p-6 md:p-12 transition-all duration-300" style="font-size: 1.125rem; line-height: 1.75rem;"> <!-- 기본 1.125rem (text-lg) --><h1 class="text-4xl md:text-6xl font-bold text-center text-blue-600 mb-12">
+                💧 물의 신기한 여행 ❄️
+            </h1>
+
+            <div class="space-y-12">
+
+                <!-- 1. 이슬 (클릭 가능하도록 수정) --><section id="section-dew" class="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 clickable-section">
+                    <!-- ... (기존 시각 자료) ... --><div class="w-32 h-32 md:w-40 md:h-40 bg-green-500 rounded-full flex-shrink-0 relative" style="border-radius: 50% 50% 10% 10%;">
+                        <div class="absolute w-2 h-16 bg-green-600 rounded-full top-4 left-1/2 -translate-x-1/2 transform -rotate-12"></div>
+                        <div class="absolute w-2 h-20 bg-green-600 rounded-full top-2 left-1/2 -translate-x-2 transform rotate-6"></div>
+                        <div class="absolute w-2 h-16 bg-green-600 rounded-full top-4 left-1/2 -translate-x-0 transform rotate-20"></div>
+                        <div class="absolute w-3 h-3 bg-sky-300/80 rounded-full top-10 left-16 border border-white/50"></div>
+                        <div class="absolute w-2 h-2 bg-sky-300/80 rounded-full top-16 left-12 border border-white/50"></div>
+                        <div class="absolute w-3 h-3 bg-sky-300/80 rounded-full top-12 left-20 border border-white/50"></div>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-bold text-green-700 mb-3">🌱 이슬</h2>
+                        <p>
+                            아침에 풀잎에 송골송골 맺힌 물방울 본 적 있니? 이게 바로 이슬이야! 
+                            밤에 날씨가 추워지면, 공기 속에 숨어있던 '수증기'(기체 상태의 물)가 풀잎이나 나뭇가지처럼 차가운 곳에 닿아서 물방울로 변신하는 거야.
+                        </p>
+                    </div>
+                </section>
+
+                <!-- 2. 안개 (클릭 가능하도록 수정) --><section id="section-fog" class="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 clickable-section">
+                    <!-- ... (기존 시각 자료) ... --><div class="w-32 h-32 md:w-40 md:h-40 bg-gray-300 rounded-2xl flex-shrink-0 relative overflow-hidden">
+                        <div class="absolute w-40 h-16 bg-white/50 rounded-full -bottom-4 -left-4"></div>
+                        <div class="absolute w-32 h-12 bg-white/60 rounded-full bottom-0 right-0"></div>
+                        <div class="absolute w-48 h-16 bg-white/40 rounded-full top-4 -right-8"></div>
+                        <div class="absolute w-32 h-12 bg-white/50 rounded-full top-0 left-0"></div>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-600 mb-3">🌫️ 안개</h2>
+                        <p>
+                            안개는 땅 아주 가까이에 생긴 '낮은 구름'이라고 생각하면 쉬워. 
+                            공기 중의 수증기가 차가운 공기를 만나 아주아주 작은 물방울로 변해서, 우리 눈앞에 뿌옇게 떠다니는 거야. 안개가 낀 날은 멀리 있는 게 잘 안 보이지!
+                        </p>
+                    </div>
+                </section>
+
+                <!-- 3. 구름 (클릭 가능하도록 수정) --><section id="section-cloud" class="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 clickable-section">
+                    <!-- ... (기존 시각 자료) ... --><div class="w-32 h-32 md:w-40 md:h-40 rounded-2xl flex-shrink-0 relative">
+                        <div class="absolute w-24 h-24 bg-white shadow-md rounded-full bottom-0 left-0"></div>
+                        <div class="absolute w-28 h-28 bg-white shadow-md rounded-full bottom-0 right-0"></div>
+                        <div class="absolute w-20 h-20 bg-white shadow-md rounded-full top-0 left-8"></div>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-bold text-sky-600 mb-3">☁️ 구름</h2>
+                        <p>
+                            하늘에 둥실둥실 떠다니는 구름은 어떻게 생길까? 땅 위의 물이 햇빛을 받아 따뜻해지면 수증기가 되어 하늘로 올라가. 
+                            높이 올라가면 공기가 차가워져서 이 수증기들이 다시 작은 물방울이나 얼음 알갱이로 똘똘 뭉치게 돼. 이게 모여서 우리 눈에 보이는 구름이 되는 거야!
+                        </p>
+                    </div>
+                </section>
+
+                <!-- 4. 비 (클릭 가능하도록 수정) --><section id="section-rain" class="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 clickable-section">
+                    <!-- ... (기존 시각 자료) ... --><div class="w-32 h-32 md:w-40 md:h-40 rounded-2xl flex-shrink-0 relative bg-gray-400 overflow-hidden">
+                        <div class="absolute w-24 h-12 bg-gray-300 shadow-md rounded-full -top-2 left-0"></div>
+                        <div class="absolute w-28 h-14 bg-gray-300 shadow-md rounded-full -top-4 right-0"></div>
+                        <div class="rain-drop" style="left: 20%; animation-delay: 0s;"></div>
+                        <div class="rain-drop" style="left: 40%; animation-delay: 0.3s;"></div>
+                        <div class="rain-drop" style="left: 60%; animation-delay: 0.6s;"></div>
+                        <div class="rain-drop" style="left: 80%; animation-delay: 0.1s;"></div>
+                        <div class="rain-drop" style="left: 30%; animation-delay: 0.8s;"></div>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-bold text-blue-600 mb-3">🌧️ 비</h2>
+                        <p>
+                            구름 속에 모인 작은 물방울들이 "우리 합체하자!" 하면서 서로 부딪히고 합쳐져. 
+                            점점 크고 무거워지면, 더 이상 하늘에 떠 있지 못하고 땅으로 '후두둑' 떨어지게 돼. 이게 바로 비야!
+                        </p>
+                    </div>
+                </section>
+
+                <!-- 5. 눈 (클릭 가능하도록 수정) --><section id="section-snow" class="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 clickable-section">
+                    <!-- ... (기존 시각 자료) ... --><div class="w-32 h-32 md:w-40 md:h-40 rounded-2xl flex-shrink-0 relative bg-blue-900 overflow-hidden">
+                        <div class="absolute w-24 h-12 bg-gray-200 shadow-md rounded-full -top-2 left-0"></div>
+                        <div class="absolute w-28 h-14 bg-gray-200 shadow-md rounded-full -top-4 right-0"></div>
+                        <div class="snow-flake" style="left: 10%; animation-delay: 0s;"></div>
+                        <div class="snow-flake" style="left: 30%; animation-delay: 1s;"></div>
+                        <div class="snow-flake" style="left: 50%; animation-delay: 3s;"></div>
+                        <div class="snow-flake" style="left: 70%; animation-delay: 0.5s;"></div>
+                        <div class="snow-flake" style="left: 80%; animation-delay: 2s;"></div>
+                        <div class="snow-flake" style="left: 20%; animation-delay: 4s;"></div>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-bold text-indigo-700 mb-3">🌨️ 눈</h2>
+                        <p>
+                            구름이 아주아주 추운 곳(영하 0도보다 낮은 곳)에 있으면, 수증기가 물방울을 거치지 않고 바로 얼음 알갱이로 변해. 
+                            이 얼음 알갱이들이 서로 붙어서 예쁜 눈송이가 되고, 무거워지면 땅으로 '펑펑' 내리는 거야. 이게 바로 눈이야!
+                        </p>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 실험실 화면 (새로 추가) ===== --><div id="lab-container" class="hidden fixed inset-0 bg-sky-200 w-full h-full p-6 md:p-12 z-20 overflow-auto">
+        
+        <!-- 뒤로가기 버튼 --><button id="back-to-main" class="absolute top-6 left-6 bg-white/70 backdrop-blur-sm shadow-lg rounded-full px-5 py-2 text-lg font-bold hover:bg-white transition-all">
+            &larr; 돌아가기
+        </button>
+        
+        <!-- 실험실 글자 크기 조절을 위한 래퍼 추가 --><div id="lab-content-area" class="transition-all duration-300" style="font-size: 1.125rem; line-height: 1.75rem;">
+            <!-- 실험실 제목 --><h2 id="lab-title" class="text-4xl md:text-5xl font-bold text-center text-blue-700 mb-6 mt-16 md:mt-0">
+                실험실
+            </h2>
+
+            <!-- 시뮬레이션 영역 --><div class="w-full max-w-3xl mx-auto flex flex-col md:flex-row gap-6 items-center">
+                
+                <!-- 시뮬레이션 화면 --><div id="simulation-area" class="w-full md:w-2/3 h-80 bg-white/50 backdrop-blur-md rounded-2xl shadow-lg relative overflow-hidden border-4 border-white/50">
+                    <!-- 시뮬레이션 내용이 여기에 동적으로 추가됩니다 --></div>
+
+                <!-- 조작 패널 --><div id="control-panel" class="w-full md:w-1/3 bg-white/70 backdrop-blur-md rounded-2xl shadow-lg p-6">
+                    <h3 class="text-2xl font-bold text-gray-700 mb-4">조작 패널</h3>
+                    <div id="controls-content">
+                        <!-- 조작 도구가 여기에 동적으로 추가됩니다 --></div>
+                </div>
+            </div>
+
+            <!-- 설명 영역 --><div id="lab-explanation" class="w-full max-w-3xl mx-auto bg-white/80 backdrop-blur-md rounded-2xl shadow-lg p-6 md:p-8 mt-6">
+                <!-- 설명 내용이 여기에 동적으로 추가됩니다 --></div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- 기존 폰트 크기 조절 스크립트 ---
+        const contentArea = document.getElementById('content-area');
+        const labContentArea = document.getElementById('lab-content-area'); // <-- 추가
+        const zoomInButton = document.getElementById('zoom-in');
+        const zoomOutButton = document.getElementById('zoom-out');
+        const zoomResetButton = document.getElementById('zoom-reset');
+
+        let currentFontSize = 1.125; // 기본 rem 값 (text-lg)
+        const baseFontSize = 1.125;
+        const step = 0.125; // 폰트 크기 변경 단계
+
+        function updateFontSize() {
+            contentArea.style.fontSize = `${currentFontSize}rem`;
+            contentArea.style.lineHeight = `${currentFontSize * 1.6}rem`; 
+            
+            // --- 추가: 실험실 글자 크기 조절 ---
+            labContentArea.style.fontSize = `${currentFontSize}rem`;
+            labContentArea.style.lineHeight = `${currentFontSize * 1.6}rem`;
+        }
+
+        zoomInButton.addEventListener('click', () => {
+            currentFontSize += step;
+            updateFontSize();
+        });
+
+        zoomOutButton.addEventListener('click', () => {
+            if (currentFontSize > step * 2) {
+                currentFontSize -= step;
+                updateFontSize();
+            }
+        });
+
+        zoomResetButton.addEventListener('click', () => {
+            currentFontSize = baseFontSize;
+            updateFontSize();
+        });
+
+        // --- 새로 추가된 실험실 스크립트 ---
+
+        // DOM 요소 가져오기
+        const mainWrapper = document.getElementById('main-content-wrapper');
+        const labContainer = document.getElementById('lab-container');
+        const backButton = document.getElementById('back-to-main');
+        
+        const labTitle = document.getElementById('lab-title');
+        const simArea = document.getElementById('simulation-area');
+        const controlsContent = document.getElementById('controls-content');
+        const labExplanation = document.getElementById('lab-explanation');
+
+        // 섹션 클릭 이벤트
+        document.getElementById('section-dew').addEventListener('click', () => showLab('dew'));
+        document.getElementById('section-fog').addEventListener('click', () => showLab('fog'));
+        document.getElementById('section-cloud').addEventListener('click', () => showLab('cloud'));
+        document.getElementById('section-rain').addEventListener('click', () => showLab('rain'));
+        document.getElementById('section-snow').addEventListener('click', () => showLab('snow'));
+
+        // 뒤로가기 버튼
+        backButton.addEventListener('click', () => {
+            mainWrapper.classList.remove('hidden');
+            labContainer.classList.add('hidden');
+            // 실험실 내용 초기화
+            simArea.innerHTML = '';
+            controlsContent.innerHTML = '';
+            labExplanation.innerHTML = '';
+        });
+
+        // 수증기 입자 생성 함수
+        function createVaporDots(count, container) {
+            for (let i = 0; i < count; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'vapor-dot';
+                dot.style.left = `${Math.random() * 90 + 5}%`;
+                dot.style.top = `${Math.random() * 90 + 5}%`;
+                dot.style.animationDelay = `${Math.random() * -6}s`; // 애니메이션 시작 시점 다르게
+                container.appendChild(dot);
+            }
+        }
+        
+        // 실험실 화면 표시 함수
+        function showLab(type) {
+            mainWrapper.classList.add('hidden');
+            labContainer.classList.remove('hidden');
+
+            simArea.innerHTML = ''; // 각 실험실 시작 시 시뮬레이션 영역 초기화
+            controlsContent.innerHTML = ''; // 조작 패널 초기화
+            labExplanation.innerHTML = ''; // 설명 영역 초기화
+
+            switch (type) {
+                case 'dew':
+                    labTitle.innerHTML = '🌱 이슬 실험실';
+                    // 시뮬레이션 UI (풀잎 추가)
+                    simArea.innerHTML = '<div id="sim-leaf" class="absolute bottom-0 left-1/2 -translate-x-1/2 w-2 h-32 bg-green-600 rounded-t-full transform rotate-12"></div>';
+                    simArea.innerHTML += '<div id="sim-leaf2" class="absolute bottom-0 left-1/2 -translate-x-1/2 w-2 h-40 bg-green-600 rounded-t-full transform -rotate-6"></div>';
+                    
+                    createVaporDots(30, simArea); // 배경 생성 후 입자 추가
+                    const dotsDew = simArea.querySelectorAll('.vapor-dot'); 
+
+                    // 조작 UI (온도 슬라이더)
+                    controlsContent.innerHTML = `
+                        <label for="temp-slider" class="block mb-2 text-xl md:text-2xl">풀잎 온도 조절하기</label>
+                        <input id="temp-slider" type="range" min="0" max="25" value="25" class="w-full">
+                        <p class="text-center mt-2 text-xl"><span id="temp-label">25</span>°C (따뜻함)</p>
+                    `;
+                    // 설명
+                    labExplanation.innerHTML = `
+                        <p class="text-xl">밤이 되어 풀잎의 온도가 내려가면 어떻게 될까요?</p>
+                        <p class="mt-2">공기 중의 수증기(회색 점)는 따뜻할 땐 자유롭게 날아다녀요. 하지만 온도가 <strong>'이슬점'</strong>(수증기가 물방울로 변하는 온도) 아래로 내려가면, 차가운 풀잎에 닿은 수증기들이 에너지를 잃고 물방울(파란 점)로 변신(<strong>응결</strong>)한답니다!</p>
+                    `;
+                    
+                    // 슬라이더 이벤트
+                    const tempSlider = document.getElementById('temp-slider');
+                    const tempLabel = document.getElementById('temp-label');
+                    tempSlider.addEventListener('input', (e) => {
+                        const temp = parseInt(e.target.value);
+                        tempLabel.textContent = temp;
+                        
+                        // 온도가 10도 미만이면 이슬 맺힘
+                        if (temp < 10) {
+                            tempLabel.innerHTML = `${temp}°C (차가움)`;
+                            dotsDew.forEach((dot, index) => { 
+                                // 일부 입자만 풀잎 근처로 이동시키고 물방울로 변경
+                                if (index % 3 === 0) {
+                                    dot.classList.add('water-dot');
+                                    dot.style.transform = `translate(${Math.random()*40-20}px, 10px)`;
+                                    dot.style.top = '60%'; // 풀잎 위치 근처
+                                    dot.style.left = '50%';
+                                }
+                            });
+                        } else {
+                            tempLabel.innerHTML = `${temp}°C (따뜻함)`;
+                            dotsDew.forEach(dot => { 
+                                dot.classList.remove('water-dot');
+                                dot.style.top = `${Math.random() * 90 + 5}%`; // 원래 위치로
+                                dot.style.left = `${Math.random() * 90 + 5}%`;
+                            });
+                        }
+                    });
+                    break;
+
+                case 'fog':
+                    labTitle.innerHTML = '🌫️ 안개 실험실';
+                    // 시뮬레이션 UI (땅 추가)
+                    simArea.innerHTML = '<div class="absolute bottom-0 left-0 w-full h-1/4 bg-green-800/60"></div>';
+                    
+                    createVaporDots(30, simArea); // 배경 생성 후 입자 추가
+                    const dotsFog = simArea.querySelectorAll('.vapor-dot'); 
+
+                    // 조작 UI
+                    controlsContent.innerHTML = `
+                        <label for="temp-slider" class="block mb-2 text-xl md:text-2xl">지표면 공기 온도</label>
+                        <input id="temp-slider" type="range" min="0" max="25" value="25" class="w-full">
+                        <p class="text-center mt-2 text-xl"><span id="temp-label">25</span>°C (따뜻함)</p>
+                    `;
+                    // 설명
+                    labExplanation.innerHTML = `
+                        <p class="text-xl">땅 근처의 공기가 차가워지면 어떻게 될까요?</p>
+                        <p class="mt-2">이슬과 원리는 같아요! 하지만 이슬은 '물체'에 닿아서 맺히는 것이고, 안개는 <strong>공기 전체가 차가워져서</strong> 수증기들이 공기 중에서 바로 아주 작은 물방울로 변해 떠다니는 거예요. 이것들이 모여 뿌옇게 보이는 거죠.</p>
+                    `;
+                    
+                    // 이벤트
+                    const tempSliderFog = document.getElementById('temp-slider');
+                    const tempLabelFog = document.getElementById('temp-label');
+                    tempSliderFog.addEventListener('input', (e) => {
+                        const temp = parseInt(e.target.value);
+                        tempLabelFog.textContent = temp;
+                        
+                        if (temp < 10) {
+                            tempLabelFog.innerHTML = `${temp}°C (차가움)`;
+                            dotsFog.forEach(dot => { 
+                                dot.classList.add('water-dot'); // 작은 물방울로
+                                dot.style.top = `${Math.random() * 50 + 40}%`; // 아래쪽에 모임
+                            });
+                        } else {
+                            tempLabelFog.innerHTML = `${temp}°C (따뜻함)`;
+                            dotsFog.forEach(dot => { 
+                                dot.classList.remove('water-dot');
+                                dot.style.top = `${Math.random() * 90 + 5}%`;
+                            });
+                        }
+                    });
+                    break;
+
+                case 'cloud':
+                    labTitle.innerHTML = '☁️ 구름 실험실';
+                    // 시뮬레이션 UI (땅과 하늘)
+                    simArea.innerHTML = '<div class="absolute bottom-0 left-0 w-full h-1/4 bg-green-700"></div>';
+                    simArea.innerHTML += '<p class="absolute bottom-1/4 left-1/2 -translate-x-1/2 text-white text-lg">▲ 수증기 상승 ▲</p>';
+                    simArea.innerHTML += '<div class="absolute top-0 left-0 w-full h-1/4 bg-sky-300/50 flex items-center justify-center"><p id="sky-temp-label" class="text-blue-800 font-bold text-lg">상층 공기: 15°C</p></div>';
+                    
+                    createVaporDots(30, simArea); // 배경 생성 후 입자 추가
+                    
+                    // 조작 UI
+                    controlsContent.innerHTML = `
+                        <label for="temp-slider" class="block mb-2 text-xl md:text-2xl">상층 공기 온도</label>
+                        <input id="temp-slider" type="range" min="-10" max="15" value="15" class="w-full">
+                        <p class="text-center mt-2 text-xl"><span id="temp-label">15</span>°C (시원함)</p>
+                    `;
+                    // 설명
+                    labExplanation.innerHTML = `
+                        <p class="text-xl">수증기가 하늘 높이 올라가면 어떻게 될까요?</p>
+                        <p class="mt-2">땅에서 따뜻해진 공기(수증기)는 위로 올라가요(<strong>상승</strong>). 하지만 하늘 높이 올라갈수록 공기는 차가워져요. 온도가 '이슬점'보다 낮아지면, 수증기들이 <strong>응결</strong>해서 작은 물방울이나 얼음 알갱이가 되어 뭉쳐요. 이게 바로 구름이에요!</p>
+                    `;
+                    
+                    // 이벤트
+                    const tempSliderCloud = document.getElementById('temp-slider');
+                    const tempLabelCloud = document.getElementById('temp-label');
+                    const skyTempLabel = document.getElementById('sky-temp-label'); 
+                    const cloudDots = simArea.querySelectorAll('.vapor-dot');
+
+                    tempSliderCloud.addEventListener('input', (e) => {
+                        const temp = parseInt(e.target.value);
+                        tempLabelCloud.textContent = temp;
+                        skyTempLabel.textContent = `상층 공기: ${temp}°C`; 
+
+                        if (temp < 5) {
+                            tempLabelCloud.innerHTML = `${temp}°C (차가움)`;
+                            cloudDots.forEach(dot => {
+                                dot.classList.add(temp < 0 ? 'ice-dot' : 'water-dot'); // 0도 이하면 얼음
+                                dot.classList.remove(temp < 0 ? 'water-dot' : 'ice-dot');
+                                dot.style.top = `${Math.random() * 30 + 5}%`; // 위쪽에 모임
+                            });
+                        } else {
+                            tempLabelCloud.innerHTML = `${temp}°C (시원함)`;
+                            cloudDots.forEach(dot => {
+                                dot.classList.remove('water-dot', 'ice-dot');
+                                dot.style.top = `${Math.random() * 90 + 5}%`;
+                            });
+                        }
+                    });
+                    break;
+                
+                case 'rain':
+                    labTitle.innerHTML = '🌧️ 비 실험실';
+                    // 시뮬레이션 UI (구름 생성)
+                    simArea.innerHTML = '<div id="cloud-bg" class="absolute top-10 left-1/2 -translate-x-1/2 w-3/4 h-2/5 bg-gray-300 rounded-full opacity-50"></div>';
+                    
+                    createVaporDots(50, simArea); // 배경 생성 후 입자 추가
+                    const dotsRain = simArea.querySelectorAll('.vapor-dot'); 
+
+                    dotsRain.forEach(dot => { 
+                        dot.classList.add('water-dot'); // 물방울로 시작
+                        dot.style.top = `${Math.random() * 30 + 10}%`; // 상단에 모임
+                    });
+                    
+                    // 조작 UI
+                    controlsContent.innerHTML = `
+                        <button id="merge-button" class="w-full bg-blue-500 text-white font-bold py-3 rounded-lg text-lg hover:bg-blue-600 transition-all">물방울 합체!</button>
+                    `;
+                    // 설명
+                    labExplanation.innerHTML = `
+                        <p class="text-xl">구름 속 물방울들이 무거워지면?</p>
+                        <p class="mt-2">구름 속의 작은 물방울(파란 점)들은 서로 부딪히며 합체해요. 점점 크고 무거워져서 더 이상 떠받쳐줄 힘이 없으면, 중력 때문에 땅으로 떨어지게 됩니다. 이것이 바로 <strong>비</strong>입니다!</p>
+                    `;
+                    
+                    // 이벤트
+                    document.getElementById('merge-button').addEventListener('click', () => {
+                        // 5개의 빗방울 떨어트리기
+                        for (let i = 0; i < 5; i++) {
+                            const rainDrop = document.createElement('div');
+                            rainDrop.className = 'rain-drop-sim';
+                            rainDrop.style.left = `${Math.random() * 80 + 10}%`;
+                            simArea.appendChild(rainDrop);
+                            // 애니메이션 끝나면 삭제
+                            setTimeout(() => rainDrop.remove(), 1000);
+                        }
+                    });
+                    break;
+
+                case 'snow':
+                    labTitle.innerHTML = '🌨️ 눈 실험실';
+                    // 시뮬레이션 UI (차가운 구름)
+                    simArea.innerHTML = '<div id="cloud-bg" class="absolute top-10 left-1/2 -translate-x-1/2 w-3/4 h-2/5 bg-gray-200 rounded-full opacity-50"></div>';
+                    simArea.innerHTML += '<p class="absolute top-5 left-1/2 -translate-x-1/2 text-blue-900 font-bold text-lg">영하 -10°C의 차가운 구름</p>';
+                    
+                    createVaporDots(50, simArea); // 배경 생성 후 입자 추가
+                    const dotsSnow = simArea.querySelectorAll('.vapor-dot'); 
+
+                    dotsSnow.forEach(dot => { 
+                        dot.classList.add('ice-dot'); // 얼음 알갱이로 시작
+                        dot.style.top = `${Math.random() * 30 + 10}%`; // 상단에 모임
+                    });
+                    
+                    // 조작 UI
+                    controlsContent.innerHTML = `
+                        <button id="merge-button" class="w-full bg-sky-500 text-white font-bold py-3 rounded-lg text-lg hover:bg-sky-600 transition-all">얼음 알갱이 합체!</button>
+                    `;
+                    // 설명
+                    labExplanation.innerHTML = `
+                        <p class="text-xl">아주 추운 구름 속에서는 무슨 일이?</p>
+                        <p class="mt-2">구름의 온도가 0°C보다 훨씬 낮으면, 수증기가 물방울을 거치지 않고 바로 얼음 알갱이(하얀 점)로 변해요(<strong>승화</strong>). 이 얼음 알갱이들이 서로 붙어서 무거워지면 땅으로 떨어지는데, 이게 바로 <strong>눈</strong>입니다!</p>
+                    `;
+
+                    // 이벤트
+                    document.getElementById('merge-button').addEventListener('click', () => {
+                        // 5개의 눈송이 떨어트리기
+                        for (let i = 0; i < 5; i++) {
+                            const snowFlake = document.createElement('div');
+                            snowFlake.className = 'snow-flake-sim';
+                            snowFlake.style.left = `${Math.random() * 80 + 10}%`;
+                            simArea.appendChild(snowFlake);
+                            // 애니메이션 끝나면 삭제
+                            setTimeout(() => snowFlake.remove(), 2000);
+                        }
+                    });
+                    break;
+            }
+        }
+
+    </script>
+
+</body>
+</html>
+
