@@ -33,14 +33,90 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            border-radius: 1rem;
             background-color: white;
-            padding: 0.75rem 1rem;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             transition: all 0.2s ease-in-out;
             user-select: none; /* 텍스트 선택 방지 */
             border: 2px solid transparent;
         }
+
+        /* --- 아이콘 크기 조절 스타일 --- */
+        /* Small (기본) */
+        .creature.scale-small {
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.75rem;
+        }
+        .creature.scale-small span:first-child { /* Emoji */
+            font-size: 2rem;
+            line-height: 1;
+        }
+        .creature.scale-small span:last-child { /* Text */
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+        }
+
+        /* Medium (기존과 유사) */
+        .creature.scale-medium {
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+        }
+        .creature.scale-medium span:first-child {
+            font-size: 2.25rem; /* 3xl */
+        }
+        .creature.scale-medium span:last-child {
+            font-size: 1.125rem; /* lg */
+        }
+
+        /* Large */
+        .creature.scale-large {
+            padding: 1rem 1.25rem;
+            border-radius: 1.25rem;
+        }
+        .creature.scale-large span:first-child {
+            font-size: 3rem; /* 5xl */
+        }
+        .creature.scale-large span:last-child {
+            font-size: 1.25rem; /* xl */
+        }
+
+        /* Extra Large */
+        .creature.scale-xlarge {
+            padding: 1.25rem 1.5rem;
+            border-radius: 1.5rem;
+        }
+        .creature.scale-xlarge span:first-child {
+            font-size: 3.75rem; /* 6xl */
+        }
+        .creature.scale-xlarge span:last-child {
+            font-size: 1.5rem; /* 2xl */
+        }
+
+        /* --- 2개 레벨 추가 --- */
+        /* Extra Large 2 (Level 5) */
+        .creature.scale-xxlarge {
+            padding: 1.5rem 1.75rem;
+            border-radius: 1.75rem;
+        }
+        .creature.scale-xxlarge span:first-child {
+            font-size: 4.5rem; /* 7xl */
+        }
+        .creature.scale-xxlarge span:last-child {
+            font-size: 1.875rem; /* 3xl */
+        }
+
+        /* Extra Large 3 (Level 6) */
+        .creature.scale-xxxlarge {
+            padding: 1.75rem 2rem;
+            border-radius: 2rem;
+        }
+        .creature.scale-xxxlarge span:first-child {
+            font-size: 6rem; /* 8xl */
+        }
+        .creature.scale-xxxlarge span:last-child {
+            font-size: 2.25rem; /* 4xl */
+        }
+        /* --- 크기 조절 스타일 끝 --- */
+
 
         /* 생물이 선택되었을 때 테두리 */
         .creature.selected {
@@ -49,7 +125,7 @@
             transform: scale(1.05);
         }
 
-        /* *** 추가된 스타일: 드래그 드롭 대상 강조 *** */
+        /* 드래그 드롭 대상 강조 */
         .creature.creature-target {
             transform: scale(1.15);
             box-shadow: 0 0 20px rgba(239, 68, 68, 0.8); /* red-500 glow */
@@ -78,7 +154,7 @@
             transform: translate(-50%, -50%) scale(1.1);
         }
 
-        /* *** 수정된 부분: 게임 안내 메시지 스타일 *** */
+        /* 게임 안내 메시지 스타일 */
         #game-prompt {
             background-color: rgba(0, 0, 0, 0.7);
             color: white;
@@ -98,8 +174,6 @@
             opacity: 1;
             pointer-events: auto;
         }
-        /* *** 수정 끝 *** */
-
 
         /* 화살표 스타일 */
         .arrow-line {
@@ -167,10 +241,18 @@
                     &lt; 학습으로 돌아가기
                 </button>
                 <h1 class="text-3xl md:text-4xl font-bold text-gray-800">먹이그물 게임</h1>
-                <div class="flex space-x-2">
+                <div class="flex items-center space-x-2">
                     <button id="show-all-arrows-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full text-lg md:text-xl shadow-md transition-transform transform hover:scale-105">모든 화살표 보기</button>
                     <button id="clear-arrows-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-full text-lg md:text-xl shadow-md transition-transform transform hover:scale-105">화살표 지우기</button>
                     <button id="reset-game-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-full text-lg md:text-xl shadow-md transition-transform transform hover:scale-105">처음 위치로</button>
+                
+                    <!-- *** 추가된 부분: 아이콘 크기 조절 버튼 *** -->
+                    <div class="flex items-center space-x-1 ml-4 bg-white rounded-full shadow-md border border-gray-200 p-1">
+                        <span class="text-lg hidden md:inline pl-3 pr-1">아이콘:</span>
+                        <button id="game-decrease-btn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold w-10 h-10 rounded-full text-2xl transition-transform transform hover:scale-110">-</button>
+                        <button id="game-increase-btn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold w-10 h-10 rounded-full text-2xl transition-transform transform hover:scale-110">+</button>
+                    </div>
+                    <!-- *** 추가 끝 *** -->
                 </div>
             </header>
  
@@ -212,14 +294,18 @@
             const arrowCanvas = document.getElementById('arrow-canvas');
             const showAllArrowsBtn = document.getElementById('show-all-arrows-btn');
             const clearArrowsBtn = document.getElementById('clear-arrows-btn');
-            const resetGameBtn = document.getElementById('reset-game-btn'); // 리셋 버튼 추가
+            const resetGameBtn = document.getElementById('reset-game-btn');
             const messageBox = document.getElementById('message-box');
             const gamePrompt = document.getElementById('game-prompt');
+
+            // *** 추가: 게임 크기 조절 버튼 ***
+            const gameDecreaseBtn = document.getElementById('game-decrease-btn');
+            const gameIncreaseBtn = document.getElementById('game-increase-btn');
  
             // --- 상태 변수 ---
             let currentFontSize = 1; // 0: small, 1: medium, 2: large
-            const fontSizes = ['text-lg md:text-xl', 'text-xl md:text-2xl', 'text-2xl md:text-3xl', 'text-3xl md:text-4xl']; // 폰트 크기 단계 추가
-            const fontLeadings = ['leading-relaxed md:leading-loose', 'leading-relaxed md:leading-loose', 'leading-relaxed md:leading-loose', 'leading-relaxed md:leading-loose']; // 폰트 크기 단계 추가
+            const fontSizes = ['text-lg md:text-xl', 'text-xl md:text-2xl', 'text-2xl md:text-3xl', 'text-3xl md:text-4xl'];
+            const fontLeadings = ['leading-relaxed md:leading-loose', 'leading-relaxed md:leading-loose', 'leading-relaxed md:leading-loose', 'leading-relaxed md:leading-loose'];
             
             let selectedCreatureId = null;
             let gameStep = 0; // 0: none selected, 1: find food, 2: find predator
@@ -227,46 +313,38 @@
             let foundFood = new Set();
             let foundPredators = new Set();
             
-            /* *** 추가된 부분: 게임 프롬프트 타이머 변수 *** */
             let gamePromptTimer = null; 
+
+            // --- *** 추가: 게임 아이콘 크기 조절 변수 *** ---
+            const gameScales = ['scale-small', 'scale-medium', 'scale-large', 'scale-xlarge', 'scale-xxlarge', 'scale-xxxlarge'];
+            let currentGameScaleIndex = 1; // 0: small, 1: medium(기본), 2: large, 3: xlarge, 4: xxlarge, 5: xxxlarge
 
             // --- 드래그 상태 변수 ---
             let draggedElement = null;
             let isDragging = false;
             let offsetX, offsetY;
             let startX, startY;
-            let currentTargetElement = null; // *** 추가: 드롭 대상 강조용 ***
+            let currentTargetElement = null;
 
             // --- 생물 데이터 ---
-            // (원본 위치 데이터는 절대 수정되지 않음)
-            
-            /* ************************************************
-            *** 수정된 부분: 생물 데이터 (먹이그물 로직) ***
-            ************************************************
-            */
             const creatures = {
                 // 생산자 (Producers)
-                'rice': { name: '벼', emoji: '🌾', eats: [], eatenBy: ['grasshopper', 'mouse', 'sparrow'], pos: { x: 30, y: 80 } }, // 'butterfly' 제거
-                'bean': { name: '강낭콩', emoji: '🌱', eats: [], eatenBy: ['grasshopper', 'mouse', 'sparrow'], pos: { x: 50, y: 80 } }, // 'butterfly' 제거
+                'rice': { name: '벼', emoji: '🌾', eats: [], eatenBy: ['grasshopper', 'mouse', 'sparrow'], pos: { x: 30, y: 80 } },
+                'bean': { name: '강낭콩', emoji: '🌱', eats: [], eatenBy: ['grasshopper', 'mouse', 'sparrow'], pos: { x: 50, y: 80 } },
                 'rape': { name: '유채', emoji: '🌼', eats: [], eatenBy: ['mouse', 'butterfly', 'sparrow', 'grasshopper'], pos: { x: 70, y: 80 } },
                 
                 // 1차 소비자 (Primary Consumers)
-                'grasshopper': { name: '메뚜기', emoji: '🦗', eats: ['rice', 'bean', 'rape'], eatenBy: ['frog', 'sparrow', 'kestrel', 'mouse'], pos: { x: 20, y: 50 } }, // 'mouse' 추가
-                'butterfly': { name: '배추흰나비', emoji: '🦋', eats: ['rape'], eatenBy: ['frog', 'sparrow', 'mouse', 'kestrel'], pos: { x: 80, y: 50 } }, // 'rape'만 먹음
-                'mouse': { name: '쥐', emoji: '🐁', eats: ['rice', 'bean', 'rape', 'grasshopper', 'butterfly'], eatenBy: ['kestrel'], pos: { x: 65, y: 35 } }, // 'grasshopper', 'butterfly' 추가
+                'grasshopper': { name: '메뚜기', emoji: '🦗', eats: ['rice', 'bean', 'rape'], eatenBy: ['frog', 'sparrow', 'kestrel', 'mouse'], pos: { x: 20, y: 50 } },
+                'butterfly': { name: '배추흰나비', emoji: '🦋', eats: ['rape'], eatenBy: ['frog', 'sparrow', 'mouse', 'kestrel'], pos: { x: 80, y: 50 } },
+                'mouse': { name: '쥐', emoji: '🐁', eats: ['rice', 'bean', 'rape', 'grasshopper', 'butterfly'], eatenBy: ['kestrel'], pos: { x: 65, y: 35 } },
                 
                 // 2차 소비자 (Secondary Consumers)
                 'sparrow': { name: '참새', emoji: '🐦', eats: ['rice', 'bean', 'grasshopper', 'rape', 'butterfly'], eatenBy: ['kestrel'], pos: { x: 35, y: 30 } },
                 'frog': { name: '개구리', emoji: '🐸', eats: ['grasshopper', 'butterfly'], eatenBy: ['kestrel'], pos: { x: 50, y: 55 } },
 
                 // 3차 소비자 (Tertiary Consumer)
-                'kestrel': { name: '황조롱이', emoji: '🦅', eats: ['frog', 'sparrow', 'mouse', 'grasshopper', 'butterfly'], eatenBy: [], pos: { x: 50, y: 10 } } // 'butterfly' 추가
+                'kestrel': { name: '황조롱이', emoji: '🦅', eats: ['frog', 'sparrow', 'mouse', 'grasshopper', 'butterfly'], eatenBy: [], pos: { x: 50, y: 10 } }
             };
-            /* ************************************************
-            *** 수정 끝 ***
-            ************************************************
-            */
-
 
             // --- 1. 뷰 전환 로직 ---
             startGameBtn.addEventListener('click', () => {
@@ -283,7 +361,7 @@
                 resetGame();
             });
 
-            // --- 2. 폰트 크기 조절 로직 ---
+            // --- 2. 폰트 크기 조절 로직 (학습) ---
             function updateFontSize() {
                 fontSizes.forEach(clsString => {
                     contentMain.classList.remove(...clsString.split(' '));
@@ -312,10 +390,39 @@
 
             // --- 3. 게임 로직 ---
 
-            // 게임 헤더 버튼 이벤트 (한 번만 설정)
+            // 게임 헤더 버튼 이벤트
             showAllArrowsBtn.addEventListener('click', showAllArrows);
             clearArrowsBtn.addEventListener('click', () => clearArrows(true));
             resetGameBtn.addEventListener('click', resetCreaturePositions);
+
+            // --- *** 추가: 게임 아이콘 크기 조절 로직 *** ---
+            function updateGameScale() {
+                const creatures = gameArea.querySelectorAll('.creature');
+                creatures.forEach(el => {
+                    // 모든 크기 클래스 제거
+                    gameScales.forEach(scaleClass => el.classList.remove(scaleClass));
+                    // 현재 인덱스에 맞는 클래스 추가
+                    el.classList.add(gameScales[currentGameScaleIndex]);
+                });
+                // 크기 변경 시 화살표도 다시 그려야 함 (요소 크기가 변경되므로)
+                drawAllArrows();
+            }
+
+            gameIncreaseBtn.addEventListener('click', () => {
+                if (currentGameScaleIndex < gameScales.length - 1) {
+                    currentGameScaleIndex++;
+                    updateGameScale();
+                }
+            });
+
+            gameDecreaseBtn.addEventListener('click', () => {
+                if (currentGameScaleIndex > 0) {
+                    currentGameScaleIndex--;
+                    updateGameScale();
+                }
+            });
+            // --- *** 크기 조절 로직 끝 *** ---
+
 
             // 게임 초기화 (생물 아이템 생성)
             function initializeGame() {
@@ -329,14 +436,20 @@
                 Object.keys(creatures).forEach(id => {
                     const data = creatures[id];
                     const el = document.createElement('div');
-                    el.className = 'creature';
+                    el.className = 'creature'; // 기본 클래스
                     el.dataset.id = id;
                     el.style.left = `${data.pos.x}%`;
                     el.style.top = `${data.pos.y}%`;
+                    
+                    // *** 수정된 부분: 현재 크기 클래스 적용 및 내부 HTML 변경 ***
+                    el.classList.add(gameScales[currentGameScaleIndex]);
+                    
+                    // Tailwind 크기 클래스 제거, CSS 스타일이 적용되도록 함
                     el.innerHTML = `
-                        <span class="text-3xl md:text-4xl">${data.emoji}</span>
-                        <span class="text-lg md:text-xl font-medium">${data.name}</span>
+                        <span>${data.emoji}</span>
+                        <span class="font-medium">${data.name}</span>
                     `;
+                    // *** 수정 끝 ***
                     
                     el.addEventListener('click', onCreatureClick);
                     
@@ -360,21 +473,16 @@
                 const clickedEl = e.currentTarget;
                 const id = clickedEl.dataset.id;
 
-                // 이미 게임이 진행 중일 때 (선택된 생물이 있을 때)
                 if (gameStep > 0) {
-                    // 1단계(먹이 찾기)에서, 만약 선택된 생물 '자신'을 다시 클릭하면 선택 해제
                     if (gameStep === 1 && id === selectedCreatureId) {
                         resetGameStep();
                     }
-                    // 2단계(포식자 찾기)에서는, 자신을 클릭하는 것이 드래그의 시작이므로 아무것도 하지 않음.
-                    // 1단계든 2단계든, 다른 생물을 클릭하면 (드래그 시작을 위해) 아무것도 하지 않음 (선택 변경 방지)
                     return;
                 }
 
-                // 게임이 진행 중이 아닐 때 (gameStep === 0)
-                resetGameStep(); // 이전 상태 초기화
+                resetGameStep();
                 selectedCreatureId = id;
-                gameStep = 1; // 1단계: 먹이 찾기
+                gameStep = 1;
                 foundFood.clear();
                 foundPredators.clear();
 
@@ -384,7 +492,6 @@
                 if (creatureData.eats.length > 0) {
                     setGamePrompt(`[1단계] ${creatureData.name}은(는) 무엇을 먹을까요? <br> 먹이를 ${creatureData.name}에게 드래그하세요.`);
                 } else {
-                    // 먹을 것이 없는 생산자인 경우, 바로 2단계로
                     gameStep = 2;
                     checkPredatorStep();
                 }
@@ -400,24 +507,17 @@
                 document.querySelectorAll('.creature.selected').forEach(el => el.classList.remove('selected'));
             }
 
-            /* *** 수정된 부분: 게임 프롬프트 설정 함수 *** */
+            // 게임 프롬프트 설정 함수
             function setGamePrompt(html) {
-                // 1. 기존 타이머가 있으면 취소 (새 메시지가 덮어쓰므로)
                 if (gamePromptTimer) {
                     clearTimeout(gamePromptTimer);
                 }
-
-                // 2. 내용 설정 및 'show' 클래스 추가 (보이게)
                 gamePrompt.innerHTML = html;
                 gamePrompt.classList.add('show');
-
-                // 3. 3초(3000ms) 후에 'show' 클래스 제거 (숨기기)
                 gamePromptTimer = setTimeout(() => {
                     gamePrompt.classList.remove('show');
                 }, 3000);
             }
-            /* *** 수정 끝 *** */
-
 
             // --- 4. 드래그 앤 드롭 로직 (Mouse & Touch) ---
             
@@ -473,26 +573,22 @@
                 draggedElement.style.left = `${newX}%`;
                 draggedElement.style.top = `${newY}%`;
                 
-                // *** 추가: 드롭 대상 강조 로직 ***
-                // 드래그 요소를 잠시 숨김
+                // 드롭 대상 강조 로직
                 draggedElement.style.display = 'none';
                 const elementUnder = document.elementFromPoint(clientX, clientY);
-                draggedElement.style.display = 'flex'; // 다시 표시
+                draggedElement.style.display = 'flex'; 
 
                 const targetElement = elementUnder ? elementUnder.closest('.creature') : null;
 
-                // 기존 대상에서 강조 제거
                 if (currentTargetElement && currentTargetElement !== targetElement) {
                     currentTargetElement.classList.remove('creature-target');
                     currentTargetElement = null;
                 }
 
-                // 새 대상에 강조 추가
                 if (targetElement && targetElement !== draggedElement) {
                     targetElement.classList.add('creature-target');
                     currentTargetElement = targetElement;
                 }
-                // *** 추가 끝 ***
 
                 updateArrowsForDraggedElement(draggedElement.dataset.id);
             }
@@ -500,12 +596,10 @@
             function onDragEnd(e) {
                 if (!isDragging || !draggedElement) return;
 
-                // *** 추가: 드롭 대상 강조 제거 ***
                 if (currentTargetElement) {
                     currentTargetElement.classList.remove('creature-target');
                     currentTargetElement = null;
                 }
-                // *** 추가 끝 ***
 
                 isDragging = false;
                 draggedElement.classList.remove('dragging');
@@ -542,20 +636,10 @@
                 }
                 
                 if (didDropOnTarget) {
-                    // O, X 로직이 실행되었으면 (정답/오답) 원래 자리로 스냅백
                     snapBack(draggedElement, true);
                 } else if (distance >= 2) { 
-                    // 드롭 타겟이 없었고, 그냥 '이동'한 거라면
-                    // *** 수정: 원본 데이터를 수정하지 않음 ***
-                    // const creatureData = creatures[draggedId];
-                    // creatureData.pos.x = parseFloat(draggedElement.style.left);
-                    // creatureData.pos.y = parseFloat(draggedElement.style.top);
-                    
-                    // 이 경우에도 화살표 다시 그려야 함
                     drawAllArrows();
                 } else {
-                    // 클릭이었음 (distance < 2).
-                    // 위치를 원래대로 돌려놓음 (클릭 시 미세한 움직임 보정)
                     snapBack(draggedElement, false);
                 }
                 
@@ -580,10 +664,9 @@
                         showFeedback(false); // 'X'
                     }
 
-                    // 모든 먹이를 찾았는지 확인
                     if (foundFood.size === selectedData.eats.length) {
                         gameStep = 2;
-                        setTimeout(checkPredatorStep, 1000); // 1초 후 다음 단계 안내
+                        setTimeout(checkPredatorStep, 1000); 
                     }
                     return true; 
                 }
@@ -599,13 +682,11 @@
                         showFeedback(false); // 'X'
                     }
 
-                    // 모든 포식자를 찾았는지 확인
                     if (foundPredators.size === selectedData.eatenBy.length) {
-                        // *** 수정: 팝업 후 즉시 리셋되도록 ***
                         setTimeout(() => {
                             setGamePrompt('🎉 성공! 모든 관계를 찾았습니다. 다른 생물을 선택하세요.');
-                            resetGameStep(); // gameStep=0, selectedCreatureId=null 등으로 초기화
-                        }, 1000); // 1초(O/X 팝업) 후에 실행
+                            resetGameStep();
+                        }, 1000);
                     }
                     return true; 
                 }
@@ -619,7 +700,6 @@
                 if (selectedData.eatenBy.length > 0) {
                      setGamePrompt(`[2단계] ${selectedData.name}을(를) 먹는 동물은 무엇일까요? <br> ${selectedData.name}을(를) 포식자에게 드래그하세요.`);
                 } else {
-                    // 포식자가 없는 경우 (최종 소비자)
                     setGamePrompt('🎉 성공! 이 생물은 다른 동물에게 먹히지 않습니다. 다른 생물을 선택하세요.');
                     setTimeout(resetGameStep, 2000);
                 }
@@ -638,8 +718,6 @@
                 }
 
                 messageBox.classList.add('show');
-
-                // 1초 후에 메시지 숨기기
                 setTimeout(() => {
                     messageBox.classList.remove('show');
                 }, 1000);
@@ -653,6 +731,8 @@
                 if (!exists) {
                     drawnArrows.push({ from: fromId, to: toId });
                 }
+                // 화살표 추가 시 바로 그리기 (기존 로직 유지)
+                drawAllArrows();
             }
 
             // 모든 화살표 그리기
@@ -700,15 +780,24 @@
                 
                 const angle = Math.atan2(to.y - from.y, to.x - from.x);
                 
-                const toPadding = toRect.width > toRect.height ? toRect.width / 2 : toRect.height / 2;
+                // *** 수정: 크기 조절에 대응하여 패딩 계산 ***
+                const toPadding = Math.max(toRect.width / 2, toRect.height / 2) + 5; // 5px 여유
                 const adjustedTo = {
                     x: to.x - Math.cos(angle) * (toPadding + 10), // 10은 화살촉 길이
                     y: to.y - Math.sin(angle) * (toPadding + 10)
                 };
 
+                // *** 수정: 시작점에도 패딩 적용 ***
+                const fromPadding = Math.max(fromRect.width / 2, fromRect.height / 2) + 5; // 5px 여유
+                const adjustedFrom = {
+                    x: from.x + Math.cos(angle) * fromPadding,
+                    y: from.y + Math.sin(angle) * fromPadding
+                };
+                // *** 수정 끝 ***
+
                 const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('x1', from.x);
-                line.setAttribute('y1', from.y);
+                line.setAttribute('x1', adjustedFrom.x); // 수정
+                line.setAttribute('y1', adjustedFrom.y); // 수정
                 line.setAttribute('x2', adjustedTo.x);
                 line.setAttribute('y2', adjustedTo.y);
                 line.setAttribute('class', 'arrow-line');
@@ -721,7 +810,6 @@
             
             function snapBack(element, redraw = false) { 
                 const id = element.dataset.id;
-                // *** 수정: 원본 데이터(creatures)에서 위치를 읽어옴 ***
                 const originalPos = creatures[id].pos;
                 
                 element.style.transition = 'left 0.3s ease-out, top 0.3s ease-out';
@@ -738,19 +826,14 @@
 
             // 모든 생물 위치 리셋
             function resetCreaturePositions() {
-                clearArrows(true); // 화살표 지우고 프롬프트 리셋
+                clearArrows(true); 
                 document.querySelectorAll('.creature').forEach(el => {
                     const id = el.dataset.id;
-                    // *** 수정: 원본 데이터(creatures)에서 위치를 읽어옴 ***
                     const pos = creatures[id].pos; 
                     el.style.transition = 'left 0.5s ease, top 0.5s ease'; 
                     el.style.left = `${pos.x}%`; 
                     el.style.top = `${pos.y}%`;
                     
-                    // *** 삭제: 원본 데이터를 수정하던 코드 삭제 ***
-                    // creatures[id].pos.x = pos.x;
-                    // creatures[id].pos.y = pos.y;
-
                     setTimeout(() => {
                         el.style.transition = 'all 0.2s ease-in-out'; 
                     }, 500);
@@ -792,3 +875,4 @@
     </script>
 </body>
 </html>
+
