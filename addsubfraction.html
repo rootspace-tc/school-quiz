@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>분수 시각화 도구 (v5.0)</title>
+    <title>분수 시각화 통합 도구</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
 
     <style>
-        /* (v4.0과 거의 동일) */
+        /* --- 1. Global & Menu Styles --- */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -19,20 +19,86 @@
         html, body {
             height: 100%;
             width: 100%;
-            font-family: 'Jua', sans-serif;
+            font-family: 'Jua', sans-serif; /* [수정 2] 모든 글꼴 Jua로 */
             background-color: #f4f7f6;
             color: #333;
             overflow: hidden;
             user-select: none;
         }
         
-        .app-container {
+        .tool-page {
+            display: none;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* [수정 1] 메인 메뉴 페이지 (항상 flex 유지) */
+        #main-menu-page {
+            display: flex; 
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            padding: 20px;
+        }
+        #main-menu-page .title {
+            font-size: 3.5rem;
+            color: #333;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 50px;
+        }
+        #main-menu-page .menu-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+        }
+        #main-menu-page .menu-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 280px;
+            height: 120px;
+            font-size: 2.2rem;
+            color: white;
+            text-decoration: none;
+            
+            font-family: 'Jua', sans-serif; /* [수정 2] 버튼 폰트 명시적 지정 */
+
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        #main-menu-page .menu-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        #main-menu-page .menu-button:active { transform: translateY(1px); }
+        #main-menu-page .btn-addsub { background-color: #007bff; }
+        #main-menu-page .btn-mul { background-color: #6f42c1; }
+        #main-menu-page .btn-div { background-color: #28a745; }
+
+        .btn-back {
+            background-color: #f8f9fa !important;
+            color: #333 !important;
+            border: 2px solid #ccc !important;
+            font-size: 1rem !important;
+            padding: 10px 15px !important;
+            height: 80px !important;
+        }
+        .btn-back:hover {
+            background-color: #e2e6ea !important;
+        }
+
+        /* --- 2. Add/Sub Tool Styles (Scoped to #addsub-page) --- */
+        #addsub-page .app-container {
             display: flex;
             flex-direction: column;
             height: 100vh;
         }
-
-        .controls {
+        #addsub-page .controls {
             display: flex;
             justify-content: center;
             align-items: center;
@@ -45,18 +111,15 @@
             position: relative;
             z-index: 10;
         }
-
-        .control-group, .fraction-input-container, .fraction-input {
+        #addsub-page .control-group, #addsub-page .fraction-input-container, #addsub-page .fraction-input {
             display: flex;
             align-items: center;
         }
-        .control-group { flex-direction: column; gap: 8px; }
-        .fraction-input-container { gap: 8px; }
-        .fraction-input { flex-direction: column; gap: 2px; }
-
-        .control-group label { font-size: 1.1rem; }
-
-        .fraction-input input {
+        #addsub-page .control-group { flex-direction: column; gap: 8px; }
+        #addsub-page .fraction-input-container { gap: 8px; }
+        #addsub-page .fraction-input { flex-direction: column; gap: 2px; }
+        #addsub-page .control-group label { font-size: 1.1rem; }
+        #addsub-page .fraction-input input {
             width: 50px;
             padding: 5px;
             font-family: 'Jua', sans-serif;
@@ -65,15 +128,13 @@
             border: 2px solid #ccc;
             border-radius: 8px;
         }
-
-        .fraction-bar-divider {
+        #addsub-page .fraction-bar-divider {
             width: 50px;
             height: 3px;
             background-color: #333;
             border-radius: 2px;
         }
-        
-        .whole-number-input {
+        #addsub-page .whole-number-input {
             width: 50px;
             height: 80px;
             font-family: 'Jua', sans-serif;
@@ -85,13 +146,12 @@
             align-items: center;
             justify-content: center;
         }
-        .whole-number-input:focus,
-        .fraction-input input:focus {
+        #addsub-page .whole-number-input:focus,
+        #addsub-page .fraction-input input:focus {
              border-color: #007bff;
              outline: none;
         }
-
-        .btn {
+        #addsub-page .btn {
             padding: 10px 20px;
             font-family: 'Jua', sans-serif;
             font-size: 1.1rem;
@@ -105,27 +165,22 @@
             height: 80px;
             margin-bottom: 4px;
         }
-        .btn:hover { background-color: #0056b3; }
-        .btn:active { transform: scale(0.98); }
-        .btn-secondary { background-color: #6c757d; }
-        .btn-secondary:hover { background-color: #5a6268; }
-        .btn-success { background-color: #28a745; }
-        .btn-success:hover { background-color: #218838; }
-
-        /* [수정 요청 1] 다시하기 버튼 스타일 */
-        .btn-danger { background-color: #dc3545; }
-        .btn-danger:hover { background-color: #c82333; }
-
-        /* [수정 요청 2] 연산자 버튼 스타일 */
-        #operatorBtn {
+        #addsub-page .btn:hover { background-color: #0056b3; }
+        #addsub-page .btn:active { transform: scale(0.98); }
+        #addsub-page .btn-secondary { background-color: #6c757d; }
+        #addsub-page .btn-secondary:hover { background-color: #5a6268; }
+        #addsub-page .btn-success { background-color: #28a745; }
+        #addsub-page .btn-success:hover { background-color: #218838; }
+        #addsub-page .btn-danger { background-color: #dc3545; }
+        #addsub-page .btn-danger:hover { background-color: #c82333; }
+        #addsub-page #as_operatorBtn {
             width: 60px;
             font-size: 2rem;
             padding: 0;
-            background-color: #ffc107; /* + (노란색) */
+            background-color: #ffc107;
             color: #333;
         }
-
-        .btn-sampler {
+        #addsub-page .btn-sampler {
             font-size: 0.9rem;
             padding: 5px 10px;
             height: auto;
@@ -133,9 +188,8 @@
             background-color: #ffc107;
             color: #333;
         }
-        .btn-sampler:hover { background-color: #e0a800; }
-
-        .workspace {
+        #addsub-page .btn-sampler:hover { background-color: #e0a800; }
+        #addsub-page .workspace {
             flex-grow: 1;
             padding: 20px;
             display: flex;
@@ -145,20 +199,17 @@
             background-color: #fdfdfd;
             position: relative;
         }
-
-        .fraction-workspace {
+        #addsub-page .fraction-workspace {
             padding: 20px;
             border-radius: 10px;
             background-color: #fff;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
-
-        #result-workspace {
+        #addsub-page #as_result-workspace {
             display: none;
             border: 3px solid #6f42c1;
         }
-        
-        .result-formula {
+        #addsub-page .result-formula {
             font-size: 1.8rem;
             text-align: center;
             margin-bottom: 25px;
@@ -168,21 +219,20 @@
             border: 2px solid #e0e0e0;
             line-height: 1.5;
         }
-        /* (이하 스타일 v4.0과 동일) */
-        .fraction-workspace-label-container {
+        #addsub-page .fraction-workspace-label-container {
             display: flex;
             align-items: center;
             margin-bottom: 15px;
             padding-bottom: 10px;
             border-bottom: 2px solid #eee;
         }
-        .fraction-workspace-label { font-size: 1.6rem; }
-        .fraction-bar-container {
+        #addsub-page .fraction-workspace-label { font-size: 1.6rem; }
+        #addsub-page .fraction-bar-container {
             width: 90%;
             max-width: 1000px;
             margin: 0 auto 20px auto;
         }
-        .fraction-bar {
+        #addsub-page .fraction-bar {
             display: flex;
             width: 100%;
             height: 70px;
@@ -192,14 +242,14 @@
             background-color: #fff;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
-        .fraction-piece {
+        #addsub-page .fraction-piece {
             height: 100%;
             flex-grow: 1;
             transition: background-color 0.5s, flex-basis 0.5s;
         }
-        .fraction-piece:last-child { border-right: none !important; }
-        .shaded { opacity: 0.85; }
-        .draggable-piece {
+        #addsub-page .fraction-piece:last-child { border-right: none !important; }
+        #addsub-page .shaded { opacity: 0.85; }
+        #addsub-page .draggable-piece {
             position: absolute;
             opacity: 0.7;
             border: 2px solid #000;
@@ -208,78 +258,610 @@
             border-radius: 4px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
+
+        /* --- 3. Multiplication Tool Styles (Scoped to #mul-page) --- */
+        #mul-page .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #mul-page .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 20px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border-bottom: 2px solid #e0e0e0;
+            gap: 15px;
+            position: relative;
+            z-index: 10;
+        }
+        #mul-page .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+        }
+        #mul-page .fraction-input-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #mul-page .fraction-input {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        #mul-page .control-group label { font-size: 1.1rem; }
+        #mul-page .fraction-input input {
+            width: 50px;
+            padding: 5px;
+            font-family: 'Jua', sans-serif;
+            font-size: 1.1rem;
+            text-align: center;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+        }
+        #mul-page .fraction-bar-divider {
+            width: 50px;
+            height: 3px;
+            background-color: #333;
+            border-radius: 2px;
+        }
+        #mul-page .whole-number-input {
+            width: 50px;
+            height: 80px;
+            font-family: 'Jua', sans-serif;
+            font-size: 2rem;
+            text-align: center;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #mul-page .whole-number-input:focus,
+        #mul-page .fraction-input input:focus {
+             border-color: #007bff;
+             outline: none;
+        }
+        #mul-page .operator-symbol {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #555;
+            margin-top: 25px;
+        }
+        #mul-page .btn {
+            padding: 10px 20px;
+            font-family: 'Jua', sans-serif;
+            font-size: 1.1rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+            align-self: flex-end;
+            height: 80px;
+            margin-bottom: 4px;
+        }
+        #mul-page .btn:hover { background-color: #0056b3; }
+        #mul-page .btn:active { transform: scale(0.98); }
+        #mul-page .btn-danger { background-color: #dc3545; }
+        #mul-page .btn-danger:hover { background-color: #c82333; }
+        #mul-page .btn-view {
+            height: auto;
+            padding: 5px 10px;
+            font-size: 0.9rem;
+            background-color: #6c757d;
+            margin-top: 5px;
+            margin-bottom: 0;
+            align-self: stretch;
+        }
+        #mul-page .btn-view:hover { background-color: #5a6268; }
+        #mul-page .btn-zoom {
+            background-color: #ffc107;
+            color: #333;
+            font-size: 0.9rem;
+            height: auto;
+            padding: 5px 10px;
+            margin-left: 10px;
+        }
+        #mul-page .btn-zoom:hover { background-color: #e0a800; }
+        #mul-page .btn-sampler {
+            background-color: #17a2b8;
+            color: white;
+            font-size: 0.9rem;
+            height: auto;
+            padding: 5px 10px;
+            margin-left: 10px;
+        }
+         #mul-page .btn-sampler:hover { background-color: #138496; }
+        #mul-page .workspace {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #fdfdfd;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+        #mul-page .step-container {
+            width: 100%;
+            max-width: 1000px;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        #mul-page .step-label {
+            font-size: 1.6rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+         #mul-page .step-label-title {
+            flex-grow: 1;
+         }
+        #mul-page .step-label span {
+            font-size: 1.2rem;
+            color: #555;
+            font-weight: normal;
+        }
+        #mul-page .fraction-bar-grid-container {
+            display: grid;
+            gap: 10px;
+            width: 90%;
+            margin: 0 auto;
+        }
+        #mul-page .fraction-bar-container {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        #mul-page .fraction-bar {
+            display: flex;
+            width: 100%;
+            height: 70px;
+            border: 3px solid #333;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #fff;
+        }
+        #mul-page .fraction-piece {
+            height: 100%;
+            flex-grow: 1;
+        }
+        #mul-page .fraction-piece:last-child { border-right: none !important; }
+        #mul-page .shaded { opacity: 0.85; }
+        #mul-page .grid-cell {
+            width: 100%;
+            height: 100%;
+        }
+        #mul-page #mul_result-formula {
+            font-size: 1.8rem;
+            text-align: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            line-height: 1.5;
+        }
+        #mul-page .draggable-piece {
+            position: absolute;
+            opacity: 0.7;
+            border: 2px solid #000;
+            z-index: 1000;
+            cursor: move;
+            border-radius: 4px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        #mul-page .modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+        }
+        #mul-page .modal-zoom {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1001;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+            padding: 20px;
+            width: 90vw;
+            max-width: 1000px;
+        }
+        #mul-page .modal-close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #aaa;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        #mul-page .modal-close-btn:hover { color: #333; }
+        #mul-page .modal-zoom .fraction-bar {
+            height: 200px;
+        }
+        
+        /* --- 4. Division Tool Styles (Scoped to #div-page) --- */
+        #div-page .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #div-page .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 20px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border-bottom: 2px solid #e0e0e0;
+            gap: 15px;
+            position: relative;
+            z-index: 10;
+        }
+        #div-page .control-group, #div-page .fraction-input-container, #div-page .fraction-input {
+            display: flex;
+            align-items: center;
+        }
+        #div-page .control-group { flex-direction: column; gap: 8px; }
+        #div-page .fraction-input-container { gap: 8px; }
+        #div-page .fraction-input { flex-direction: column; gap: 2px; }
+        #div-page .control-group label { font-size: 1.1rem; }
+        #div-page .fraction-input input {
+            width: 50px;
+            padding: 5px;
+            font-family: 'Jua', sans-serif;
+            font-size: 1.1rem;
+            text-align: center;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+        }
+        #div-page .fraction-bar-divider {
+            width: 50px;
+            height: 3px;
+            background-color: #333;
+            border-radius: 2px;
+        }
+        #div-page .whole-number-input {
+            width: 50px;
+            height: 80px;
+            font-family: 'Jua', sans-serif;
+            font-size: 2rem;
+            text-align: center;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #div-page .whole-number-input:focus,
+        #div-page .fraction-input input:focus {
+             border-color: #007bff;
+             outline: none;
+        }
+        #div-page .operator-symbol {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #555;
+            align-self: flex-end;
+            margin-bottom: 28px;
+        }
+        #div-page .btn {
+            padding: 10px 20px;
+            font-family: 'Jua', sans-serif;
+            font-size: 1.1rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+            align-self: flex-end;
+            height: 80px;
+            margin-bottom: 4px;
+        }
+        #div-page .btn:hover { background-color: #0056b3; }
+        #div-page .btn:active { transform: scale(0.98); }
+        #div-page .btn-secondary { background-color: #6c757d; }
+        #div-page .btn-secondary:hover { background-color: #5a6268; }
+        #div-page .btn-success { background-color: #28a745; }
+        #div-page .btn-success:hover { background-color: #218838; }
+        #div-page .btn-danger { background-color: #dc3545; }
+        #div-page .btn-danger:hover { background-color: #c82333; }
+        #div-page .btn-add-pocket {
+            height: auto;
+            font-size: 1rem;
+            padding: 10px 15px;
+            margin: 10px auto;
+            display: block;
+        }
+        #div-page .workspace {
+            flex-grow: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+            background-color: #fdfdfd;
+            position: relative;
+        }
+        #div-page .fraction-workspace {
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        #div-page #div_result-workspace {
+            display: none;
+            border: 3px solid #6f42c1;
+        }
+        #div-page .result-formula {
+            font-size: 1.8rem;
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            line-height: 1.5;
+        }
+        #div-page .fraction-workspace-label-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        #div-page .fraction-workspace-label { font-size: 1.6rem; }
+        #div-page .fraction-bar-container {
+            width: 90%;
+            max-width: 1000px;
+            margin: 0 auto 20px auto;
+        }
+        #div-page .fraction-bar {
+            display: flex;
+            width: 100%;
+            height: 70px;
+            border: 3px solid #333;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #fff;
+        }
+        #div-page .fraction-piece {
+            height: 100%;
+            flex-grow: 1;
+            transition: background-color 0.5s, flex-basis 0.5s;
+        }
+        #div-page .fraction-piece:last-child { border-right: none !important; }
+        #div-page .shaded { opacity: 0.85; }
+        #div-page .draggable-piece {
+            position: absolute;
+            opacity: 0.7;
+            border: 2px solid #000;
+            z-index: 1000;
+            cursor: move;
+            border-radius: 4px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: left 0.1s ease-out, top 0.1s ease-out;
+        }
+        #div-page .division-pocket {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 5px;
+            border: 3px dashed #6f42c1;
+            border-radius: 10px;
+            background-color: rgba(111, 66, 193, 0.05);
+            margin-top: 10px;
+            gap: 5px;
+            min-height: 86px;
+            width: fit-content;
+            max-width: 90%;
+            margin: 10px auto;
+        }
+        #div-page .pocket-slot {
+            height: 70px;
+            background-color: #eee;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #div-page .pocket-slot.over {
+            background-color: #d4c4f5;
+            border-color: #6f42c1;
+        }
+        #div-page .draggable-piece.snapped {
+            opacity: 1.0;
+        }
+
     </style>
 </head>
 <body>
-
-    <div class="app-container">
-        
-        <div class="controls">
-            <div class="control-group">
-                <label>분수 1</label>
-                <div class="fraction-input-container">
-                    <input type="number" id="wholeA" class="whole-number-input" value="0" min="0">
-                    <div class="fraction-input">
-                        <input type="number" id="numA" value="1" min="0">
-                        <div class="fraction-bar-divider"></div>
-                        <input type="number" id="denA" value="2" min="1">
+    
+    <div id="main-menu-page">
+        <h1 class="title">분수 시각화 학습 도구 🧮</h1>
+        <nav class="menu-container">
+            <button id="btn-goto-addsub" class="menu-button btn-addsub">덧셈 & 뺄셈 (+, -)</button>
+            <button id="btn-goto-mul" class="menu-button btn-mul">곱셈 (×)</button>
+            <button id="btn-goto-div" class="menu-button btn-div">나눗셈 (÷)</button>
+        </nav>
+    </div>
+    
+    <div id="addsub-page" class="tool-page">
+        <div class="app-container">
+            <div class="controls">
+                <div class="control-group">
+                    <label>분수 1</label>
+                    <div class="fraction-input-container">
+                        <input type="number" id="as_wholeA" class="whole-number-input" value="0" min="0">
+                        <div class="fraction-input">
+                            <input type="number" id="as_numA" value="1" min="0">
+                            <div class="fraction-bar-divider"></div>
+                            <input type="number" id="as_denA" value="2" min="1">
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="control-group">
-                <label>연산자</label>
-                <button id="operatorBtn" class="btn">+</button>
-            </div>
-
-            <div class="control-group">
-                <label>분수 2</label>
-                <div class="fraction-input-container">
-                    <input type="number" id="wholeB" class="whole-number-input" value="0" min="0">
-                    <div class="fraction-input">
-                        <input type="number" id="numB" value="1" min="0">
-                        <div class="fraction-bar-divider"></div>
-                        <input type="number" id="denB" value="3" min="1">
+                <div class="control-group">
+                    <label>연산자</label>
+                    <button id="as_operatorBtn" class="btn">+</button>
+                </div>
+                <div class="control-group">
+                    <label>분수 2</label>
+                    <div class="fraction-input-container">
+                        <input type="number" id="as_wholeB" class="whole-number-input" value="0" min="0">
+                        <div class="fraction-input">
+                            <input type="number" id="as_numB" value="1" min="0">
+                            <div class="fraction-bar-divider"></div>
+                            <input type="number" id="as_denB" value="3" min="1">
+                        </div>
                     </div>
                 </div>
+                <div style="width: 2px; background: #e0e0e0; align-self: stretch;"></div>
+                <button id="as_createBtn" class="btn">생성하기</button>
+                <div class="control-group">
+                    <label for="as_commonDen">공통 분모</label>
+                     <input type="number" id="as_commonDen" value="6" min="1" class="whole-number-input" style="font-size: 1.5rem; width: 80px;">
+                </div>
+                <button id="as_convertBtn" class="btn btn-secondary">통분하기</button>
+                <button id="as_resultBtn" class="btn btn-success">결과보기</button>
+                <button id="as_resetBtn" class="btn btn-danger">다시하기</button>
+                <button class="btn btn-back">⬅️ 메인 메뉴</button>
             </div>
-
-            <div style="width: 2px; background: #e0e0e0; align-self: stretch;"></div>
-            
-            <button id="createBtn" class="btn">생성하기</button>
-            
-            <div class="control-group">
-                <label for="commonDen">공통 분모</label>
-                 <input type="number" id="commonDen" value="6" min="1" class="whole-number-input" style="font-size: 1.5rem; width: 80px;">
+            <div id="as_workspace" class="workspace">
+                <div class="fraction-workspace" id="as_workspace-a"></div>
+                <div class="fraction-workspace" id="as_workspace-b"></div>
+                <div class="fraction-workspace" id="as_result-workspace"></div>
             </div>
-            <button id="convertBtn" class="btn btn-secondary">통분하기</button>
-            <button id="resultBtn" class="btn btn-success">결과보기</button>
-            
-            <button id="resetBtn" class="btn btn-danger">다시하기</button>
         </div>
+    </div>
 
-        <div class="workspace" id="workspace">
-            <div class="fraction-workspace" id="workspace-a"></div>
-            <div class="fraction-workspace" id="workspace-b"></div>
-            <div class="fraction-workspace" id="result-workspace"></div>
+    <div id="mul-page" class="tool-page">
+        <div class="app-container">
+            <div class="controls">
+                <div class="control-group">
+                    <label>분수 1 (곱해지는 수)</label>
+                    <div class="fraction-input-container">
+                        <input type="number" id="mul_wholeA" class="whole-number-input" value="0" min="0">
+                        <div class="fraction-input">
+                            <input type="number" id="mul_numA" value="3" min="0">
+                            <div class="fraction-bar-divider"></div>
+                            <input type="number" id="mul_denA" value="2" min="1">
+                        </div>
+                    </div>
+                    <button id="mul_viewFrac1Btn" class="btn btn-view">미리보기</button>
+                </div>
+                <div class="operator-symbol">×</div>
+                <div class="control-group">
+                    <label>분수 2 (곱하는 수)</label>
+                    <div class="fraction-input-container">
+                        <input type="number" id="mul_wholeB" class="whole-number-input" value="0" min="0">
+                        <div class="fraction-input">
+                            <input type="number" id="mul_numB" value="2" min="0">
+                            <div class="fraction-bar-divider"></div>
+                            <input type="number" id="mul_denB" value="3" min="1">
+                        </div>
+                    </div>
+                </div>
+                <div style="width: 2px; background: #e0e0e0; align-self: stretch;"></div>
+                <button id="mul_calcBtn" class="btn">계산하기</button>
+                <button id="mul_resetBtn" class="btn btn-danger">다시하기</button>
+                <button class="btn btn-back">⬅️ 메인 메뉴</button>
+            </div>
+            <div id="mul_workspace" class="workspace"></div>
         </div>
-
+        <div id="mul_modal-backdrop" class="modal-backdrop"></div>
+        <div id="mul_modal-zoom" class="modal-zoom">
+            <button id="mul_modal-close-btn" class="modal-close-btn">&times;</button>
+            <div id="mul_modal-content"></div>
+        </div>
+    </div>
+    
+    <div id="div-page" class="tool-page">
+        <div class="app-container">
+            <div class="controls">
+                <div class="control-group">
+                    <label>나눠지는 수 (분자)</label>
+                    <div class="fraction-input-container">
+                        <input type="number" id="div_wholeA" class="whole-number-input" value="0" min="0">
+                        <div class="fraction-input">
+                            <input type="number" id="div_numA" value="1" min="0">
+                            <div class="fraction-bar-divider"></div>
+                            <input type="number" id="div_denA" value="2" min="1">
+                        </div>
+                    </div>
+                </div>
+                <div class="operator-symbol">÷</div>
+                <div class="control-group">
+                    <label>나누는 수 (분모)</label>
+                    <div class="fraction-input-container">
+                        <input type="number" id="div_wholeB" class="whole-number-input" value="0" min="0">
+                        <div class="fraction-input">
+                            <input type="number" id="div_numB" value="2" min="0">
+                            <div class="fraction-bar-divider"></div>
+                            <input type="number" id="div_denB" value="3" min="1">
+                        </div>
+                    </div>
+                </div>
+                <button id="div_createBtn" class="btn">생성하기</button>
+                <div style="width: 2px; background: #e0e0e0; align-self: stretch;"></div>
+                <div class="control-group">
+                    <label for="div_commonDen">공통 분모</label>
+                     <input type="number" id="div_commonDen" value="6" min="1" class="whole-number-input" style="font-size: 1.5rem; width: 80px;">
+                </div>
+                <button id="div_convertBtn" class="btn btn-secondary">통분하기</button>
+                <button id="div_resultBtn" class="btn btn-success">조각 꺼내기</button>
+                <button id="div_resetBtn" class="btn btn-danger">다시하기</button>
+                <button class="btn btn-back">⬅️ 메인 메뉴</button>
+            </div>
+            <div id="div_workspace" class="workspace">
+                <div class="fraction-workspace" id="div_workspace-a"></div>
+                <div class="fraction-workspace" id="div_workspace-b"></div>
+                <div class="fraction-workspace" id="div_result-workspace"></div>
+            </div>
+        </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // (v4.0과 거의 동일)
-            const createBtn = document.getElementById('createBtn');
-            const convertBtn = document.getElementById('convertBtn');
-            const resultBtn = document.getElementById('resultBtn');
-            const workspace = document.getElementById('workspace');
-            const wsA = document.getElementById('workspace-a');
-            const wsB = document.getElementById('workspace-b');
-            const resultWorkspace = document.getElementById('result-workspace');
+        /**
+         * ----------------------------------------
+         * Tool 1: 덧셈/뺄셈 (addsubfraction.html)
+         * ----------------------------------------
+         */
+        function initAddSubTool(pageElement) {
+            const createBtn = pageElement.querySelector('#as_createBtn');
+            const convertBtn = pageElement.querySelector('#as_convertBtn');
+            const resultBtn = pageElement.querySelector('#as_resultBtn');
+            const workspace = pageElement.querySelector('#as_workspace');
+            const wsA = pageElement.querySelector('#as_workspace-a');
+            const wsB = pageElement.querySelector('#as_workspace-b');
+            const resultWorkspace = pageElement.querySelector('#as_result-workspace');
 
-            // [수정 요청] 새 버튼들
-            const operatorBtn = document.getElementById('operatorBtn');
-            const resetBtn = document.getElementById('resetBtn');
+            const operatorBtn = pageElement.querySelector('#as_operatorBtn');
+            const resetBtn = pageElement.querySelector('#as_resetBtn');
 
             const COLOR_A = '#007bff';
             const COLOR_B = '#28a745';
@@ -288,43 +870,54 @@
             const BORDER_COLOR_ORIGINAL = '3px solid red';
             const BORDER_COLOR_NEW = '3px dashed #777';
 
-            // --- 이벤트 리스너 ---
             createBtn.addEventListener('click', createInitialFractions);
             convertBtn.addEventListener('click', convertToCommonDenominator);
             resultBtn.addEventListener('click', showResult);
 
-            // [수정 요청 2] 연산자 버튼 클릭
             operatorBtn.addEventListener('click', () => {
                 if (operatorBtn.textContent === '+') {
                     operatorBtn.textContent = '-';
-                    operatorBtn.style.backgroundColor = '#17a2b8'; // - (청록색)
+                    operatorBtn.style.backgroundColor = '#17a2b8';
                 } else {
                     operatorBtn.textContent = '+';
-                    operatorBtn.style.backgroundColor = '#ffc107'; // + (노란색)
+                    operatorBtn.style.backgroundColor = '#ffc107';
                 }
-                resultWorkspace.style.display = 'none'; // 연산자 변경 시 결과 숨기기
+                resultWorkspace.style.display = 'none';
             });
 
-            // [수정 요청 1] 다시하기 버튼 클릭
             resetBtn.addEventListener('click', () => {
-                location.reload(); // 페이지 새로고침
+                pageElement.querySelector('#as_wholeA').value = '0';
+                pageElement.querySelector('#as_numA').value = '1';
+                pageElement.querySelector('#as_denA').value = '2';
+                pageElement.querySelector('#as_wholeB').value = '0';
+                pageElement.querySelector('#as_numB').value = '1';
+                pageElement.querySelector('#as_denB').value = '3';
+                pageElement.querySelector('#as_commonDen').value = '6';
+                operatorBtn.textContent = '+';
+                operatorBtn.style.backgroundColor = '#ffc107';
+                
+                clearDraggablePieces(); // [수정 3] 조각 제거
+                createInitialFractions();
             });
 
-            document.querySelectorAll('.controls input').forEach(input => {
+            pageElement.querySelectorAll('.controls input').forEach(input => {
                 input.addEventListener('keyup', (e) => {
                     if (e.key === 'Enter') createInitialFractions();
                 });
             });
+            
+            // [수정 3] 조각 제거 헬퍼 함수
+            function clearDraggablePieces() {
+                pageElement.querySelectorAll('.draggable-piece').forEach(p => p.remove());
+            }
 
-            // --- 함수들 (v4.0과 거의 동일) ---
             function createInitialFractions() {
-                // (v4.0과 동일)
-                const wholeA = parseInt(document.getElementById('wholeA').value) || 0;
-                const numA = parseInt(document.getElementById('numA').value) || 0;
-                const denA = parseInt(document.getElementById('denA').value);
-                const wholeB = parseInt(document.getElementById('wholeB').value) || 0;
-                const numB = parseInt(document.getElementById('numB').value) || 0;
-                const denB = parseInt(document.getElementById('denB').value);
+                const wholeA = parseInt(pageElement.querySelector('#as_wholeA').value) || 0;
+                const numA = parseInt(pageElement.querySelector('#as_numA').value) || 0;
+                const denA = parseInt(pageElement.querySelector('#as_denA').value);
+                const wholeB = parseInt(pageElement.querySelector('#as_wholeB').value) || 0;
+                const numB = parseInt(pageElement.querySelector('#as_numB').value) || 0;
+                const denB = parseInt(pageElement.querySelector('#as_denB').value);
 
                 if (denA <= 0 || denB <= 0 || isNaN(denA) || isNaN(denB)) {
                     alert('분모는 1 이상의 자연수여야 합니다.');
@@ -352,25 +945,31 @@
                 drawFractionBars(wsB, improperNumB, denB, denB, COLOR_B, labelB);
                 
                 resultWorkspace.style.display = 'none';
+                clearDraggablePieces();
             }
 
             function convertToCommonDenominator() {
-                // (v4.0과 동일)
-                const commonDen = parseInt(document.getElementById('commonDen').value);
+                const commonDen = parseInt(pageElement.querySelector('#as_commonDen').value);
                 if (isNaN(commonDen) || commonDen <= 0) {
                     alert('유효한 공통 분모를 입력하세요.');
                     return;
                 }
-                if (!wsA.dataset.improperNum || !wsB.dataset.improperNum) {
-                    alert('먼저 분수를 생성해주세요.');
+                
+                const wholeA = parseInt(pageElement.querySelector('#as_wholeA').value) || 0;
+                const numA = parseInt(pageElement.querySelector('#as_numA').value) || 0;
+                const origDenA = parseInt(pageElement.querySelector('#as_denA').value);
+                const wholeB = parseInt(pageElement.querySelector('#as_wholeB').value) || 0;
+                const numB = parseInt(pageElement.querySelector('#as_numB').value) || 0;
+                const origDenB = parseInt(pageElement.querySelector('#as_denB').value);
+
+                if (origDenA <= 0 || origDenB <= 0 || isNaN(origDenA) || isNaN(origDenB)) {
+                    alert('유효한 분모를 입력해주세요.');
                     return;
                 }
 
-                const improperNumA = parseInt(wsA.dataset.improperNum);
-                const origDenA = parseInt(wsA.dataset.origDenom);
-                const improperNumB = parseInt(wsB.dataset.improperNum);
-                const origDenB = parseInt(wsB.dataset.origDenom);
-
+                const improperNumA = (wholeA * origDenA) + numA;
+                const improperNumB = (wholeB * origDenB) + numB;
+                
                 if (commonDen % origDenA !== 0 || commonDen % origDenB !== 0) {
                     alert(`${origDenA}와 ${origDenB}의 공배수인 공통 분모를 입력해주세요.`);
                     return;
@@ -379,18 +978,16 @@
                 const newImproperNumA = improperNumA * (commonDen / origDenA);
                 const newImproperNumB = improperNumB * (commonDen / origDenB);
 
-                const labelA = `분수 1 (통분됨): ${newImproperNumA}/${commonDen} (원래 ${improperNumA}/${origDenA})`;
-                const labelB = `분수 2 (통분됨): ${newImproperNumB}/${commonDen} (원래 ${improperNumB}/${origDenB})`;
+                const labelA = `분수 1 (통분됨): ${newImproperNumA}/${commonDen}`;
+                const labelB = `분수 2 (통분됨): ${newImproperNumB}/${commonDen}`;
 
-                drawFractionBars(wsA, newImproperNumA, commonDen, origDenA, COLOR_A, labelA);
-                drawFractionBars(wsB, newImproperNumB, commonDen, origDenB, COLOR_B, labelB);
+                drawFractionBars(wsA, newImproperNumA, commonDen, origDenA, COLOR_A, labelA, true);
+                drawFractionBars(wsB, newImproperNumB, commonDen, origDenB, COLOR_B, labelB, true);
                 
                 resultWorkspace.style.display = 'none';
+                clearDraggablePieces();
             }
 
-            /**
-             * [수정 요청 2] 결과보기 함수 (연산자 로직 추가)
-             */
             function showResult() {
                 const numA = parseInt(wsA.dataset.currentImproperNum);
                 const denA = parseInt(wsA.dataset.currentDenom);
@@ -401,8 +998,6 @@
                 const origDenA = parseInt(wsA.dataset.origDenom);
                 const origNumB = parseInt(wsB.dataset.improperNum);
                 const origDenB = parseInt(wsB.dataset.origDenom);
-
-                // [수정 요청 2] 연산자 읽기
                 const operator = operatorBtn.textContent.trim();
 
                 if (isNaN(numA) || isNaN(numB)) {
@@ -410,30 +1005,26 @@
                     return;
                 }
                 if (denA !== denB) {
-                    alert('먼저 [통분하기] 버튼을 눌러 분모를 같게 만들어주세요.\n(기준 크기가 같아야 계산할 수 있습니다!)');
+                    alert('먼저 [통분하기] 버튼을 눌러 분모를 같게 만들어주세요.');
                     return;
                 }
 
-                // [수정 요청 2] 결과 계산 (덧셈/뺄셈 분기)
                 let resultNum;
                 if (operator === '+') {
-                    resultNum = numA + numB; // 분자끼리 더하기
+                    resultNum = numA + numB;
                 } else {
-                    resultNum = numA - numB; // 분자끼리 빼기
+                    resultNum = numA - numB;
                 }
                 const resultDenom = denA;
 
                 resultWorkspace.innerHTML = '';
                 resultWorkspace.style.display = 'block';
 
-                // 수식 표시
                 const formulaEl = document.createElement('div');
                 formulaEl.className = 'result-formula';
-                // [수정 요청 2] 수식에 연산자 반영
                 formulaEl.textContent = `(${origNumA}/${origDenA}) ${operator} (${origNumB}/${origDenB}) = (${numA}/${denA}) ${operator} (${numB}/${denB}) = ${resultNum}/${resultDenom}`;
                 resultWorkspace.appendChild(formulaEl);
 
-                // [수정 요청 2] 뺄셈 결과가 음수일 때 처리
                 if (resultNum < 0) {
                     const errorEl = document.createElement('div');
                     errorEl.className = 'fraction-workspace-label';
@@ -441,15 +1032,12 @@
                     errorEl.textContent = '결과가 0보다 작습니다. (시각화 생략)';
                     resultWorkspace.appendChild(errorEl);
                 } else {
-                    // 시각적 막대 표시 (결과가 0 이상일 때만)
                     const resultLabel = `결과: ${resultNum}/${resultDenom}`;
                     drawFractionBars(resultWorkspace, resultNum, resultDenom, resultDenom, COLOR_RESULT, resultLabel, false);
                 }
                 
                 resultWorkspace.scrollIntoView({ behavior: 'smooth' });
             }
-
-            // --- (이하 v4.0과 동일) ---
 
             function drawFractionBars(containerEl, improperNum, den, origDenom, color, labelText, showSamplerButton = true) {
                 containerEl.dataset.currentImproperNum = improperNum;
@@ -469,12 +1057,12 @@
                     samplerBtn.textContent = '조각 꺼내기';
                     samplerBtn.dataset.denom = den;
                     samplerBtn.dataset.color = color;
-                    samplerBtn.onclick = handleSamplerClick;
-                    labelContainer.appendChild(samplerBtn);
+                    samplerBtn.onclick = (e) => handleSamplerClick(e, den, color);
+                labelContainer.appendChild(samplerBtn);
                 }
                 containerEl.appendChild(labelContainer);
 
-                if (improperNum === 0) return; // 0이면 막대 그릴 필요 없음
+                if (improperNum === 0) return;
 
                 const totalWholeUnits = Math.floor(improperNum / den);
                 const remainderNum = improperNum % den;
@@ -521,9 +1109,7 @@
                 }
             }
             
-            function handleSamplerClick(event) {
-                const denom = parseInt(event.target.dataset.denom);
-                const color = event.target.dataset.color;
+            function handleSamplerClick(event, denom, color) {
                 const barElement = event.target.closest('.fraction-workspace').querySelector('.fraction-bar');
                 if (!barElement) return;
                 const barWidth = barElement.clientWidth;
@@ -574,10 +1160,791 @@
                 piece.ondragstart = () => false;
             }
 
-            // 페이지 로드 시 기본 분수 생성
             createInitialFractions();
+        }
+        
+        /**
+         * ----------------------------------------
+         * Tool 2: 곱셈 (mulfraction.html)
+         * ----------------------------------------
+         */
+        function initMulTool(pageElement) {
+            const calcBtn = pageElement.querySelector('#mul_calcBtn');
+            const resetBtn = pageElement.querySelector('#mul_resetBtn');
+            const workspace = pageElement.querySelector('#mul_workspace');
+            const viewFrac1Btn = pageElement.querySelector('#mul_viewFrac1Btn');
+
+            const modalBackdrop = pageElement.querySelector('#mul_modal-backdrop');
+            const modalZoom = pageElement.querySelector('#mul_modal-zoom');
+            const modalContent = pageElement.querySelector('#mul_modal-content');
+            const modalCloseBtn = pageElement.querySelector('#mul_modal-close-btn');
+
+            const COLOR_A = '#007bff';
+            const COLOR_RESULT = '#6f42c1';
+            const COLOR_GRAY = '#eeeeee';
+            
+            const BORDER_COLOR_A = '3px solid red';
+            const BORDER_COLOR_B = '2px dashed #555';
+
+            calcBtn.addEventListener('click', visualizeMultiplication);
+            resetBtn.addEventListener('click', () => {
+                pageElement.querySelector('#mul_wholeA').value = '0';
+                pageElement.querySelector('#mul_numA').value = '3';
+                pageElement.querySelector('#mul_denA').value = '2';
+                pageElement.querySelector('#mul_wholeB').value = '0';
+                pageElement.querySelector('#mul_numB').value = '2';
+                pageElement.querySelector('#mul_denB').value = '3';
+                visualizeMultiplication(); // 값 리셋 후 바로 계산
+            });
+            viewFrac1Btn.addEventListener('click', viewFraction1);
+            
+            modalBackdrop.addEventListener('click', closeModal);
+            modalCloseBtn.addEventListener('click', closeModal);
+
+            pageElement.querySelectorAll('.controls input').forEach(input => {
+                input.addEventListener('keyup', (e) => {
+                    if (e.key === 'Enter') visualizeMultiplication();
+                });
+            });
+
+            function openModal(contentHTML) {
+                modalContent.innerHTML = contentHTML;
+                modalBackdrop.style.display = 'block';
+                modalZoom.style.display = 'block';
+            }
+            function closeModal() {
+                modalBackdrop.style.display = 'none';
+                modalZoom.style.display = 'none';
+                modalContent.innerHTML = '';
+            }
+
+            function viewFraction1() {
+                closeModal();
+                workspace.innerHTML = ''; 
+
+                const wholeA = parseInt(pageElement.querySelector('#mul_wholeA').value) || 0;
+                const numA = parseInt(pageElement.querySelector('#mul_numA').value) || 0;
+                const denA = parseInt(pageElement.querySelector('#mul_denA').value);
+                if (denA <= 0 || isNaN(denA)) {
+                    alert('분수 1의 분모는 1 이상이어야 합니다.');
+                    return;
+                }
+                const improperNumA = (wholeA * denA) + numA;
+
+                const stepContainer = createStepContainer('step-preview-a');
+                const label = createStepLabel(`분수 1 (${improperNumA}/${denA}) 미리보기`);
+                stepContainer.appendChild(label);
+                
+                const totalUnitsHigh = Math.ceil(improperNumA / denA); // [수정] 세로 스택
+                
+                const gridContainer = document.createElement('div');
+                gridContainer.className = 'fraction-bar-grid-container';
+                gridContainer.style.gridTemplateRows = `repeat(${totalUnitsHigh}, 1fr)`; // [수정] 세로
+                gridContainer.style.gridTemplateColumns = '1fr'; // [수정] 가로
+                
+                for (let h = 0; h < totalUnitsHigh; h++) {
+                    const barContainer = document.createElement('div');
+                    barContainer.className = 'fraction-bar-container';
+                    const bar = document.createElement('div');
+                    bar.className = 'fraction-bar';
+                    
+                    let numToShade = 0;
+                    if (h < totalUnitsHigh - 1) {
+                        numToShade = denA;
+                    } else {
+                        numToShade = improperNumA % denA;
+                        if (numToShade === 0 && improperNumA > 0) numToShade = denA;
+                    }
+
+                    generate1DPieces(bar, numToShade, denA, COLOR_A, BORDER_COLOR_A);
+                    barContainer.appendChild(bar);
+                    gridContainer.appendChild(barContainer);
+                }
+                stepContainer.appendChild(gridContainer);
+                workspace.appendChild(stepContainer);
+            }
+
+            function visualizeMultiplication() {
+                closeModal();
+                workspace.innerHTML = ''; 
+
+                const wholeA = parseInt(pageElement.querySelector('#mul_wholeA').value) || 0;
+                const numA = parseInt(pageElement.querySelector('#mul_numA').value) || 0;
+                const denA = parseInt(pageElement.querySelector('#mul_denA').value);
+                const wholeB = parseInt(pageElement.querySelector('#mul_wholeB').value) || 0;
+                const numB = parseInt(pageElement.querySelector('#mul_numB').value) || 0;
+                const denB = parseInt(pageElement.querySelector('#mul_denB').value);
+
+                if (denA <= 0 || denB <= 0 || isNaN(denA) || isNaN(denB)) {
+                    alert('분모는 1 이상의 자연수여야 합니다.');
+                    return;
+                }
+
+                const improperNumA = (wholeA * denA) + numA;
+                const improperNumB = (wholeB * denB) + numB;
+                const resultNum = improperNumA * improperNumB;
+                const resultDenom = denA * denB;
+
+                const formulaContainer = createStepContainer('mul_result-formula');
+                formulaContainer.textContent = `(${improperNumA}/${denA}) × (${improperNumB}/${denB}) = ${resultNum}/${resultDenom}`;
+                workspace.appendChild(formulaContainer);
+
+                if (denB === 1) {
+                    visualizeGroupsOf(improperNumA, denA, improperNumB);
+                } else {
+                    visualizeAreaModel(improperNumA, denA, improperNumB, denB);
+                }
+            }
+
+            /**
+             * [모델 1] (분수) x (자연수) 시각화 ("묶음")
+             * [수정] 로직 A * B (가로 * 세로)로 변경
+             */
+            function visualizeGroupsOf(numA, denA, naturalB) {
+                const stepContainer = createStepContainer('step-groups');
+                const label = createStepLabel(`시각화: (${numA}/${denA})가 ${naturalB}줄(묶음)`);
+                stepContainer.appendChild(label);
+                
+                const totalUnitsWide = Math.ceil(numA / denA); // 가로 (A)
+                const totalUnitsHigh = naturalB; // 세로 (B)
+                
+                const gridContainer = document.createElement('div');
+                gridContainer.className = 'fraction-bar-grid-container';
+                gridContainer.style.gridTemplateColumns = `repeat(${totalUnitsWide}, 1fr)`; // [수정] 가로
+                gridContainer.style.gridTemplateRows = `repeat(${totalUnitsHigh}, 1fr)`; // [수정] 세로
+                
+                for (let h = 0; h < totalUnitsHigh; h++) { // 세로 (줄)
+                    for (let w = 0; w < totalUnitsWide; w++) { // 가로 (칸)
+                        const barContainer = document.createElement('div');
+                        barContainer.className = 'fraction-bar-container';
+                        const bar = document.createElement('div');
+                        bar.className = 'fraction-bar';
+                        
+                        let numToShade = 0;
+                        if (w < totalUnitsWide - 1) { // [수정] w (가로) 기준
+                            numToShade = denA;
+                        } else {
+                            numToShade = numA % denA;
+                            if (numToShade === 0 && numA > 0) numToShade = denA;
+                        }
+
+                        generate1DPieces(bar, numToShade, denA, COLOR_A, BORDER_COLOR_A);
+                        barContainer.appendChild(bar);
+                        gridContainer.appendChild(barContainer);
+                    }
+                }
+                stepContainer.appendChild(gridContainer);
+                workspace.appendChild(stepContainer);
+            }
+
+            /**
+             * [모델 2] (분수) x (분수) 시각화 ("넓이" - 1D 막대 기반)
+             * [수정] 로직 A * B (가로 * 세로)로 변경
+             */
+            function visualizeAreaModel(numA, denA, numB, denB) {
+                const stepContainer = createStepContainer('step-area');
+                const label = createStepLabel(`시각화: 가로 ${denA}등분 (빨간선), 세로 ${denB}등분 (점선)`);
+                
+                const zoomBtn = document.createElement('button');
+                zoomBtn.className = 'btn btn-zoom';
+                zoomBtn.innerHTML = '돋보기로 확대하기 🔎';
+                label.appendChild(zoomBtn);
+                
+                const samplerBtn = document.createElement('button');
+                samplerBtn.className = 'btn btn-sampler';
+                samplerBtn.innerHTML = '조각 꺼내기 1️⃣';
+                samplerBtn.onclick = () => handleSamplerClick(denA, denB, COLOR_RESULT);
+                label.appendChild(samplerBtn);
+                
+                stepContainer.appendChild(label);
+
+                const totalUnitsWide = Math.ceil(numA / denA); // [수정] 가로 (A)
+                const totalUnitsHigh = Math.ceil(numB / denB); // [수정] 세로 (B)
+                
+                const gridContainer = document.createElement('div');
+                gridContainer.className = 'fraction-bar-grid-container';
+                gridContainer.style.gridTemplateColumns = `repeat(${totalUnitsWide}, 1fr)`; // [수정] 가로
+                gridContainer.style.gridTemplateRows = `repeat(${totalUnitsHigh}, 1fr)`; // [수정] 세로
+                
+                for (let h = 0; h < totalUnitsHigh; h++) { // 세로 (줄)
+                    for (let w = 0; w < totalUnitsWide; w++) { // 가로 (칸)
+                        
+                        const barContainer = document.createElement('div');
+                        barContainer.className = 'fraction-bar-container';
+                        const bar = document.createElement('div');
+                        bar.className = 'fraction-bar';
+                        
+                        bar.style.display = 'grid';
+                        bar.style.gridTemplateColumns = `repeat(${denA}, 1fr)`;
+                        bar.style.gridTemplateRows = `repeat(${denB}, 1fr)`;
+                        bar.style.padding = 0;
+                        
+                        for (let i = 0; i < denB; i++) { // 세로 (sub)
+                            for (let j = 0; j < denA; j++) { // 가로 (sub)
+                                const cell = document.createElement('div');
+                                cell.className = 'grid-cell';
+                                
+                                // [수정] 인덱스 계산
+                                const current_col_index = (w * denA) + j;
+                                const current_row_index = (h * denB) + i;
+
+                                const isFracA = current_col_index < numA;
+                                const isFracB = current_row_index < numB;
+
+                                if (isFracA && isFracB) {
+                                    cell.style.backgroundColor = COLOR_RESULT;
+                                } else {
+                                    cell.style.backgroundColor = COLOR_GRAY;
+                                }
+                                
+                                if (j < denA - 1) { cell.style.borderRight = BORDER_COLOR_A; }
+                                if (i < denB - 1) { cell.style.borderBottom = BORDER_COLOR_B; }
+                                
+                                bar.appendChild(cell);
+                            }
+                        }
+                        barContainer.appendChild(bar);
+                        gridContainer.appendChild(barContainer);
+                    }
+                }
+                
+                stepContainer.appendChild(gridContainer);
+                workspace.appendChild(stepContainer);
+                
+                zoomBtn.onclick = () => {
+                    openModal(gridContainer.innerHTML);
+                };
+            }
+            
+            function createStepContainer(id) {
+                const container = document.createElement('div');
+                container.className = 'step-container';
+                container.id = id;
+                return container;
+            }
+            function createStepLabel(labelText) {
+                const label = document.createElement('div');
+                label.className = 'step-label';
+                const title = document.createElement('div');
+                title.className = 'step-label-title';
+                title.textContent = labelText;
+                label.appendChild(title);
+                return label;
+            }
+
+            function generate1DPieces(barElement, num, denom, color, borderColor) {
+                barElement.innerHTML = '';
+                for (let i = 0; i < denom; i++) {
+                    const piece = document.createElement('div');
+                    piece.className = 'fraction-piece';
+                    piece.style.flexBasis = `${(1 / denom) * 100}%`; 
+                    if (i < num) {
+                        piece.classList.add('shaded');
+                        piece.style.backgroundColor = color;
+                    }
+                    if (i < denom - 1) {
+                        piece.style.borderRight = borderColor;
+                    }
+                    barElement.appendChild(piece);
+                }
+            }
+            
+            function handleSamplerClick(denA, denB, color) {
+                const barElement = workspace.querySelector('#step-area .fraction-bar');
+                if (!barElement) {
+                    alert('시각화 막대를 찾을 수 없습니다.');
+                    return;
+                }
+                const barWidth = barElement.clientWidth;
+                const barHeight = barElement.clientHeight;
+                const pieceWidth = barWidth / denA;
+                const pieceHeight = barHeight / denB;
+                createDraggablePiece(pieceWidth, pieceHeight, color, barElement);
+            }
+            
+            function createDraggablePiece(width, height, color, referenceBar) {
+                const piece = document.createElement('div');
+                piece.className = 'draggable-piece';
+                piece.style.width = `${width}px`;
+                piece.style.height = `${height}px`;
+                piece.style.backgroundColor = color;
+                const workspaceRect = workspace.getBoundingClientRect();
+                const barRect = referenceBar.getBoundingClientRect();
+                let initialLeft = barRect.left - workspaceRect.left;
+                let initialTop = barRect.bottom - workspaceRect.top + workspace.scrollTop + 10;
+                if (initialLeft < 0) initialLeft = 0;
+                piece.style.left = `${initialLeft}px`;
+                piece.style.top = `${initialTop}px`;
+                workspace.appendChild(piece);
+                piece.onmousedown = (event) => {
+                    event.preventDefault(); 
+                    let shiftX = event.clientX - piece.getBoundingClientRect().left;
+                    let shiftY = event.clientY - piece.getBoundingClientRect().top;
+                    function moveAt(pageX, pageY) {
+                        const workspaceRect = workspace.getBoundingClientRect();
+                        let newLeft = pageX - workspaceRect.left - shiftX;
+                        let newTop = pageY - workspaceRect.top + workspace.scrollTop - shiftY;
+                        if (newLeft < 0) newLeft = 0;
+                        if (newTop < 0) newTop = 0;
+                        if (newLeft + width > workspace.clientWidth) newLeft = workspace.clientWidth - width;
+                        if (newTop + height > workspace.clientHeight) newTop = workspace.clientHeight - height;
+                        piece.style.left = `${newLeft}px`;
+                        piece.style.top = `${newTop}px`;
+                    }
+                    moveAt(event.pageX, event.pageY);
+                    function onMouseMove(event) {
+                        moveAt(event.pageX, event.pageY);
+                    }
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.onmouseup = () => {
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.onmouseup = null;
+                    };
+                };
+                piece.ondragstart = () => false;
+            }
+
+            visualizeMultiplication();
+        }
+        
+        /**
+         * ----------------------------------------
+         * Tool 3: 나눗셈 (divfraction v2.html)
+         * ----------------------------------------
+         */
+        function initDivTool(pageElement) {
+            const createBtn = pageElement.querySelector('#div_createBtn');
+            const convertBtn = pageElement.querySelector('#div_convertBtn');
+            const resultBtn = pageElement.querySelector('#div_resultBtn');
+            const resetBtn = pageElement.querySelector('#div_resetBtn');
+            
+            const workspace = pageElement.querySelector('#div_workspace');
+            const wsA = pageElement.querySelector('#div_workspace-a');
+            const wsB = pageElement.querySelector('#div_workspace-b');
+            const resultWorkspace = pageElement.querySelector('#div_result-workspace');
+
+            const COLOR_A = '#007bff';
+            const COLOR_B = '#28a745';
+            const COLOR_RESULT = '#6f42c1';
+            
+            const BORDER_COLOR_ORIGINAL = '3px solid red';
+            const BORDER_COLOR_NEW = '3px dashed #777';
+            
+            const SNAP_THRESHOLD = 60;
+
+            createBtn.addEventListener('click', createInitialFractions);
+            convertBtn.addEventListener('click', convertToCommonDenominator);
+            resultBtn.addEventListener('click', showDivisionResult);
+            resetBtn.addEventListener('click', () => {
+                pageElement.querySelector('#div_wholeA').value = '0';
+                pageElement.querySelector('#div_numA').value = '1';
+                pageElement.querySelector('#div_denA').value = '2';
+                pageElement.querySelector('#div_wholeB').value = '0';
+                pageElement.querySelector('#div_numB').value = '2';
+                pageElement.querySelector('#div_denB').value = '3';
+                pageElement.querySelector('#div_commonDen').value = '6';
+                
+                clearDraggablePieces(); // [수정 3] 조각 제거
+                createInitialFractions();
+            });
+
+            pageElement.querySelectorAll('.controls input').forEach(input => {
+                input.addEventListener('keyup', (e) => {
+                    if (e.key === 'Enter') createInitialFractions();
+                });
+            });
+
+            function createInitialFractions() {
+                const wholeA = parseInt(pageElement.querySelector('#div_wholeA').value) || 0;
+                const numA = parseInt(pageElement.querySelector('#div_numA').value) || 0;
+                const denA = parseInt(pageElement.querySelector('#div_denA').value);
+                const wholeB = parseInt(pageElement.querySelector('#div_wholeB').value) || 0;
+                const numB = parseInt(pageElement.querySelector('#div_numB').value) || 0;
+                const denB = parseInt(pageElement.querySelector('#div_denB').value);
+
+                if (denA <= 0 || denB <= 0 || isNaN(denA) || isNaN(denB)) {
+                    alert('분모는 1 이상의 자연수여야 합니다.');
+                    return;
+                }
+
+                const improperNumA = (wholeA * denA) + numA;
+                const improperNumB = (wholeB * denB) + numB;
+
+                wsA.dataset.origDenom = denA;
+                wsB.dataset.origDenom = denB;
+                
+                let labelA = `나눠지는 수: `;
+                if (wholeA > 0) labelA += `${wholeA}와 `;
+                labelA += `${numA}/${denA}`;
+                let labelB = `나누는 수: `;
+                if (wholeB > 0) labelB += `${wholeB}와 `;
+                labelB += `${numB}/${denB}`;
+                
+                drawFractionBars(wsA, improperNumA, denA, denA, COLOR_A, labelA);
+                drawFractionBars(wsB, improperNumB, denB, denB, COLOR_B, labelB);
+                
+                resultWorkspace.style.display = 'none';
+                clearDraggablePieces();
+            }
+
+            function convertToCommonDenominator() {
+                const commonDen = parseInt(pageElement.querySelector('#div_commonDen').value);
+                if (isNaN(commonDen) || commonDen <= 0) {
+                    alert('유효한 공통 분모를 입력하세요.');
+                    return;
+                }
+
+                const wholeA = parseInt(pageElement.querySelector('#div_wholeA').value) || 0;
+                const numA = parseInt(pageElement.querySelector('#div_numA').value) || 0;
+                const origDenA = parseInt(pageElement.querySelector('#div_denA').value);
+                const wholeB = parseInt(pageElement.querySelector('#div_wholeB').value) || 0;
+                const numB = parseInt(pageElement.querySelector('#div_numB').value) || 0;
+                const origDenB = parseInt(pageElement.querySelector('#div_denB').value);
+                
+                if (origDenA <= 0 || origDenB <= 0 || isNaN(origDenA) || isNaN(origDenB)) {
+                    alert('유효한 분모를 입력해주세요.');
+                    return;
+                }
+                
+                const improperNumA = (wholeA * origDenA) + numA;
+                const improperNumB = (wholeB * origDenB) + numB;
+
+                if (commonDen % origDenA !== 0 || commonDen % origDenB !== 0) {
+                    alert(`${origDenA}와 ${origDenB}의 공배수인 공통 분모를 입력해주세요.`);
+                    return;
+                }
+
+                const newImproperNumA = improperNumA * (commonDen / origDenA);
+                const newImproperNumB = improperNumB * (commonDen / origDenB);
+
+                const labelA = `나눠지는 수 (통분됨): ${newImproperNumA}/${commonDen}`;
+                const labelB = `나누는 수 (통분됨): ${newImproperNumB}/${commonDen} (이것이 새 기준 '1')`;
+
+                drawFractionBars(wsA, newImproperNumA, commonDen, origDenA, COLOR_A, labelA);
+                drawFractionBars(wsB, newImproperNumB, commonDen, origDenB, COLOR_B, labelB);
+                
+                resultWorkspace.style.display = 'none';
+                clearDraggablePieces();
+            }
+
+            function showDivisionResult() {
+                const numA = parseInt(wsA.dataset.currentImproperNum);
+                const denA = parseInt(wsA.dataset.currentDenom);
+                const numB = parseInt(wsB.dataset.currentImproperNum);
+                const denB = parseInt(wsB.dataset.currentDenom);
+
+                if (isNaN(numA) || isNaN(numB)) {
+                    alert('먼저 분수를 생성하거나 통분해주세요.');
+                    return;
+                }
+                if (denA !== denB) {
+                    alert('먼저 [통분하기] 버튼을 눌러 조각의 크기(기준)를 같게 만들어주세요.');
+                    return;
+                }
+
+                resultWorkspace.innerHTML = '';
+                resultWorkspace.style.display = 'block';
+                clearDraggablePieces();
+
+                const formulaEl = document.createElement('div');
+                formulaEl.className = 'result-formula';
+                formulaEl.textContent = `(${numA}/${denA}) \u00F7 (${numB}/${denA}) = ${numA} \u00F7 ${numB} = ${numA}/${numB}`;
+                resultWorkspace.appendChild(formulaEl);
+
+                const pocketLabel = document.createElement('div');
+                pocketLabel.className = 'fraction-workspace-label';
+                pocketLabel.textContent = `새로운 기준 '1' (주머니): ${numB} 조각`;
+                resultWorkspace.appendChild(pocketLabel);
+
+                const barElement = wsA.querySelector('.fraction-bar');
+                if (!barElement) return;
+                
+                const pieceWidth = barElement.clientWidth / denA;
+                
+                const pocket = createPocket(numB, pieceWidth);
+                resultWorkspace.appendChild(pocket);
+
+                const addPocketBtn = document.createElement('button');
+                addPocketBtn.className = 'btn btn-secondary btn-add-pocket';
+                addPocketBtn.textContent = '주머니 추가 ➕';
+                addPocketBtn.onclick = () => {
+                    const newPocket = createPocket(numB, pieceWidth);
+                    resultWorkspace.appendChild(newPocket);
+                };
+                resultWorkspace.appendChild(addPocketBtn);
+
+                for (let i = 0; i < numA; i++) {
+                    createDraggablePiece(pieceWidth, 70, COLOR_RESULT, barElement, i);
+                }
+                
+                resultWorkspace.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            function createPocket(slotCount, slotWidth) {
+                const pocket = document.createElement('div');
+                pocket.className = 'division-pocket';
+                
+                for (let i = 0; i < slotCount; i++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'pocket-slot';
+                    slot.style.width = `${slotWidth}px`;
+                    pocket.appendChild(slot);
+                }
+                return pocket;
+            }
+
+            function drawFractionBars(containerEl, improperNum, den, origDenom, color, labelText) {
+                containerEl.dataset.currentImproperNum = improperNum;
+                containerEl.dataset.currentDenom = den;
+                containerEl.innerHTML = ''; 
+
+                const labelContainer = document.createElement('div');
+                labelContainer.className = 'fraction-workspace-label-container';
+                const label = document.createElement('div');
+                label.className = 'fraction-workspace-label';
+                label.textContent = labelText;
+                labelContainer.appendChild(label);
+                containerEl.appendChild(labelContainer);
+
+                if (improperNum === 0) return;
+                const totalWholeUnits = Math.floor(improperNum / den);
+                const remainderNum = improperNum % den;
+                const totalBarsToDraw = totalWholeUnits + (remainderNum > 0 ? 1 : 0);
+                
+                for (let i = 0; i < totalBarsToDraw; i++) {
+                    const barContainer = document.createElement('div');
+                    barContainer.className = 'fraction-bar-container';
+                    const bar = document.createElement('div');
+                    bar.className = 'fraction-bar';
+                    if (i < totalWholeUnits) {
+                        generatePieces(bar, den, den, origDenom, color);
+                    } else {
+                        generatePieces(bar, remainderNum, den, origDenom, color);
+                    }
+                    barContainer.appendChild(bar);
+                    containerEl.appendChild(barContainer);
+                }
+            }
+            function generatePieces(barElement, num, den, origDenom, color) {
+                barElement.innerHTML = '';
+                const ratio = den / origDenom;
+                for (let i = 0; i < den; i++) {
+                    const piece = document.createElement('div');
+                    piece.className = 'fraction-piece';
+                    piece.style.flexBasis = `${(1 / den) * 100}%`; 
+                    if (i < num) {
+                        piece.classList.add('shaded');
+                        piece.style.backgroundColor = color;
+                    }
+                    if (i < den - 1) {
+                        if (ratio === 1) {
+                            piece.style.borderRight = BORDER_COLOR_ORIGINAL;
+                        } else {
+                            if ((i + 1) % ratio === 0) {
+                                piece.style.borderRight = BORDER_COLOR_ORIGINAL;
+                            } else {
+                                piece.style.borderRight = BORDER_COLOR_NEW;
+                            }
+                        }
+                    }
+                    barElement.appendChild(piece);
+                }
+            }
+            
+            function clearDraggablePieces() {
+                pageElement.querySelectorAll('.draggable-piece').forEach(p => p.remove());
+            }
+
+            function createDraggablePiece(width, height, color, referenceBar, index = 0) {
+                const piece = document.createElement('div');
+                piece.className = 'draggable-piece';
+                piece.style.width = `${width}px`;
+                piece.style.height = `${height}px`;
+                piece.style.backgroundColor = color;
+                
+                const workspaceRect = workspace.getBoundingClientRect();
+                const barRect = referenceBar.getBoundingClientRect();
+                
+                let initialLeft = barRect.left - workspaceRect.left + (index * 10);
+                let initialTop = barRect.top - workspaceRect.top + workspace.scrollTop - (height + 10) - (index * 5);
+                
+                if (initialTop < workspace.scrollTop) initialTop = workspace.scrollTop + 10;
+
+                piece.style.left = `${initialLeft}px`;
+                piece.style.top = `${initialTop}px`;
+                
+                workspace.appendChild(piece);
+
+                piece.onmousedown = (event) => {
+                    event.preventDefault(); 
+                    piece.style.zIndex = 1001;
+                    piece.classList.remove('snapped');
+                    piece.style.transition = 'none';
+                    
+                    if (piece.dataset.snappedTo) {
+                        const oldSlot = pageElement.querySelector('#' + piece.dataset.snappedTo);
+                        if (oldSlot) oldSlot.dataset.snapped = 'false';
+                        piece.dataset.snappedTo = '';
+                    }
+
+                    let shiftX = event.clientX - piece.getBoundingClientRect().left;
+                    let shiftY = event.clientY - piece.getBoundingClientRect().top;
+
+                    function moveAt(pageX, pageY) {
+                        const workspaceRect = workspace.getBoundingClientRect();
+                        let newLeft = pageX - workspaceRect.left - shiftX;
+                        let newTop = pageY - workspaceRect.top + workspace.scrollTop - shiftY;
+                        
+                        if (newLeft < 0) newLeft = 0;
+                        if (newTop < 0) newTop = 0;
+                        if (newLeft + width > workspace.clientWidth) newLeft = workspace.clientWidth - width;
+                        
+                        piece.style.left = `${newLeft}px`;
+                        piece.style.top = `${newTop}px`;
+                        
+                        const nearestSlot = findNearestSlot(piece);
+                        pageElement.querySelectorAll('.pocket-slot').forEach(s => s.classList.remove('over'));
+                        if (nearestSlot) {
+                            nearestSlot.classList.add('over');
+                        }
+                    }
+                    moveAt(event.pageX, event.pageY);
+                    
+                    function onMouseMove(event) {
+                        moveAt(event.pageX, event.pageY);
+                    }
+                    document.addEventListener('mousemove', onMouseMove);
+
+                    document.onmouseup = () => {
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.onmouseup = null;
+                        piece.style.zIndex = 1000;
+                        piece.style.transition = 'left 0.1s ease-out, top 0.1s ease-out';
+                        
+                        snapToNearestSlot(piece);
+                        
+                        pageElement.querySelectorAll('.pocket-slot').forEach(s => s.classList.remove('over'));
+                    };
+                };
+                piece.ondragstart = () => false;
+            }
+            
+            function findNearestSlot(piece) {
+                const pieceRect = piece.getBoundingClientRect();
+                const pieceCenter = { x: pieceRect.left + pieceRect.width / 2, y: pieceRect.top + pieceRect.height / 2 };
+                
+                let nearestSlot = null;
+                let minDist = Infinity;
+                
+                const allSlots = pageElement.querySelectorAll('.pocket-slot');
+                allSlots.forEach(slot => {
+                    if (slot.dataset.snapped === 'true') {
+                        if (piece.dataset.snappedTo === slot.id) {
+                           // ok
+                        } else {
+                           return;
+                        }
+                    }
+                    
+                    const slotRect = slot.getBoundingClientRect();
+                    const slotCenter = { x: slotRect.left + slotRect.width / 2, y: slotRect.top + slotRect.height / 2 };
+                    
+                    const dist = Math.hypot(pieceCenter.x - slotCenter.x, pieceCenter.y - slotCenter.y);
+                    
+                    if (dist < minDist) {
+                        minDist = dist;
+                        nearestSlot = slot;
+                    }
+                });
+                
+                if (minDist < SNAP_THRESHOLD) {
+                    return nearestSlot;
+                }
+                return null;
+            }
+
+            function snapToNearestSlot(piece) {
+                if (piece.dataset.snappedTo) {
+                    const oldSlot = pageElement.querySelector('#' + piece.dataset.snappedTo);
+                    if (oldSlot) oldSlot.dataset.snapped = 'false';
+                    piece.dataset.snappedTo = '';
+                }
+
+                const nearestSlot = findNearestSlot(piece);
+                
+                if (nearestSlot) {
+                    const workspaceRect = workspace.getBoundingClientRect();
+                    const slotRect = nearestSlot.getBoundingClientRect();
+                    
+                    const newLeft = (slotRect.left + slotRect.width / 2) - (piece.clientWidth / 2) - workspaceRect.left;
+                    const newTop = (slotRect.top + slotRect.height / 2) - (piece.clientHeight / 2) - workspaceRect.top + workspace.scrollTop;
+
+                    piece.style.left = `${newLeft}px`;
+                    piece.style.top = `${newTop}px`;
+                    piece.classList.add('snapped');
+                    
+                    if (!nearestSlot.id) nearestSlot.id = `div_slot-${Math.random().toString(36).substr(2, 9)}`;
+                    nearestSlot.dataset.snapped = 'true';
+                    piece.dataset.snappedTo = nearestSlot.id;
+                } else {
+                    piece.classList.remove('snapped');
+                }
+            }
+
+            createInitialFractions();
+        }
+        
+        /**
+         * ----------------------------------------
+         * Main Navigation Script
+         * ----------------------------------------
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            const mainMenuPage = document.getElementById('main-menu-page');
+            const addSubPage = document.getElementById('addsub-page');
+            const mulPage = document.getElementById('mul-page');
+            const divPage = document.getElementById('div-page');
+            const allPages = [mainMenuPage, addSubPage, mulPage, divPage];
+            
+            const btnGotoAddSub = document.getElementById('btn-goto-addsub');
+            const btnGotoMul = document.getElementById('btn-goto-mul');
+            const btnGotoDiv = document.getElementById('btn-goto-div');
+            
+            const backButtons = document.querySelectorAll('.btn-back');
+            
+            function showPage(pageToShow) {
+                allPages.forEach(page => {
+                    page.style.display = 'none';
+                });
+                
+                // [수정 1] 메인 메뉴는 'flex'로, 나머지는 'block'으로 표시
+                if (pageToShow === mainMenuPage) {
+                    pageToShow.style.display = 'flex';
+                } else {
+                    pageToShow.style.display = 'block';
+                }
+                
+                if (pageToShow !== mainMenuPage) {
+                    const workspace = pageToShow.querySelector('.workspace');
+                    if (workspace) {
+                        workspace.scrollTop = 0;
+                    }
+                }
+            }
+            
+            btnGotoAddSub.addEventListener('click', () => showPage(addSubPage));
+            btnGotoMul.addEventListener('click', () => showPage(mulPage));
+            btnGotoDiv.addEventListener('click', () => showPage(divPage));
+            
+            backButtons.forEach(button => {
+                button.addEventListener('click', () => showPage(mainMenuPage));
+            });
+
+            // Initialize all tools
+            initAddSubTool(addSubPage);
+            initMulTool(mulPage);
+            initDivTool(divPage);
         });
     </script>
-
 </body>
 </html>
