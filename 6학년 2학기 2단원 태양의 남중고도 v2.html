@@ -3,11 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>태양 고도와 그림자 시뮬레이터</title>
+    <title>6학년 2학기 2단원 통합 시뮬레이션</title>
+    
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
     <style>
-        /* Jua 글꼴 및 전체 화면 설정 */
+        /* --- 1. 글로벌 및 메인 메뉴 스타일 --- */
+        
         body, html {
             width: 100%;
             height: 100%;
@@ -15,27 +20,127 @@
             padding: 0;
             overflow: hidden;
             font-family: 'Jua', sans-serif;
-            background-color: #f0f4f8; /* 현실적인 하늘색 배경 */
-            color: #333;
+            background-color: #1a1a2e; /* 세련된 어두운 배경색 */
+            color: #f0f0f0;
+        }
+
+        /* 페이지 컨테이너 기본 설정 */
+        .simulation-page {
+            display: none; /* 평소에는 숨김 */
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            overflow: hidden; /* 각 시뮬레이션이 스크롤바를 만들지 않도록 */
+        }
+        
+        /* 메인 메뉴 */
+        #main-menu {
             display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            box-sizing: border-box;
+            padding: 20px;
+        }
+        
+        #main-menu h1 {
+            font-size: 3.5rem;
+            color: #e0e0e0;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            width: 90%;
+            max-width: 1400px;
+        }
+        
+        .menu-card {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .menu-card:hover {
+            transform: translateY(-10px);
+            background-color: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .menu-card h2 {
+            font-size: 1.8rem;
+            color: #a6d8ff; /* 포인트 컬러 */
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        
+        .menu-card p {
+            font-size: 1.1rem;
+            color: #c0c0c0;
+            margin: 0;
+        }
+        
+        /* 모든 시뮬레이션에 공통으로 적용될 '뒤로가기' 버튼 */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-family: 'Jua', sans-serif;
+            font-size: 1.2rem;
+            padding: 10px 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            color: #333;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 1000; /* 항상 위에 있도록 */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+        }
+        
+        .back-button:hover {
+            background-color: white;
+            transform: scale(1.05);
+        }
+
+        /* --- 2. 시뮬레이션 1번 (남중고도) 스타일 --- */
+        /* 원본의 body, html 스타일은 전역으로 이동/병합 */
+        
+        /* 원본의 body -> #sim-container-1 로 변경 */
+        #sim-container-1 {
+            background-color: #f0f4f8; 
+            color: #333;
+            display: none; /* 전역 .simulation-page 에서 제어 */
             justify-content: center;
             align-items: center;
             flex-direction: column;
         }
 
-        /* 시뮬레이션 컨테이너 (하늘) */
-        .simulation-container {
+        #sim-container-1 .simulation-container {
             flex-grow: 1;
             display: flex;
             justify-content: center;
             align-items: center;
             width: 100%;
-            background: linear-gradient(to bottom, #87CEEB 0%, #f0f4f8 70%); /* 하늘 그라데이션 */
-            position: relative; /* 태양 배치를 위해 추가 */
+            background: linear-gradient(to bottom, #87CEEB 0%, #f0f4f8 70%); 
+            position: relative; 
         }
 
-        /* 3D 모드 지면 */
-        .ground {
+        #sim-container-1 .ground {
             width: 70vh;
             height: 70vh;
             background-color: #7CFC00;
@@ -51,25 +156,23 @@
             transition: all 0.5s ease-in-out;
         }
         
-        /* 2D 모드 지면 */
-        body.mode-2d .ground {
-            width: 100%; /* 가로 100% */
-            height: 300px; /* 고정된 높이 */
+        /* 원본의 body.mode-2d -> #sim-container-1.mode-2d 로 변경 */
+        #sim-container-1.mode-2d .ground {
+            width: 100%; 
+            height: 300px; 
             border-radius: 0;
             background-image: none;
-            background-color: #ad8a56; /* 흙색 지면 */
+            background-color: #ad8a56; 
             border: none;
             border-top: 5px solid #5d4a2a;
             box-shadow: none;
             position: absolute;
-            bottom: 0; /* 화면 하단에 고정 */
+            bottom: 0; 
             left: 0;
             display: block; 
         }
 
-
-        /* 3D 모드 방위 표시 */
-        .direction {
+        #sim-container-1 .direction {
             position: absolute;
             font-size: 1.5rem;
             color: rgba(255, 255, 255, 0.8);
@@ -78,14 +181,13 @@
             border-radius: 5px;
             text-shadow: 1px 1px 2px #000;
         }
-        .north { top: 2%; }
-        .south { bottom: 2%; }
-        .east { right: 2%; } 
-        .west { left: 2%; }
-        body.mode-2d .direction { display: none; } /* 2D 모드에서는 방위 숨김 */
+        #sim-container-1 .north { top: 2%; }
+        #sim-container-1 .south { bottom: 2%; }
+        #sim-container-1 .east { right: 2%; } 
+        #sim-container-1 .west { left: 2%; }
+        #sim-container-1.mode-2d .direction { display: none; } 
 
-        /* 3D 모드 막대 */
-        .gnomon {
+        #sim-container-1 .gnomon {
             width: 15px;
             height: 15px;
             background-color: #B22222;
@@ -94,27 +196,24 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
             z-index: 10;
             transition: all 0.5s ease-in-out;
-            position: relative; /* 3D 모드 기본값 */
+            position: relative; 
         }
         
-        /* 2D 모드 막대 */
-        body.mode-2d .gnomon {
+        #sim-container-1.mode-2d .gnomon {
             position: absolute;
-            bottom: 300px; /* 지면(높이 300px) 바로 위 */
-            left: 50%; /* ★ 화면 가로 중앙 */
+            bottom: 300px; 
+            left: 50%; 
             width: 10px;
-            height: 150px; /* 막대 높이 150px로 고정 */
-            background-color: #8B4513; /* 나무 막대 색상 */
+            height: 150px; 
+            background-color: #8B4513; 
             border-radius: 2px;
-            transform: translateX(-50%); /* 정확한 중앙 정렬 */
+            transform: translateX(-50%); 
             border: none;
             box-shadow: none;
-            z-index: 10; /* 그림자보다 위에 보이도록 */
+            z-index: 10; 
         }
 
-
-        /* 3D 모드 그림자 */
-        .shadow {
+        #sim-container-1 .shadow {
             width: 0px;
             height: 8px;
             background-color: rgba(0, 0, 0, 0.4);
@@ -127,48 +226,44 @@
             transition: width 0.05s linear, transform 0.05s linear;
         }
         
-        /* 2D 모드 그림자 */
-        body.mode-2d .shadow {
+        #sim-container-1.mode-2d .shadow {
             position: absolute;
-            bottom: 300px; /* 지면 위 */
-            left: 50%; /* ★ 막대와 동일하게 중앙에서 시작 */
+            bottom: 300px; 
+            left: 50%; 
             height: 3px; 
             background-color: rgba(0, 0, 0, 0.6);
             border-radius: 0;
-            transform-origin: 0% 50%; /* 왼쪽 끝에서 시작 */
-            transform: rotate(0deg); /* 2D에서는 항상 0도 (수평) */
+            transform-origin: 0% 50%; 
+            transform: rotate(0deg); 
             z-index: 4;
             transition: width 0.05s linear, transform 0.05s linear;
-            top: auto; /* 3D 모드 값 초기화 */
+            top: auto; 
         }
 
-        /* 3D 모드 태양 */
-        .sun {
+        #sim-container-1 .sun {
             position: absolute;
             width: 80px;
             height: 80px;
             background: radial-gradient(circle, #FFD700 0%, #FFA500 50%, transparent 80%);
             border-radius: 50%;
             box-shadow: 0 0 40px 15px rgba(255, 165, 0, 0.7);
-            transform: translate(-50%, -50%); /* 중앙 정렬 */
+            transform: translate(-50%, -50%); 
             z-index: 20;
             transition: top 0.05s linear, left 0.05s linear;
         }
         
-        /* 2D 모드 태양 */
-        body.mode-2d .sun {
+        #sim-container-1.mode-2d .sun {
             width: 60px;
             height: 60px;
             box-shadow: 0 0 20px 10px rgba(255, 165, 0, 0.7);
-            /* 2D 모드에서는 top과 left가 JS에서 계산됨 */
             z-index: 20;
         }
 
-        /* 정보 패널 */
-        .info-panel {
+        #sim-container-1 .info-panel {
             position: absolute;
             top: 20px;
-            left: 20px;
+            /* left: 20px; -> 뒤로가기 버튼과 겹치므로 수정 */
+            left: 150px; 
             background: rgba(255, 255, 255, 0.9);
             padding: 15px 25px;
             border-radius: 10px;
@@ -176,18 +271,17 @@
             border: 1px solid #ddd;
             z-index: 30;
         }
-        .info-panel p {
+        #sim-container-1 .info-panel p {
             margin: 10px 0;
             font-size: 1.2rem;
         }
-        .note {
+        #sim-container-1 .note {
             font-size: 0.9rem !important;
             color: #555;
             margin-top: 15px !important;
         }
 
-        /* 컨트롤러 (슬라이더) */
-        .controller {
+        #sim-container-1 .controller {
             width: 80%;
             max-width: 800px;
             padding: 20px;
@@ -199,412 +293,1537 @@
             bottom: 0;
             z-index: 30;
         }
-        body.mode-2d .controller {
-            background-color: rgba(255, 255, 255, 0.7); /* 2D 모드에서 지면 위에 있으므로 반투명 */
+        #sim-container-1.mode-2d .controller {
+            background-color: rgba(255, 255, 255, 0.7); 
         }
-        .controller label {
+        #sim-container-1 .controller label {
             font-size: 1.3rem;
             display: block;
             margin-bottom: 10px;
         }
-        #time-slider {
+        #sim-container-1 #sim-1-time-slider { /* ID 변경 */
             width: 100%;
             cursor: pointer;
         }
 
-        /* 계절 버튼 및 보기 모드 버튼 */
-        .top-right-controls {
+        #sim-container-1 .top-right-controls {
             position: absolute;
             top: 20px;
             right: 20px;
             display: flex;
-            flex-direction: column; /* 세로로 정렬 */
+            flex-direction: column; 
             gap: 10px;
             z-index: 30;
         }
-        .season-buttons, .view-mode-buttons {
+        #sim-container-1 .season-buttons, 
+        #sim-container-1 .view-mode-buttons {
             display: flex;
             gap: 10px;
         }
-        .top-right-controls button {
+        #sim-container-1 .top-right-controls button {
             font-family: 'Jua', sans-serif;
             font-size: 1.1rem;
             padding: 10px 20px;
             border: none;
             border-radius: 8px;
-            background-color: #4CAF50; /* 기본 녹색 */
+            background-color: #4CAF50; 
             color: white;
             cursor: pointer;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             transition: background-color 0.3s ease, transform 0.1s ease;
         }
-        .top-right-controls button:hover {
+        #sim-container-1 .top-right-controls button:hover {
             background-color: #45a049;
             transform: translateY(-2px);
         }
-        .top-right-controls button.active {
-            background-color: #2196F3; /* 선택된 버튼 파란색 */
+        #sim-container-1 .top-right-controls button.active {
+            background-color: #2196F3; 
             box-shadow: 0 0 0 3px #2196F3, 0 4px 10px rgba(0, 0, 0, 0.2);
         }
 
-        /* 2D 모드 전용 요소 (빛줄기, 각도 호, 각도 텍스트) */
-        .light-ray, .angle-arc, .angle-text {
-            display: none; /* 3D 모드에서는 숨김 */
+        #sim-container-1 .light-ray, 
+        #sim-container-1 .angle-arc, 
+        #sim-container-1 .angle-text {
+            display: none; 
             position: absolute;
             transition: all 0.05s linear;
             z-index: 15;
         }
-        body.mode-2d .light-ray,
-        /* ★★★ 사용자 요청: 2D 모드에서도 호 기호 숨김 */
-        /* body.mode-2d .angle-arc, */ 
-        body.mode-2d .angle-text {
-            display: block; /* 2D 모드에서만 표시 */
+        #sim-container-1.mode-2d .light-ray,
+        /* #sim-container-1.mode-2d .angle-arc, */ /* 원본에서 주석 처리됨 */
+        #sim-container-1.mode-2d .angle-text {
+            display: block; 
         }
         
-        /* ★ 태양 빛줄기 (막대 끝과 그림자 끝을 잇는 선) */
-        .light-ray {
+        #sim-container-1 .light-ray {
             background: linear-gradient(to right, rgba(255, 220, 0, 0.7), rgba(255, 220, 0, 0.3));
             height: 3px;
-            transform-origin: 0% 50%; /* 왼쪽(시작점)에서 시작 */
+            transform-origin: 0% 50%; 
             z-index: 18;
         }
         
-        /* ★ 각도 호 (이제 숨겨짐) */
-        .angle-arc {
+        #sim-container-1 .angle-arc {
             border: 2px dashed blue;
             border-top-color: transparent;
             border-left-color: transparent;
             background: rgba(0, 0, 255, 0.1);
             box-sizing: border-box;
             z-index: 16;
-            /* display: none; */ /* 위에서 body.mode-2d .angle-arc를 주석 처리했으므로 이중으로 필요 X */
         }
         
-        /* ★ 각도 텍스트 */
-        .angle-text {
+        #sim-container-1 .angle-text {
             font-size: 1.1rem;
             color: blue;
             font-weight: bold;
             z-index: 17;
             transform: none; 
         }
+
+        /* --- 3. 시뮬레이션 2번 (면적과 에너지) 스타일 --- */
+        #sim-container-2 {
+            /* 원본의 body, html 스타일 */
+            background-color: #111827;
+            color: white;
+            display: none; /* 전역 .simulation-page 에서 제어 */
+            justify-content: center;
+            align-items: center;
+        }
+        #sim-container-2 .main-container {
+            display: flex;
+            flex-direction: column; 
+            align-items: center;
+            gap: 20px;
+            width: 95vw;
+            height: 95vh;
+        }
+        
+        #sim-container-2 #sim-2-simulation-window { /* ID 변경 */
+            width: 100%;
+            height: 75%; 
+            background-color: #000;
+            border-radius: 20px;
+            position: relative;
+        }
+        #sim-container-2 .control-panel {
+            width: 100%;
+            max-width: 800px;
+            height: 20%; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 15px;
+            padding: 20px;
+            background-color: rgba(31, 41, 55, 0.8);
+            border-radius: 12px;
+            border: 1px solid #374151;
+            box-sizing: border-box; 
+        }
+
+        #sim-container-2 canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+        }
+        
+        #sim-container-2 .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        #sim-container-2 .slider-container label {
+            font-size: 1.5rem;
+            white-space: nowrap;
+            width: 150px; 
+        }
+        #sim-container-2 input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        
+        #sim-container-2 .info-panel {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        #sim-container-2 .info-panel p {
+            font-size: 1.5rem;
+            margin: 0;
+            width: 250px; 
+            white-space: nowrap;
+        }
+        #sim-container-2 .info-panel strong {
+            color: #f1c40f;
+            font-size: 2rem;
+        }
+
+        /* --- 4. 시뮬레이션 3번 (낮의 길이) 스타일 --- */
+        #sim-container-3 {
+            /* 원본의 body, html 스타일 */
+            background-color: #111827;
+            color: white;
+            display: none; /* 전역 .simulation-page 에서 제어 */
+            justify-content: center;
+            align-items: center;
+        }
+        #sim-container-3 .main-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px; 
+            width: 90%;
+            max-width: 1000px;
+        }
+        #sim-container-3 #sim-3-globe-container { /* ID 변경 */
+            width: 450px;
+            height: 450px;
+            border-radius: 50%;
+            background-color: #000;
+            position: relative;
+        }
+        #sim-container-3 canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+        }
+        #sim-container-3 .control-panel {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px; 
+        }
+        #sim-container-3 .info-panel {
+            padding: 20px;
+            background-color: rgba(31, 41, 55, 0.8);
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #374151;
+        }
+        #sim-container-3 .info-panel h2 { margin: 0 0 15px 0; color: #f1c40f; font-size: 1.8rem; }
+        #sim-container-3 .info-panel p { margin: 8px 0; font-size: 1.3rem; }
+        #sim-container-3 .info-panel strong { color: #93c5fd; }
+        #sim-container-3 .controls {
+            display: flex;
+            justify-content: space-around;
+            gap: 15px;
+        }
+        #sim-container-3 .controls button {
+            font-family: 'Jua', sans-serif;
+            font-size: 1.2rem; 
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: #3b82f6;
+            color: white;
+            transition: all 0.3s ease;
+            flex-grow: 1;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        #sim-container-3 .controls button:hover { background-color: #2563eb; }
+        #sim-container-3 .controls button.active { background-color: #e67e22; font-weight: bold; }
+        
+        #sim-container-3 .cross-section-container {
+            width: 100%;
+            padding: 10px;
+            background-color: rgba(31, 41, 55, 0.8);
+            border-radius: 12px;
+            border: 1px solid #374151;
+            box-sizing: border-box;
+        }
+        #sim-container-3 .cross-section-container h3 {
+            text-align: center;
+            margin: 5px 0 15px 0;
+            font-size: 1.2rem; 
+        }
+        #sim-container-3 .ratio-bar {
+            width: 100%;
+            height: 40px; 
+            display: flex;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid white;
+        }
+        #sim-container-3 #sim-3-day-bar, #sim-container-3 #sim-3-night-bar { /* ID 변경 */
+            transition: width 0.8s ease-in-out;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.1rem; 
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+        }
+        #sim-container-3 #sim-3-day-bar { background: linear-gradient(90deg, #f1c40f, #f39c12); }
+        #sim-container-3 #sim-3-night-bar { background: linear-gradient(90deg, #34495e, #2c3e50); }
+
+        #sim-container-3 .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background-color: rgba(31, 41, 55, 0.8);
+            border-radius: 12px;
+            border: 1px solid #374151;
+        }
+        #sim-container-3 .slider-container label {
+            font-size: 1.2rem;
+            white-space: nowrap;
+        }
+        #sim-container-3 input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 10px;
+            background: #4b5563;
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        #sim-container-3 input[type="range"]:hover { opacity: 1; }
+        #sim-container-3 input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        #sim-container-3 input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        /* --- 5. 시뮬레이션 4번 (공전과 계절) 스타일 --- */
+        #sim-container-4 {
+            /* 원본의 body, html 스타일 */
+            background-color: #111827;
+            color: white;
+            display: none; /* 전역 .simulation-page 에서 제어 */
+            justify-content: center;
+            align-items: center;
+        }
+        #sim-container-4 .main-container {
+            display: flex;
+            flex-direction: row; 
+            align-items: center;
+            gap: 2vw;
+            width: 98vw;
+            height: 95vh;
+        }
+        
+        #sim-container-4 #sim-4-simulation-window { /* ID 변경 */
+            width: 73vw; 
+            height: 95vh;
+            background-color: #000;
+            border-radius: 20px;
+            position: relative;
+        }
+        #sim-container-4 .control-panel {
+            width: 23vw; 
+            height: 95vh;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto; 
+        }
+
+        #sim-container-4 canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+        }
+        #sim-container-4 .info-panel {
+            padding: 15px;
+            background-color: rgba(31, 41, 55, 0.8);
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #374151;
+        }
+        #sim-container-4 .info-panel h2 { margin: 0 0 10px 0; color: #f1c40f; font-size: 1.5rem; }
+        #sim-container-4 .info-panel p { margin: 5px 0; font-size: 1.2rem; }
+        #sim-container-4 .info-panel strong { color: #93c5fd; }
+        
+        #sim-container-4 .toggle-switch {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            background-color: rgba(31, 41, 55, 0.8);
+            border-radius: 12px;
+            border: 1px solid #374151;
+        }
+        #sim-container-4 .toggle-switch label {
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+        #sim-container-4 .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        #sim-container-4 .switch input { display: none; }
+        #sim-container-4 .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        #sim-container-4 .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px; width: 26px;
+            left: 4px; bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        #sim-container-4 input:checked + .slider { background-color: #e67e22; }
+        #sim-container-4 input:checked + .slider:before { transform: translateX(26px); }
+
+        #sim-container-4 .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        #sim-container-4 .controls button {
+            font-family: 'Jua', sans-serif;
+            font-size: 1.1rem;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: #3b82f6;
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        #sim-container-4 .controls button:hover { background-color: #2563eb; }
+        #sim-container-4 .controls button.active { background-color: #16a34a; font-weight: bold; }
+        
+        #sim-container-4 .cross-section-container {
+            width: 100%;
+            padding: 10px;
+            background-color: rgba(31, 41, 55, 0.8);
+            border-radius: 12px;
+            border: 1px solid #374151;
+            box-sizing: border-box;
+        }
+        #sim-container-4 .cross-section-container h3 {
+            text-align: center;
+            margin: 5px 0 10px 0;
+            font-size: 1.1rem;
+        }
+        #sim-container-4 .ratio-bar {
+            width: 100%;
+            height: 30px;
+            display: flex;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid white;
+        }
+        #sim-container-4 #sim-4-day-bar, #sim-container-4 #sim-4-night-bar { /* ID 변경 */
+            transition: width 0.8s ease-in-out;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+        }
+        #sim-container-4 #sim-4-day-bar { background: linear-gradient(90deg, #f1c40f, #f39c12); }
+        #sim-container-4 #sim-4-night-bar { background: linear-gradient(90deg, #34495e, #2c3e50); }
+
+        #sim-container-4 .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            background-color: rgba(31, 41, 55, 0.8);
+            border-radius: 12px;
+            border: 1px solid #374151;
+        }
+        #sim-container-4 .slider-container label { font-size: 1.1rem; white-space: nowrap; }
+        #sim-container-4 input[type="range"] {
+            width: 100%;
+        }
+
     </style>
 </head>
-<body class="mode-3d"> 
-<div class="simulation-container">
-        <div class="sun"></div>
-        <div class="ground">
-            <div class="direction north">북</div>
-            <div class="direction south">남</div>
-            <div class="direction east">동</div>
-            <div class="direction west">서</div>
+<body>
+
+    <div id="main-menu">
+        <h1>6학년 2학기 2단원: 계절의 변화</h1>
+        <div class="menu-grid">
+            
+            <div class="menu-card" data-target="sim-container-1">
+                <h2>1. 태양의 남중고도</h2>
+                <p>시간에 따른 태양의 고도와 그림자 길이를 2D/3D로 탐색합니다.</p>
+            </div>
+            
+            <div class="menu-card" data-target="sim-container-2">
+                <h2>2. 태양 고도와 에너지</h2>
+                <p>태양 고도에 따라 빛이 덮는 면적과 단위 면적당 에너지양을 확인합니다.</p>
+            </div>
+            
+            <div class="menu-card" data-target="sim-container-3">
+                <h2>3. 계절과 낮의 길이</h2>
+                <p>계절별 태양의 남중고도와 24시간 동안의 낮/밤 길이 비율을 알아봅니다.</p>
+            </div>
+            
+            <div class="menu-card" data-target="sim-container-4">
+                <h2>4. 계절 변화의 원인</h2>
+                <p>지구의 공전과 자전축 기울기에 따른 계절 변화의 원인을 탐구합니다.</p>
+            </div>
+            
         </div>
+    </div>
+
+    <div id="sim-container-1" class="simulation-page">
+        <button class="back-button">메인으로</button>
         
-        <div class="gnomon"></div>
-        <div class="shadow"></div>
+        <div class="simulation-container">
+            <div class="sun"></div>
+            <div class="ground">
+                <div class="direction north">북</div>
+                <div class="direction south">남</div>
+                <div class="direction east">동</div>
+                <div class="direction west">서</div>
+            </div>
+            
+            <div class="gnomon"></div>
+            <div class="shadow"></div>
+            
+            <div class="light-ray"></div>
+            <div class="angle-arc"></div>
+            <div class="angle-text"></div>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-box">
+                <h3>시뮬레이션 정보</h3>
+                <p><strong>시간:</strong> <span id="sim-1-time-display">06:00</span></p>
+                <p><strong>태양 고도:</strong> <span id="sim-1-altitude-display">0.0°</span></p>
+                <p><strong>그림자 길이:</strong> <span id="sim-1-shadow-display">무한대</span></p>
+                <p class="note">(막대 높이 1m 기준)</p>
+            </div>
+        </div>
+
+        <div class="top-right-controls">
+            <div class="season-buttons">
+                <button id="sim-1-season-spring-autumn" class="active">봄/가을</button>
+                <button id="sim-1-season-summer">여름</button>
+                <button id="sim-1-season-winter">겨울</button>
+            </div>
+            <div class="view-mode-buttons">
+                <button id="sim-1-mode-3d-btn" class="active">3D 보기</button>
+                <button id="sim-1-mode-2d-btn">2D 단면 보기</button>
+            </div>
+        </div>
+
+        <div class="controller">
+            <label for="sim-1-time-slider">시간 조절 (06:00 ~ 18:00)</label>
+            <input type="range" id="sim-1-time-slider" min="0" max="100" value="0">
+        </div>
+        </div>
+
+    <div id="sim-container-2" class="simulation-page">
+        <button class="back-button">메인으로</button>
         
-        <div class="light-ray"></div>
-        <div class="angle-arc"></div>
-        <div class="angle-text"></div>
-    </div>
-
-    <div class="info-panel">
-        <div class="info-box">
-            <h3>시뮬레이션 정보</h3>
-            <p><strong>시간:</strong> <span id="time-display">06:00</span></p>
-            <p><strong>태양 고도:</strong> <span id="altitude-display">0.0°</span></p>
-            <p><strong>그림자 길이:</strong> <span id="shadow-display">무한대</span></p>
-            <p class="note">(막대 높이 1m 기준)</p>
+        <div class="main-container">
+            <div id="sim-2-simulation-window"></div>
+            <div class="control-panel">
+                <div class="slider-container">
+                    <label for="sim-2-altitudeSlider">태양 고도:</label>
+                    <input type="range" id="sim-2-altitudeSlider" min="15" max="90" step="1" value="90">
+                </div>
+                <div class="info-panel">
+                    <p>빛이 덮는 모눈 개수:</p>
+                    <strong id="sim-2-grid-count-value">약 12.6개</strong>
+                </div>
+            </div>
         </div>
-    </div>
-
-    <div class="top-right-controls">
-        <div class="season-buttons">
-            <button id="season-spring-autumn" class="active">봄/가을</button>
-            <button id="season-summer">여름</button>
-            <button id="season-winter">겨울</button>
         </div>
-        <div class="view-mode-buttons">
-            <button id="mode-3d-btn" class="active">3D 보기</button>
-            <button id="mode-2d-btn">2D 단면 보기</button>
-        </div>
-    </div>
 
-    <div class="controller">
-        <label for="time-slider">시간 조절 (06:00 ~ 18:00)</label>
-        <input type="range" id="time-slider" min="0" max="100" value="0">
-    </div>
+    <div id="sim-container-3" class="simulation-page">
+        <button class="back-button">메인으로</button>
+        
+        <div class="main-container">
+            <div id="sim-3-globe-container"></div>
+            <div class="control-panel">
+                <div class="info-panel">
+                    <h2 id="sim-3-season-name">계절을 선택하세요</h2>
+                    <p>태양의 남중 고도: <strong id="sim-3-altitude-value">N/A</strong></p>
+                </div>
+                <div class="cross-section-container">
+                    <h3>[단면] 북위 37.5°의 24시간 낮/밤 비율</h3>
+                    <div class="ratio-bar">
+                        <div id="sim-3-day-bar">낮</div>
+                        <div id="sim-3-night-bar">밤</div>
+                    </div>
+                </div>
+                <div class="slider-container">
+                    <label for="sim-3-speedSlider">자전 속도 조절:</label>
+                    <input type="range" id="sim-3-speedSlider" min="0" max="0.05" step="0.001" value="0.008">
+                </div>
+                <div class="controls">
+                    <button id="sim-3-btn-summer" data-season="summer">여름 (6월)</button>
+                    <button id="sim-3-btn-equinox" data-season="equinox">봄/가을 (3/9월)</button>
+                    <button id="sim-3-btn-winter" data-season="winter">겨울 (12월)</button>
+                </div>
+            </div>
+        </div>
+        </div>
+
+    <div id="sim-container-4" class="simulation-page">
+        <button class="back-button">메인으로</button>
+        
+        <div class="main-container">
+            <div id="sim-4-simulation-window"></div>
+            <div class="control-panel">
+                <div class="toggle-switch">
+                    <label for="sim-4-tiltToggle">자전축 기울기</label>
+                    <label class="switch">
+                        <input type="checkbox" id="sim-4-tiltToggle" checked> <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="info-panel">
+                    <h2 id="sim-4-season-name"></h2>
+                    <p>태양 고도 (북위 37.5°): <strong id="sim-4-altitude-value"></strong></p>
+                </div>
+                <div class="controls">
+                    <button data-season="spring">봄 (가)</button>
+                    <button data-season="summer">여름 (나)</button>
+                    <button data-season="fall">가을 (다)</button>
+                    <button data-season="winter">겨울 (라)</button>
+                </div>
+                <div class="cross-section-container">
+                    <h3>[단면] 24시간 낮/밤 비율</h3>
+                    <div class="ratio-bar">
+                        <div id="sim-4-day-bar">낮</div>
+                        <div id="sim-4-night-bar">밤</div>
+                    </div>
+                </div>
+                <div class="slider-container">
+                    <label for="sim-4-orbitSpeedSlider">공전 속도:</label>
+                    <input type="range" id="sim-4-orbitSpeedSlider" min="0" max="0.01" step="0.0001" value="0.001">
+                </div>
+                <div class="slider-container">
+                    <label for="sim-4-rotationSpeedSlider">자전 속도:</label>
+                    <input type="range" id="sim-4-rotationSpeedSlider" min="0" max="0.05" step="0.001" value="0.008">
+                </div>
+            </div>
+        </div>
+        </div>
+
 
     <script>
-        // DOM 요소 가져오기
-        const body = document.body;
-        const slider = document.getElementById('time-slider');
-        const shadow = document.querySelector('.shadow');
-        const timeDisplay = document.getElementById('time-display');
-        const altitudeDisplay = document.getElementById('altitude-display');
-        const shadowDisplay = document.getElementById('shadow-display');
-        const sun = document.querySelector('.sun'); 
-        const gnomon = document.querySelector('.gnomon');
-        const ground = document.querySelector('.ground');
-        const simulationContainer = document.querySelector('.simulation-container');
+        // --- 1. 글로벌 네비게이션 및 초기화 로직 ---
+        
+        // 각 시뮬레이션이 초기화되었는지 추적하는 플래그
+        let sim1Initialized = false;
+        let sim2Initialized = false;
+        let sim3Initialized = false;
+        let sim4Initialized = false;
+        
+        // 모든 페이지 컨테이너
+        const pages = document.querySelectorAll('.simulation-page');
+        const mainMenu = document.getElementById('main-menu');
 
-        const seasonSpringAutumnBtn = document.getElementById('season-spring-autumn');
-        const seasonSummerBtn = document.getElementById('season-summer');
-        const seasonWinterBtn = document.getElementById('season-winter');
-        const seasonButtons = [seasonSpringAutumnBtn, seasonSummerBtn, seasonWinterBtn];
+        // 페이지를 보여주는 함수
+        function showPage(pageId) {
+            // 모든 페이지 숨기기
+            mainMenu.style.display = 'none';
+            pages.forEach(page => {
+                page.style.display = 'none';
+            });
+            
+            // 대상 페이지만 보여주기
+            const targetPage = document.getElementById(pageId);
+            if (targetPage) {
+                // 시뮬레이션 페이지는 flex, 메인 메뉴는 block 또는 flex
+                targetPage.style.display = (pageId === 'main-menu') ? 'flex' : 'flex'; 
+                // 참고: Sim-1은 CSS에서 flex로 설정되어 있으므로 'flex'로 통일
+            }
+        }
 
-        const mode3dBtn = document.getElementById('mode-3d-btn');
-        const mode2dBtn = document.getElementById('mode-2d-btn');
+        document.addEventListener('DOMContentLoaded', () => {
+            // 메인 메뉴 카드 클릭 이벤트
+            document.querySelectorAll('.menu-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const targetPageId = card.getAttribute('data-target');
+                    showPage(targetPageId);
+                    
+                    // ID에 따라 적절한 초기화 함수 호출 (최초 1회만)
+                    switch (targetPageId) {
+                        case 'sim-container-1':
+                            if (!sim1Initialized) {
+                                initSim1();
+                                sim1Initialized = true;
+                            }
+                            break;
+                        case 'sim-container-2':
+                            if (!sim2Initialized) {
+                                initSim2();
+                                sim2Initialized = true;
+                            }
+                            break;
+                        case 'sim-container-3':
+                            if (!sim3Initialized) {
+                                initSim3();
+                                sim3Initialized = true;
+                            }
+                            break;
+                        case 'sim-container-4':
+                            if (!sim4Initialized) {
+                                initSim4();
+                                sim4Initialized = true;
+                            }
+                            break;
+                    }
+                });
+            });
 
-        // 2D 단면 보기 전용 요소
-        const lightRay = document.querySelector('.light-ray');
-        const angleArc = document.querySelector('.angle-arc');
-        const angleText = document.querySelector('.angle-text');
+            // 뒤로가기 버튼 이벤트
+            document.querySelectorAll('.back-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    showPage('main-menu');
+                    // 참고: Three.js의 render loop를 중지하지는 않았습니다.
+                    // 원본 기능 변경을 최소화하기 위해 단순히 페이지를 숨깁니다.
+                });
+            });
+        });
 
-        // 가상의 막대 높이 (m) - 실제 시뮬레이션에 사용될 기준값
-        const gnomonHeight = 1; 
-        // 2D 모드에서 막대 시각적 높이 (px)
-        const gnomonHeight2D_PX = 150; 
-        // 2D 모드에서 지면 높이 (px) - CSS와 동일하게 설정
-        const groundHeight2D_PX = 300; 
 
-        // 계절별 남중고도
-        const SEASON_ALTITUDE = {
-            SPRING_AUTUMN: 45, 
-            SUMMER: 72,       
-            WINTER: 28        
-        };
+        // --- 2. 시뮬레이션 1번 (남중고도) 스크립트 ---
+        function initSim1() {
+            // DOM 요소 가져오기 (ID 변경 적용)
+            
+            // ★★★ 중요: body 대신 시뮬레이션 컨테이너를 사용하도록 변경
+            const sim1Body = document.getElementById('sim-container-1'); 
+            
+            const slider = document.getElementById('sim-1-time-slider');
+            const shadow = sim1Body.querySelector('.shadow'); // querySelector 사용
+            const timeDisplay = document.getElementById('sim-1-time-display');
+            const altitudeDisplay = document.getElementById('sim-1-altitude-display');
+            const shadowDisplay = document.getElementById('sim-1-shadow-display');
+            const sun = sim1Body.querySelector('.sun'); 
+            const gnomon = sim1Body.querySelector('.gnomon');
+            const ground = sim1Body.querySelector('.ground');
+            const simulationContainer = sim1Body.querySelector('.simulation-container');
 
-        let currentMaxAltitude = SEASON_ALTITUDE.SPRING_AUTUMN; 
-        let currentViewMode = '3d'; 
+            const seasonSpringAutumnBtn = document.getElementById('sim-1-season-spring-autumn');
+            const seasonSummerBtn = document.getElementById('sim-1-season-summer');
+            const seasonWinterBtn = document.getElementById('sim-1-season-winter');
+            const seasonButtons = [seasonSpringAutumnBtn, seasonSummerBtn, seasonWinterBtn];
 
-        // 이벤트 리스너 설정
-        slider.addEventListener('input', updateSimulation);
-        seasonSpringAutumnBtn.addEventListener('click', () => setSeason(SEASON_ALTITUDE.SPRING_AUTUMN, seasonSpringAutumnBtn));
-        seasonSummerBtn.addEventListener('click', () => setSeason(SEASON_ALTITUDE.SUMMER, seasonSummerBtn));
-        seasonWinterBtn.addEventListener('click', () => setSeason(SEASON_ALTITUDE.WINTER, seasonWinterBtn));
-        mode3dBtn.addEventListener('click', () => setViewMode('3d', mode3dBtn));
-        mode2dBtn.addEventListener('click', () => setViewMode('2d', mode2dBtn));
-        window.addEventListener('resize', updateSimulation); // 창 크기 변경 시 업데이트
+            const mode3dBtn = document.getElementById('sim-1-mode-3d-btn');
+            const mode2dBtn = document.getElementById('sim-1-mode-2d-btn');
 
-        // 페이지 로드 시 초기 상태 설정
-        updateSimulation();
+            const lightRay = sim1Body.querySelector('.light-ray');
+            const angleArc = sim1Body.querySelector('.angle-arc');
+            const angleText = sim1Body.querySelector('.angle-text');
 
-        // 계절 설정 함수
-        function setSeason(altitude, activeButton) {
-            currentMaxAltitude = altitude;
-            seasonButtons.forEach(btn => btn.classList.remove('active'));
-            activeButton.classList.add('active');
+            const gnomonHeight = 1; 
+            const gnomonHeight2D_PX = 150; 
+            const groundHeight2D_PX = 300; 
+
+            const SEASON_ALTITUDE = {
+                SPRING_AUTUMN: 45, 
+                SUMMER: 72,       
+                WINTER: 28        
+            };
+
+            let currentMaxAltitude = SEASON_ALTITUDE.SPRING_AUTUMN; 
+            let currentViewMode = '3d'; 
+
+            slider.addEventListener('input', updateSimulation);
+            seasonSpringAutumnBtn.addEventListener('click', () => setSeason(SEASON_ALTITUDE.SPRING_AUTUMN, seasonSpringAutumnBtn));
+            seasonSummerBtn.addEventListener('click', () => setSeason(SEASON_ALTITUDE.SUMMER, seasonSummerBtn));
+            seasonWinterBtn.addEventListener('click', () => setSeason(SEASON_ALTITUDE.WINTER, seasonWinterBtn));
+            mode3dBtn.addEventListener('click', () => setViewMode('3d', mode3dBtn));
+            mode2dBtn.addEventListener('click', () => setViewMode('2d', mode2dBtn));
+            window.addEventListener('resize', updateSimulation); // 창 크기 변경은 전역 window 유지
+
+            updateSimulation();
+
+            function setSeason(altitude, activeButton) {
+                currentMaxAltitude = altitude;
+                seasonButtons.forEach(btn => btn.classList.remove('active'));
+                activeButton.classList.add('active');
+                updateSimulation(); 
+            }
+
+            function setViewMode(mode, activeButton) {
+                currentViewMode = mode;
+                
+                // ★★★ 중요: body 대신 sim1Body 사용
+                sim1Body.classList.remove('mode-3d', 'mode-2d');
+                sim1Body.classList.add(`mode-${mode}`);
+                
+                mode3dBtn.classList.remove('active');
+                mode2dBtn.classList.remove('active');
+                activeButton.classList.add('active');
+                updateSimulation(); 
+            }
+
+            function updateSimulation() {
+                const sliderValue = slider.value;
+                const percentOfDay = sliderValue / 100; 
+                
+                const totalMinutes = 360 + (percentOfDay * 720); 
+                const hours = Math.floor(totalMinutes / 60);
+                const minutes = Math.floor(totalMinutes % 60);
+                
+                timeDisplay.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                
+                const altitudeDeg = Math.sin(percentOfDay * Math.PI) * currentMaxAltitude;
+                altitudeDisplay.textContent = `${altitudeDeg.toFixed(1)}°`;
+
+                let realShadowLength; 
+                let shadowLengthText;
+                const altitudeRad = altitudeDeg * (Math.PI / 180); 
+                
+                if (altitudeDeg < 0.5) { 
+                    realShadowLength = Infinity;
+                    shadowLengthText = "무한대";
+                } else {
+                    realShadowLength = gnomonHeight / Math.tan(altitudeRad);
+                    shadowLengthText = `${realShadowLength.toFixed(1)}m`;
+                }
+                shadowDisplay.textContent = shadowLengthText;
+
+                const containerWidth = simulationContainer.offsetWidth;
+                const containerHeight = simulationContainer.offsetHeight;
+
+                if (currentViewMode === '3d') {
+                    ground.style.position = 'relative';
+                    ground.style.bottom = 'auto';
+                    ground.style.left = 'auto';
+                    ground.style.transform = 'none';
+                    ground.style.width = '70vh';
+                    ground.style.height = '70vh';
+
+                    gnomon.style.position = 'relative';
+                    gnomon.style.bottom = 'auto';
+                    gnomon.style.left = 'auto';
+                    gnomon.style.transform = 'none';
+                    gnomon.style.width = '15px';
+                    gnomon.style.height = '15px';
+                    
+                    shadow.style.position = 'absolute';
+                    shadow.style.top = '50%';
+                    shadow.style.left = '50%';
+                    shadow.style.bottom = 'auto';
+                    shadow.style.height = '8px';
+                    
+                    sun.style.transform = 'translate(-50%, -50%)';
+                    sun.style.width = '80px';
+                    sun.style.height = '80px';
+
+                    const sunAzimuthDeg = percentOfDay * 180; 
+                    const shadowAngleDeg = sunAzimuthDeg + 180; 
+                    
+                    let displayShadowLength;
+                    if (!isFinite(realShadowLength)) {
+                        displayShadowLength = 300;
+                    } else {
+                        const groundRadius = ground.offsetWidth / 2; 
+                        displayShadowLength = (realShadowLength / gnomonHeight) * (groundRadius / 5); 
+                        displayShadowLength = Math.max(displayShadowLength, 20); 
+                        displayShadowLength = Math.min(displayShadowLength, groundRadius * 0.9);
+                    }
+                    
+                    shadow.style.width = `${displayShadowLength}px`;
+                    shadow.style.transform = `translateY(-50%) rotate(${shadowAngleDeg}deg)`;
+                    
+                    const sunLeft = (1 - percentOfDay) * containerWidth; 
+                    const altitudePercent = altitudeDeg / (currentMaxAltitude + 0.01);
+                    const horizonY = containerHeight * 0.4; 
+                    const maxDip = containerHeight * 0.5; 
+                    const sunTop = horizonY + (altitudePercent * maxDip);
+
+                    sun.style.left = `${sunLeft}px`;
+                    sun.style.top = `${sunTop}px`;
+
+                } else {
+                    gnomon.style.width = '10px';
+                    gnomon.style.height = `${gnomonHeight2D_PX}px`;
+                    gnomon.style.bottom = `${groundHeight2D_PX}px`;
+                    gnomon.style.left = '50%';
+                    gnomon.style.transform = 'translateX(-50%)';
+                    gnomon.style.position = 'absolute';
+
+                    shadow.style.height = '3px';
+                    shadow.style.top = 'auto';
+                    shadow.style.bottom = `${groundHeight2D_PX}px`;
+                    shadow.style.transformOrigin = '0% 50%';
+
+                    sun.style.transform = 'translate(-50%, -50%)';
+                    sun.style.width = '60px';
+                    sun.style.height = '60px';
+                    
+                    const gnomonCenterX_Abs = containerWidth / 2; 
+                    const gnomonBottomY_Abs = containerHeight - groundHeight2D_PX; 
+                    const gnomonTopY_Abs = gnomonBottomY_Abs - gnomonHeight2D_PX; 
+
+                    let displayShadowLength; 
+                    if (!isFinite(realShadowLength)) {
+                        displayShadowLength = containerWidth / 2; 
+                    } else {
+                        displayShadowLength = gnomonHeight2D_PX / Math.tan(altitudeRad);
+                    }
+                    
+                    shadow.style.width = `${displayShadowLength}px`;
+                    
+                    let shadowStartX_Abs, shadowEndX_Abs;
+                    if (percentOfDay < 0.5) { 
+                        shadow.style.transform = 'translateX(-100%)'; 
+                        shadowStartX_Abs = gnomonCenterX_Abs;
+                        shadowEndX_Abs = gnomonCenterX_Abs - displayShadowLength; 
+                    } else { 
+                        shadow.style.transform = 'translateX(0%)'; 
+                        shadowStartX_Abs = gnomonCenterX_Abs;
+                        shadowEndX_Abs = gnomonCenterX_Abs + displayShadowLength; 
+                    }
+                    shadow.style.left = `${shadowStartX_Abs}px`;
+
+                    const lightRayStartX_Abs = gnomonCenterX_Abs; 
+                    const lightRayStartY_Abs = gnomonTopY_Abs;    
+
+                    const lightRayEndX_Abs = shadowEndX_Abs;      
+                    const lightRayEndY_Abs = gnomonBottomY_Abs;   
+
+                    const deltaX_ray = lightRayEndX_Abs - lightRayStartX_Abs;
+                    const deltaY_ray = lightRayEndY_Abs - lightRayStartY_Abs;
+                    const rayLength = Math.sqrt(deltaX_ray * deltaX_ray + deltaY_ray * deltaY_ray);
+                    const rayAngleDeg = Math.atan2(deltaY_ray, deltaX_ray) * (180 / Math.PI);
+
+                    lightRay.style.left = `${lightRayStartX_Abs}px`;
+                    lightRay.style.top = `${lightRayStartY_Abs}px`;
+                    lightRay.style.width = `${rayLength}px`;
+                    lightRay.style.transform = `rotate(${rayAngleDeg}deg)`;
+
+                    const sunX_Abs = (1 - percentOfDay) * (containerWidth * 0.9) + (containerWidth * 0.05); 
+                    const altitudePercent = altitudeDeg / (currentMaxAltitude + 0.01);
+                    const horizonY = containerHeight * 0.6; 
+                    const sunY_Abs = horizonY - (altitudePercent * (horizonY * 0.8)); 
+
+                    sun.style.left = `${sunX_Abs}px`;
+                    sun.style.top = `${sunY_Abs}px`;
+
+                    const arcRadius = 60; 
+                    angleArc.style.width = `${arcRadius * 2}px`; 
+                    angleArc.style.height = `${arcRadius * 2}px`;
+                    angleArc.style.left = `${shadowEndX_Abs - arcRadius}px`;
+                    angleArc.style.top = `${gnomonBottomY_Abs - arcRadius}px`;
+                    angleArc.style.transform = `none`; 
+                    
+                    if (percentOfDay < 0.5) {
+                        angleArc.style.borderRadius = "0 0 100% 0"; 
+                        angleArc.style.borderRightColor = 'blue';
+                        angleArc.style.borderTopColor = 'transparent';
+                        angleArc.style.borderLeftColor = 'transparent';
+                        angleArc.style.borderBottomColor = 'blue';
+                    } else { 
+                        angleArc.style.borderRadius = "0 0 0 100%"; 
+                        angleArc.style.borderLeftColor = 'blue';
+                        angleArc.style.borderTopColor = 'transparent';
+                        angleArc.style.borderRightColor = 'transparent';
+                        angleArc.style.borderBottomColor = 'blue';
+                    }
+
+                    const textOffset = 25; 
+                    const textAngleRad = (percentOfDay < 0.5) ? (altitudeRad / 2) : (Math.PI - (altitudeRad / 2));
+                    
+                    const textX = shadowEndX_Abs + (arcRadius - textOffset) * Math.cos(textAngleRad);
+                    const textY = gnomonBottomY_Abs - (arcRadius - textOffset) * Math.sin(textAngleRad);
+                    
+                    angleText.style.left = `${textX}px`;
+                    angleText.style.top = `${textY}px`;
+                    angleText.textContent = `${altitudeDeg.toFixed(1)}°`;
+                    angleText.style.transform = 'translate(-50%, -50%)'; 
+                }
+            }
+        }
+
+        // --- 3. 시뮬레이션 2번 (면적과 에너지) 스크립트 ---
+        function initSim2() {
+            // 원본 스크립트를 함수 내로 이동
+            let scene, camera, renderer, controls;
+            let ground, lightBeam, illuminatedArea;
+            
+            const BEAM_RADIUS = 2; 
+            const GROUND_SIZE = 30; 
+            const GROUND_DIVISIONS = 30;
+            
+            // DOM 요소 (ID 변경 적용)
+            const container = document.getElementById('sim-2-simulation-window');
+            const altitudeSlider = document.getElementById('sim-2-altitudeSlider');
+            const gridCountValue = document.getElementById('sim-2-grid-count-value');
+            
+            function createGridTexture(size, divisions, color1, color2) {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const context = canvas.getContext('2d');
+                
+                context.fillStyle = color1;
+                context.fillRect(0, 0, size, size);
+
+                context.strokeStyle = color2;
+                context.lineWidth = 2; 
+
+                const step = size / divisions;
+                for (let i = 0; i <= divisions; i++) {
+                    context.beginPath();
+                    context.moveTo(i * step, 0);
+                    context.lineTo(i * step, size);
+                    context.stroke();
+
+                    context.beginPath();
+                    context.moveTo(0, i * step);
+                    context.lineTo(size, i * step);
+                    context.stroke();
+                }
+                return new THREE.CanvasTexture(canvas);
+            }
+
+            function init() {
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x111827);
+
+                camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+                camera.position.set(15, 12, 15); 
+                camera.lookAt(0, 0, 0); 
+
+                renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                renderer.setSize(container.clientWidth, container.clientHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+                container.appendChild(renderer.domElement);
+
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true; 
+                controls.dampingFactor = 0.05;
+                controls.target.set(0, 0, 0); 
+
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); 
+                scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); 
+                directionalLight.position.set(0, 20, 0);
+                directionalLight.castShadow = true;
+                scene.add(directionalLight);
+                scene.add(directionalLight.target); 
+
+                const gridTexture = createGridTexture(512, GROUND_DIVISIONS, '#669966', '#88bb88');
+                gridTexture.wrapS = THREE.RepeatWrapping;
+                gridTexture.wrapT = THREE.RepeatWrapping;
+                gridTexture.repeat.set(1, 1); 
+                const groundMat = new THREE.MeshStandardMaterial({ map: gridTexture, side: THREE.DoubleSide });
+                const groundGeo = new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE);
+                ground = new THREE.Mesh(groundGeo, groundMat);
+                ground.rotation.x = -Math.PI / 2; 
+                ground.receiveShadow = true;
+                scene.add(ground);
+
+                const beamGeo = new THREE.CylinderGeometry(BEAM_RADIUS, BEAM_RADIUS, 30, 64, 1, true);
+                const beamMat = new THREE.MeshStandardMaterial({
+                    color: 0xffff99,
+                    opacity: 0.3, 
+                    transparent: true,
+                    premultipliedAlpha: true,
+                    side: THREE.DoubleSide
+                });
+                lightBeam = new THREE.Mesh(beamGeo, beamMat);
+                lightBeam.position.y = 0; 
+                scene.add(lightBeam);
+
+                const areaGeo = new THREE.CircleGeometry(BEAM_RADIUS, 64);
+                const areaMat = new THREE.MeshBasicMaterial({ 
+                    color: 0xffff00, 
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.6 
+                });
+                illuminatedArea = new THREE.Mesh(areaGeo, areaMat);
+                illuminatedArea.rotation.x = -Math.PI / 2;
+                illuminatedArea.position.y = 0.01; 
+                scene.add(illuminatedArea);
+                
+                animate();
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update(); 
+                renderer.render(scene, camera);
+            }
+
+            function updateSimulation() {
+                const altitudeDeg = parseFloat(altitudeSlider.value);
+                const altitudeRad = altitudeDeg * Math.PI / 180;
+                
+                const rotationRad = (Math.PI / 2) - altitudeRad;
+                
+                lightBeam.rotation.x = rotationRad;
+                
+                const stretchFactorZ = 1 / Math.sin(altitudeRad);
+                illuminatedArea.scale.set(1, stretchFactorZ, 1); 
+                
+                const baseArea = Math.PI * Math.pow(BEAM_RADIUS, 2);
+                const ellipseArea = baseArea / Math.sin(altitudeRad);
+                
+                gridCountValue.textContent = `약 ${ellipseArea.toFixed(1)}개`;
+                
+                const directionalLight = scene.children.find(c => c.isDirectionalLight);
+                if (directionalLight) {
+                    const lightDirection = new THREE.Vector3(0, -1, 0).applyAxisAngle(new THREE.Vector3(1, 0, 0), -rotationRad);
+                    directionalLight.position.copy(lightDirection).multiplyScalar(20); 
+                    directionalLight.target.position.set(0, 0, 0);
+                }
+            }
+
+            altitudeSlider.addEventListener('input', () => {
+                updateSimulation();
+            });
+
+            // 실행
+            init();
             updateSimulation(); 
         }
 
-        // 보기 모드 설정 함수
-        function setViewMode(mode, activeButton) {
-            currentViewMode = mode;
-            body.classList.remove('mode-3d', 'mode-2d');
-            body.classList.add(`mode-${mode}`);
-            mode3dBtn.classList.remove('active');
-            mode2dBtn.classList.remove('active');
-            activeButton.classList.add('active');
-            updateSimulation(); 
+        // --- 4. 시뮬레이션 3번 (낮의 길이) 스크립트 ---
+        function initSim3() {
+            // 원본 스크립트를 함수 내로 이동
+            let scene, camera, renderer, globe, latitudeRing, earthGroup, sunLight, sunSphere, gnomonGroup;
+            const TILT_RADIANS = -0.41; 
+            
+            let rotationSpeed = 0.008; 
+
+            const seasonData = {
+                summer: {
+                    name: '여름 (6월경)',
+                    altitude: '약 74° (그림자 짧음)',
+                    sunY: 3,
+                    ratio: { day: (14.75 / 24) * 100, night: (9.25 / 24) * 100 }
+                },
+                equinox: {
+                    name: '봄/가을 (3/9월경)',
+                    altitude: '약 52° (그림자 중간)',
+                    sunY: 0,
+                    ratio: { day: (12.2 / 24) * 100, night: (11.8 / 24) * 100 }
+                },
+                winter: {
+                    name: '겨울 (12월경)',
+                    altitude: '약 28° (그림자 긺)',
+                    sunY: -3,
+                    ratio: { day: (9.55 / 24) * 100, night: (14.45 / 24) * 100 }
+                }
+            };
+
+            // DOM 요소 (ID 변경 적용)
+            const container = document.getElementById('sim-3-globe-container');
+            const seasonName = document.getElementById('sim-3-season-name');
+            const altitudeValue = document.getElementById('sim-3-altitude-value');
+            const dayBar = document.getElementById('sim-3-day-bar');
+            const nightBar = document.getElementById('sim-3-night-bar');
+            
+            // 버튼은 ID가 아닌 class/data-season으로 접근
+            const buttonsContainer = document.getElementById('sim-container-3');
+            const buttons = buttonsContainer.querySelectorAll('.controls button');
+            const speedSlider = document.getElementById('sim-3-speedSlider');
+
+            function init() {
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+                camera.position.z = 4;
+
+                renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                renderer.setSize(container.clientWidth, container.clientHeight);
+                renderer.shadowMap.enabled = true;
+                container.appendChild(renderer.domElement);
+
+                sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                sunLight.position.set(5, 0, 2);
+                sunLight.castShadow = true; 
+                sunLight.shadow.mapSize.width = 1024;
+                sunLight.shadow.mapSize.height = 1024;
+                sunLight.shadow.camera.left = -5;
+                sunLight.shadow.camera.right = 5;
+                sunLight.shadow.camera.top = 5;
+                sunLight.shadow.camera.bottom = -5;
+                sunLight.shadow.camera.near = 0.5;
+                sunLight.shadow.camera.far = 20;
+                scene.add(sunLight);
+                
+                const sunGeo = new THREE.SphereGeometry(0.3, 32, 16);
+                const sunMat = new THREE.MeshBasicMaterial({ color: 0xf1c40f, emissive: 0xf1c40f });
+                sunSphere = new THREE.Mesh(sunGeo, sunMat);
+                sunSphere.position.copy(sunLight.position); 
+                scene.add(sunSphere);
+
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+                scene.add(ambientLight);
+
+                earthGroup = new THREE.Group();
+                earthGroup.rotation.z = TILT_RADIANS; 
+                scene.add(earthGroup);
+
+                const geometry = new THREE.SphereGeometry(1, 64, 32);
+                const material = new THREE.MeshStandardMaterial({ color: 0x4169E1, roughness: 0.8 });
+                globe = new THREE.Mesh(geometry, material);
+                globe.receiveShadow = true; 
+                globe.castShadow = true;
+                earthGroup.add(globe);
+
+                const TILT_RADIANS_MID = THREE.MathUtils.degToRad(37.5);
+                const radius = Math.cos(TILT_RADIANS_MID);
+                const ringGeometry = new THREE.TorusGeometry(radius, 0.01, 16, 100);
+                const ringMaterial = new THREE.MeshBasicMaterial({ color: 0xe74c3c }); 
+                latitudeRing = new THREE.Mesh(ringGeometry, ringMaterial);
+                latitudeRing.position.y = Math.sin(TILT_RADIANS_MID);
+                latitudeRing.rotation.x = Math.PI / 2;
+                globe.add(latitudeRing); 
+
+                const axisGeometry = new THREE.CylinderGeometry(0.015, 0.015, 2.5, 8);
+                const axisMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 }); 
+                const axisRod = new THREE.Mesh(axisGeometry, axisMaterial);
+                earthGroup.add(axisRod); 
+
+                gnomonGroup = new THREE.Group();
+                
+                const baseGeo = new THREE.BoxGeometry(0.2, 0.01, 0.2); 
+                const baseMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, side: THREE.DoubleSide });
+                const gnomonBase = new THREE.Mesh(baseGeo, baseMat);
+                gnomonBase.receiveShadow = true; 
+                gnomonGroup.add(gnomonBase);
+
+                const stickGeo = new THREE.CylinderGeometry(0.01, 0.01, 0.2, 8); 
+                const stickMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+                const gnomonStick = new THREE.Mesh(stickGeo, stickMat);
+                gnomonStick.castShadow = true; 
+                gnomonStick.position.y = (0.01 / 2) + (0.2 / 2); 
+                gnomonGroup.add(gnomonStick);
+
+                gnomonGroup.position.set(
+                    0, 
+                    Math.sin(TILT_RADIANS_MID), 
+                    Math.cos(TILT_RADIANS_MID)  
+                );
+                gnomonGroup.lookAt(new THREE.Vector3(0, 0, 0));
+                gnomonGroup.rotation.x += Math.PI / 2; 
+                globe.add(gnomonGroup); 
+
+                animate();
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                globe.rotation.y += rotationSpeed; 
+                renderer.render(scene, camera);
+            }
+
+            function updateSeason(seasonKey) {
+                const data = seasonData[seasonKey];
+
+                seasonName.textContent = data.name;
+                altitudeValue.textContent = data.altitude;
+
+                const startY = sunLight.position.y;
+                const endY = data.sunY;
+                let duration = 500;
+                let startTime = null;
+
+                function sunAnimation(time) {
+                    if (!startTime) startTime = time;
+                    let elapsed = time - startTime;
+                    let progress = Math.min(elapsed / duration, 1);
+                    
+                    const newY = startY + (endY - startY) * (1 - Math.pow(1 - progress, 3));
+                    
+                    sunLight.position.y = newY;
+                    sunSphere.position.y = newY;
+
+                    if (progress < 1) {
+                        requestAnimationFrame(sunAnimation);
+                    }
+                }
+                requestAnimationFrame(sunAnimation);
+
+                const dayPercent = data.ratio.day;
+                const nightPercent = data.ratio.night;
+                
+                dayBar.style.width = dayPercent + '%';
+                dayBar.textContent = `낮 (${(dayPercent * 24 / 100).toFixed(1)}시간)`;
+                nightBar.style.width = nightPercent + '%';
+                nightBar.textContent = `밤 (${(nightPercent * 24 / 100).toFixed(1)}시간)`;
+
+                buttons.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.season === seasonKey);
+                });
+            }
+
+            buttons.forEach(button => {
+                button.addEventListener('click', () => {
+                    updateSeason(button.dataset.season);
+                });
+            });
+
+            speedSlider.addEventListener('input', (e) => {
+                rotationSpeed = parseFloat(e.target.value);
+            });
+
+            // 실행
+            init();
+            updateSeason('equinox'); // 초기 상태
         }
 
-        function updateSimulation() {
-            // ----- 1. 공통 계산 (시간, 고도, 실제 그림자 길이) -----
-            const sliderValue = slider.value;
-            const percentOfDay = sliderValue / 100; // 0.0 (일출) ~ 1.0 (일몰)
+        // --- 5. 시뮬레이션 4번 (공전과 계절) 스크립트 ---
+        function initSim4() {
+            // 원본 스크립트를 함수 내로 이동
+            let scene, camera, renderer, globe, latitudeRing, earthGroup, sunLight, sunSphere, gnomonGroup;
+            let orbitalPivot, controls; 
             
-            const totalMinutes = 360 + (percentOfDay * 720); // 06:00 ~ 18:00
-            const hours = Math.floor(totalMinutes / 60);
-            const minutes = Math.floor(totalMinutes % 60);
-            
-            timeDisplay.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-            
-            const altitudeDeg = Math.sin(percentOfDay * Math.PI) * currentMaxAltitude;
-            altitudeDisplay.textContent = `${altitudeDeg.toFixed(1)}°`;
+            let rotationSpeed = 0.008; 
+            let orbitSpeed = 0.001; 
+            let currentSeason = 'spring'; 
+            let isTilted = true; 
 
-            let realShadowLength; // 미터 단위 그림자 길이
-            let shadowLengthText;
-            const altitudeRad = altitudeDeg * (Math.PI / 180); // 라디안 변환
+            const TILT_RADIANS = -0.41; 
             
-            if (altitudeDeg < 0.5) { // 고도가 매우 낮을 때
-                realShadowLength = Infinity;
-                shadowLengthText = "무한대";
-            } else {
-                realShadowLength = gnomonHeight / Math.tan(altitudeRad);
-                shadowLengthText = `${realShadowLength.toFixed(1)}m`;
+            const TILT_RADIANS_MID = THREE.MathUtils.degToRad(37.5);
+            const EARTH_ORBIT_RADIUS = 10; 
+            const EARTH_RADIUS = 1.5;      
+            const SUN_RADIUS = 2;          
+
+            const orbitalPositions = {
+                spring: { rotationY: Math.PI / 2 },        
+                summer: { rotationY: Math.PI },            
+                fall:   { rotationY: Math.PI * 1.5 },       
+                winter: { rotationY: 0 }                   
+            };
+            
+            const experimentData = {
+                noTilt: {
+                    spring: { name: '봄 (가) (자전축 수직)', alt: '약 52.5° (일정)', day: 12, night: 12 },
+                    summer: { name: '여름 (나) (자전축 수직)', alt: '약 52.5° (일정)', day: 12, night: 12 },
+                    fall:   { name: '가을 (다) (자전축 수직)', alt: '약 52.5° (일정)', day: 12, night: 12 },
+                    winter: { name: '겨울 (라) (자전축 수직)', alt: '약 52.5° (일정)', day: 12, night: 12 }
+                },
+                tilted: { 
+                    spring: { name: '봄 (가) (자전축 기울임)', alt: '약 52.5° (중간)', day: 12.2, night: 11.8 }, 
+                    summer: { name: '여름 (나) (자전축 기울임)', alt: '약 76° (높음/그림자 짧음)', day: 14.75, night: 9.25 }, 
+                    fall:   { name: '가을 (다) (자전축 기울임)', alt: '약 52.5° (중간)', day: 12.2, night: 11.8 }, 
+                    winter: { name: '겨울 (라) (자전축 기울임)', alt: '약 29° (낮음/그림자 긺)', day: 9.55, night: 14.45 }  
+                }
+            };
+            
+            // DOM 요소 (ID 변경 적용)
+            const container = document.getElementById('sim-4-simulation-window');
+            const seasonName = document.getElementById('sim-4-season-name');
+            const altitudeValue = document.getElementById('sim-4-altitude-value');
+            const dayBar = document.getElementById('sim-4-day-bar');
+            const nightBar = document.getElementById('sim-4-night-bar');
+            
+            const buttonsContainer = document.getElementById('sim-container-4');
+            const seasonButtons = buttonsContainer.querySelectorAll('.controls button');
+            
+            const rotationSpeedSlider = document.getElementById('sim-4-rotationSpeedSlider');
+            const orbitSpeedSlider = document.getElementById('sim-4-orbitSpeedSlider');
+            const tiltToggle = document.getElementById('sim-4-tiltToggle');
+
+            function init() {
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+                camera.position.set(0, 15, 25); 
+                camera.lookAt(0, 0, 0); 
+
+                renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                renderer.setSize(container.clientWidth, container.clientHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+                container.appendChild(renderer.domElement);
+
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true; 
+                controls.dampingFactor = 0.05;
+                controls.minDistance = 5; 
+                controls.maxDistance = 100; 
+                
+                sunLight = new THREE.PointLight(0xffffff, 1.5, EARTH_ORBIT_RADIUS * 3); 
+                sunLight.position.set(0, 0, 0); 
+                sunLight.castShadow = true; 
+                sunLight.shadow.mapSize.width = 2048; 
+                sunLight.shadow.mapSize.height = 2048;
+                sunLight.shadow.camera.near = 0.1;
+                sunLight.shadow.camera.far = EARTH_ORBIT_RADIUS * 2.5;
+                scene.add(sunLight);
+                
+                const sunGeo = new THREE.SphereGeometry(SUN_RADIUS, 32, 16);
+                const sunMat = new THREE.MeshBasicMaterial({ color: 0xf1c40f, emissive: 0xf1c40f, emissiveIntensity: 1 });
+                sunSphere = new THREE.Mesh(sunGeo, sunMat);
+                scene.add(sunSphere); 
+
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.25); 
+                scene.add(ambientLight);
+                
+                const orbitGeometry = new THREE.RingGeometry(EARTH_ORBIT_RADIUS - 0.05, EARTH_ORBIT_RADIUS + 0.05, 128);
+                const orbitMaterial = new THREE.MeshBasicMaterial({ color: 0x888888, side: THREE.DoubleSide });
+                const orbitRing = new THREE.Mesh(orbitGeometry, orbitMaterial);
+                orbitRing.rotation.x = -Math.PI / 2; 
+                scene.add(orbitRing);
+
+                orbitalPivot = new THREE.Group();
+                scene.add(orbitalPivot);
+                
+                earthGroup = new THREE.Group();
+                scene.add(earthGroup); 
+
+                const geometry = new THREE.SphereGeometry(EARTH_RADIUS, 64, 32);
+                const material = new THREE.MeshStandardMaterial({ color: 0x4169E1, roughness: 0.8 });
+                globe = new THREE.Mesh(geometry, material);
+                globe.receiveShadow = true; 
+                globe.castShadow = true;
+                earthGroup.add(globe); 
+
+                const currentLatitudeRadius = EARTH_RADIUS * Math.cos(TILT_RADIANS_MID);
+                const ringGeometry = new THREE.TorusGeometry(currentLatitudeRadius, 0.03, 16, 100); 
+                const ringMaterial = new THREE.MeshBasicMaterial({ color: 0xe74c3c }); 
+                latitudeRing = new THREE.Mesh(ringGeometry, ringMaterial);
+                latitudeRing.position.y = EARTH_RADIUS * Math.sin(TILT_RADIANS_MID);
+                latitudeRing.rotation.x = Math.PI / 2;
+                globe.add(latitudeRing); 
+
+                const axisGeometry = new THREE.CylinderGeometry(0.02, 0.02, EARTH_RADIUS * 2.5, 8); 
+                const axisMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 }); 
+                const axisRod = new THREE.Mesh(axisGeometry, axisMaterial);
+                earthGroup.add(axisRod); 
+
+                gnomonGroup = new THREE.Group();
+                
+                const baseSize = EARTH_RADIUS * 0.15; 
+                const baseGeo = new THREE.BoxGeometry(baseSize, 0.01, baseSize); 
+                const baseMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, side: THREE.DoubleSide });
+                const gnomonBase = new THREE.Mesh(baseGeo, baseMat);
+                gnomonBase.receiveShadow = true; 
+                gnomonGroup.add(gnomonBase);
+
+                const stickHeight = EARTH_RADIUS * 0.2; 
+                const stickGeo = new THREE.CylinderGeometry(0.01 * EARTH_RADIUS, 0.01 * EARTH_RADIUS, stickHeight, 8); 
+                const stickMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+                const gnomonStick = new THREE.Mesh(stickGeo, stickMat);
+                gnomonStick.castShadow = true; 
+                gnomonStick.position.y = (0.01 / 2) + (stickHeight / 2); 
+                gnomonGroup.add(gnomonStick);
+
+                gnomonGroup.position.set(
+                    0, 
+                    EARTH_RADIUS * Math.sin(TILT_RADIANS_MID), 
+                    EARTH_RADIUS * Math.cos(TILT_RADIANS_MID)  
+                );
+                gnomonGroup.lookAt(new THREE.Vector3(0, 0, 0)); 
+                gnomonGroup.rotation.x += Math.PI / 2; 
+                globe.add(gnomonGroup); 
+
+                animate();
             }
-            shadowDisplay.textContent = shadowLengthText;
 
-            // ----- 2. 시뮬레이션 컨테이너 크기 가져오기 -----
-            const containerWidth = simulationContainer.offsetWidth;
-            const containerHeight = simulationContainer.offsetHeight;
-
-            // ----- 3. 뷰 모드에 따라 분기 -----
-            if (currentViewMode === '3d') {
-                // ----- 3D 모드 스타일 초기화 (버그 방지) -----
-                // CSS 클래스('mode-3d')가 적용되지만, JS로 덮어썼던 인라인 스타일을 초기화합니다.
-                ground.style.position = 'relative';
-                ground.style.bottom = 'auto';
-                ground.style.left = 'auto';
-                ground.style.transform = 'none';
-                ground.style.width = '70vh';
-                ground.style.height = '70vh';
-
-                gnomon.style.position = 'relative';
-                gnomon.style.bottom = 'auto';
-                gnomon.style.left = 'auto';
-                gnomon.style.transform = 'none';
-                gnomon.style.width = '15px';
-                gnomon.style.height = '15px';
+            function animate() {
+                requestAnimationFrame(animate);
                 
-                shadow.style.position = 'absolute';
-                shadow.style.top = '50%';
-                shadow.style.left = '50%';
-                shadow.style.bottom = 'auto';
-                shadow.style.height = '8px';
+                controls.update(); 
                 
-                sun.style.transform = 'translate(-50%, -50%)';
-                sun.style.width = '80px';
-                sun.style.height = '80px';
-
-                // 3D 그림자 계산 (방향, 길이)
-                const sunAzimuthDeg = percentOfDay * 180; // 0(동) ~ 180(서)
-                const shadowAngleDeg = sunAzimuthDeg + 180; // 180(서) ~ 360(동)
+                globe.rotation.y += rotationSpeed; 
+                orbitalPivot.rotation.y += orbitSpeed; 
                 
-                let displayShadowLength;
-                if (!isFinite(realShadowLength)) {
-                    displayShadowLength = 300;
-                } else {
-                    const groundRadius = ground.offsetWidth / 2; 
-                    displayShadowLength = (realShadowLength / gnomonHeight) * (groundRadius / 5); 
-                    displayShadowLength = Math.max(displayShadowLength, 20); 
-                    displayShadowLength = Math.min(displayShadowLength, groundRadius * 0.9);
-                }
+                const orbitAngle = orbitalPivot.rotation.y;
                 
-                shadow.style.width = `${displayShadowLength}px`;
-                shadow.style.transform = `translateY(-50%) rotate(${shadowAngleDeg}deg)`;
+                earthGroup.position.x = EARTH_ORBIT_RADIUS * Math.cos(orbitAngle);
+                earthGroup.position.z = -EARTH_ORBIT_RADIUS * Math.sin(orbitAngle);
                 
-                // 3D 태양 위치 (동 -> 남 -> 서)
-                const sunLeft = (1 - percentOfDay) * containerWidth; // 우측(동)에서 좌측(서)으로
-                const altitudePercent = altitudeDeg / (currentMaxAltitude + 0.01);
-                const horizonY = containerHeight * 0.4; 
-                const maxDip = containerHeight * 0.5; 
-                const sunTop = horizonY + (altitudePercent * maxDip);
-
-                sun.style.left = `${sunLeft}px`;
-                sun.style.top = `${sunTop}px`;
-
-            } else {
-                // ----- 2D 모드 로직 -----
+                earthGroup.rotation.z = isTilted ? TILT_RADIANS : 0; 
                 
-                // 2D 모드 스타일 강제 적용 (버그 방지)
-                gnomon.style.width = '10px';
-                gnomon.style.height = `${gnomonHeight2D_PX}px`;
-                gnomon.style.bottom = `${groundHeight2D_PX}px`;
-                gnomon.style.left = '50%';
-                gnomon.style.transform = 'translateX(-50%)';
-                gnomon.style.position = 'absolute';
+                controls.target.copy(earthGroup.position);
 
-                shadow.style.height = '3px';
-                shadow.style.top = 'auto';
-                shadow.style.bottom = `${groundHeight2D_PX}px`;
-                shadow.style.transformOrigin = '0% 50%';
-
-                sun.style.transform = 'translate(-50%, -50%)';
-                sun.style.width = '60px';
-                sun.style.height = '60px';
-                
-                // 2D 기준 좌표 계산
-                const gnomonCenterX_Abs = containerWidth / 2; // 막대 X 위치 (중앙)
-                const gnomonBottomY_Abs = containerHeight - groundHeight2D_PX; // 지면의 Y 좌표
-                const gnomonTopY_Abs = gnomonBottomY_Abs - gnomonHeight2D_PX; // 막대 상단 Y 좌표
-
-                // 2D 그림자 길이 계산
-                let displayShadowLength; // 픽셀 단위 그림자 길이
-                if (!isFinite(realShadowLength)) {
-                    displayShadowLength = containerWidth / 2; // 무한대
-                } else {
-                    displayShadowLength = gnomonHeight2D_PX / Math.tan(altitudeRad);
-                }
-                
-                shadow.style.width = `${displayShadowLength}px`;
-                
-                // ★ 그림자 위치: 태양 위치(percentOfDay)에 따라 결정
-                // percentOfDay 0.0 (아침) -> 0.5 (정오) -> 1.0 (저녁)
-                let shadowStartX_Abs, shadowEndX_Abs;
-                if (percentOfDay < 0.5) { // 오전 (태양: 동쪽/오른쪽)
-                    shadow.style.transform = 'translateX(-100%)'; // 오른쪽에서 왼쪽으로
-                    shadowStartX_Abs = gnomonCenterX_Abs;
-                    shadowEndX_Abs = gnomonCenterX_Abs - displayShadowLength; // 그림자 끝(왼쪽)
-                } else { // 오후 (태양: 서쪽/왼쪽)
-                    shadow.style.transform = 'translateX(0%)'; // 왼쪽에서 오른쪽으로
-                    shadowStartX_Abs = gnomonCenterX_Abs;
-                    shadowEndX_Abs = gnomonCenterX_Abs + displayShadowLength; // 그림자 끝(오른쪽)
-                }
-                shadow.style.left = `${shadowStartX_Abs}px`;
-
-                // ★ 태양 빛줄기 (light-ray) 계산: 막대 상단 ~ 그림자 끝
-                const lightRayStartX_Abs = gnomonCenterX_Abs; // 막대 상단 X
-                const lightRayStartY_Abs = gnomonTopY_Abs;    // 막대 상단 Y
-
-                const lightRayEndX_Abs = shadowEndX_Abs;      // 그림자 끝 X
-                const lightRayEndY_Abs = gnomonBottomY_Abs;   // 그림자 끝 Y (지면)
-
-                const deltaX_ray = lightRayEndX_Abs - lightRayStartX_Abs;
-                const deltaY_ray = lightRayEndY_Abs - lightRayStartY_Abs;
-                const rayLength = Math.sqrt(deltaX_ray * deltaX_ray + deltaY_ray * deltaY_ray);
-                const rayAngleDeg = Math.atan2(deltaY_ray, deltaX_ray) * (180 / Math.PI);
-
-                lightRay.style.left = `${lightRayStartX_Abs}px`;
-                lightRay.style.top = `${lightRayStartY_Abs}px`;
-                lightRay.style.width = `${rayLength}px`;
-                lightRay.style.transform = `rotate(${rayAngleDeg}deg)`;
-
-                // ★ 태양 위치 (동 -> 서, 아치형 궤도)
-                const sunX_Abs = (1 - percentOfDay) * (containerWidth * 0.9) + (containerWidth * 0.05); // 5%~95%
-                const altitudePercent = altitudeDeg / (currentMaxAltitude + 0.01);
-                const horizonY = containerHeight * 0.6; // 2D 지평선 (지면보다 위)
-                const sunY_Abs = horizonY - (altitudePercent * (horizonY * 0.8)); // 고도 높을수록 위로
-
-                sun.style.left = `${sunX_Abs}px`;
-                sun.style.top = `${sunY_Abs}px`;
-
-                // ★ 각도 호 (그림자 끝 지점) - 로직은 실행되지만 CSS에 의해 숨겨짐
-                const arcRadius = 60; 
-                angleArc.style.width = `${arcRadius * 2}px`; 
-                angleArc.style.height = `${arcRadius * 2}px`;
-                angleArc.style.left = `${shadowEndX_Abs - arcRadius}px`;
-                angleArc.style.top = `${gnomonBottomY_Abs - arcRadius}px`;
-                angleArc.style.transform = `none`; 
-                
-                if (percentOfDay < 0.5) {
-                    angleArc.style.borderRadius = "0 0 100% 0"; 
-                    angleArc.style.borderRightColor = 'blue';
-                    angleArc.style.borderTopColor = 'transparent';
-                    angleArc.style.borderLeftColor = 'transparent';
-                    angleArc.style.borderBottomColor = 'blue';
-                } else { 
-                    angleArc.style.borderRadius = "0 0 0 100%"; 
-                    angleArc.style.borderLeftColor = 'blue';
-                    angleArc.style.borderTopColor = 'transparent';
-                    angleArc.style.borderRightColor = 'transparent';
-                    angleArc.style.borderBottomColor = 'blue';
-                }
-
-                // ★ 각도 텍스트 (호의 중앙 부근)
-                const textOffset = 25; 
-                const textAngleRad = (percentOfDay < 0.5) ? (altitudeRad / 2) : (Math.PI - (altitudeRad / 2));
-                
-                const textX = shadowEndX_Abs + (arcRadius - textOffset) * Math.cos(textAngleRad);
-                const textY = gnomonBottomY_Abs - (arcRadius - textOffset) * Math.sin(textAngleRad);
-                
-                angleText.style.left = `${textX}px`;
-                angleText.style.top = `${textY}px`;
-                angleText.textContent = `${altitudeDeg.toFixed(1)}°`;
-                angleText.style.transform = 'translate(-50%, -50%)'; 
+                renderer.render(scene, camera);
             }
+
+            function updateSimulationState(isSeasonButtonClick = false) {
+                isTilted = tiltToggle.checked;
+                const tiltKey = isTilted ? 'tilted' : 'noTilt';
+                
+                if (isSeasonButtonClick) {
+                    const targetOrbitRotation = orbitalPositions[currentSeason].rotationY;
+                    orbitalPivot.rotation.y = targetOrbitRotation;
+                }
+                
+                const currentAngle = (orbitalPivot.rotation.y % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+                
+                let activeSeason = 'winter'; 
+                if (currentAngle > Math.PI * 0.25 && currentAngle <= Math.PI * 0.75) activeSeason = 'spring'; 
+                else if (currentAngle > Math.PI * 0.75 && currentAngle <= Math.PI * 1.25) activeSeason = 'summer'; 
+                else if (currentAngle > Math.PI * 1.25 && currentAngle <= Math.PI * 1.75) activeSeason = 'fall'; 
+                
+                if (!isSeasonButtonClick) {
+                    currentSeason = activeSeason;
+                }
+
+                const data = experimentData[tiltKey][currentSeason];
+
+                seasonName.textContent = data.name;
+                altitudeValue.textContent = data.alt;
+
+                const dayPercent = (data.day / 24) * 100;
+                const nightPercent = (data.night / 24) * 100;
+                
+                dayBar.style.width = dayPercent + '%';
+                dayBar.textContent = `낮 (${data.day.toFixed(1)}시간)`;
+                nightBar.style.width = nightPercent + '%';
+                nightBar.textContent = `밤 (${data.night.toFixed(1)}시간)`;
+
+                seasonButtons.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.season === currentSeason);
+                });
+            }
+
+            seasonButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    currentSeason = button.dataset.season;
+                    updateSimulationState(true); 
+                });
+            });
+
+            tiltToggle.addEventListener('change', () => {
+                updateSimulationState(false);
+            });
+
+            rotationSpeedSlider.addEventListener('input', (e) => {
+                rotationSpeed = parseFloat(e.target.value);
+            });
+
+            orbitSpeedSlider.addEventListener('input', (e) => {
+                orbitSpeed = parseFloat(e.target.value);
+                setTimeout(() => updateSimulationState(false), 200); 
+            });
+
+            // 실행
+            init();
+            currentSeason = 'spring'; 
+            isTilted = true;
+            tiltToggle.checked = true;
+            updateSimulationState(true); 
         }
+
     </script>
 </body>
 </html>
