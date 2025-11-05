@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>움직이는 전광판</title>
-    <!-- Tailwind CSS 로드 --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- (수정) Tailwind CSS 주소 오타 수정 -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Font 'Jua' 로드 --><link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     
     <style>
@@ -37,39 +38,60 @@
         /* 전광판 텍스트 컨테이너 (애니메이션 적용 대상) */
         #display-text-wrapper {
             width: 100%;
-            /* height: 80%; <-- 이 줄을 삭제합니다. */
-            flex-grow: 1; /* (수정) 남은 공간을 모두 차지하도록 변경 */
+            flex-grow: 1; 
             display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden; /* Marquee 등을 위해 */
-            /* white-space: nowrap; <-- 이 줄을 삭제합니다. */
+            align-items: center;    /* (중요) 세로 중앙 정렬 */
+            justify-content: center;  /* (중요) 가로 중앙 정렬 (기본) */
+            overflow: hidden; 
         }
 
         #display-text {
             font-size: 100pt; /* 기본 글꼴 크기 */
             text-align: center;
             line-height: 1.2;
-            white-space: pre-wrap; /* 이 줄을 추가합니다. (줄바꿈 및 공백 유지) */
+            white-space: pre-wrap; /* (줄바꿈 및 공백 유지) */
         }
 
         /* 컨트롤 패널 */
         #controls {
-            background-color: #1f2937; /* 어두운 회색 배경 */
+            background-color: #1f2g2937; /* 어두운 회색 배경 */
             color: white;
             width: 100%;
-            /* height: 20%; <-- 이 줄을 삭제합니다. */
-            flex-shrink: 0; /* (신규) 패널이 줄어들지 않도록 설정 */
-            max-height: 40vh; /* (신규) 최대 높이를 화면의 40%로 제한 */
-            overflow-y: auto; /* (신규) 내용이 넘칠 경우 패널 내부 스크롤 */
+            flex-shrink: 0; 
+            max-height: 40vh; /* (수정) 애니메이션을 위한 최대 높이 */
+            overflow-y: auto; 
             padding: 1rem;
             display: grid;
-            /* grid-template-columns: repeat(3, 1fr); <-- 이 줄을 삭제합니다. */
-            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); /* (수정) 반응형 그리드 적용 */
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); 
             gap: 1rem;
             align-items: center;
             box-shadow: 0 -4px 10px rgba(0,0,0,0.5);
             z-index: 100;
+            
+            /* (수정) max-height, padding, opacity를 애니메이션 */
+            transition: max-height 0.3s ease-in-out, padding-top 0.3s ease-in-out, padding-bottom 0.3s ease-in-out, opacity 0.3s ease-in-out, visibility 0s linear 0s;
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        /* (수정) 컨트롤 패널 숨김 스타일 (높이 0으로) */
+        #main-screen.controls-hidden #controls {
+            max-height: 0;        /* 높이를 0으로 */
+            padding-top: 0;       /* 패딩을 0으로 */
+            padding-bottom: 0;    /* 패딩을 0으로 */
+            opacity: 0;
+            visibility: hidden;
+            overflow-y: hidden; /* 스크롤바 깜빡임 방지 */
+            transition: max-height 0.3s ease-in-out, padding-top 0.3s ease-in-out, padding-bottom 0.3s ease-in-out, opacity 0.3s ease-in-out, visibility 0s linear 0.3s;
+        }
+
+        /* 메뉴 토글 버튼 */
+        #toggle-controls-btn {
+            position: fixed;
+            right: 1rem;
+            bottom: 1rem; /* JS로 동적 조정됨 */
+            z-index: 101; /* controls(100) 보다 위에 */
+            transition: bottom 0.3s ease-in-out;
         }
 
         /* 컨트롤 패널 내 입력 요소 스타일 */
@@ -95,22 +117,6 @@
             background-color: #4b5563;
         }
 
-        /* 움직이는 텍스트 입력 모달 */
-        #text-modal {
-            position: absolute;
-            top: 30%;
-            left: 30%;
-            background-color: white;
-            border: 2px solid #3b82f6;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            padding: 2rem;
-            z-index: 200;
-            width: 90%;
-            max-width: 500px;
-            transition: top 0.3s ease-out, left 0.3s ease-out; /* 부드러운 움직임 */
-        }
-
         /* --- CSS 애니메이션 정의 --- */
 
         /* 1. Marquee (흐르기) */
@@ -123,10 +129,6 @@
             0% { transform: translateX(0); }
             100% { transform: translateX(-100%); }
         }
-        /* Marquee 적용 시 wrapper는 텍스트를 왼쪽 정렬 */
-        .marquee-wrapper {
-            justify-content: flex-start !important;
-        }
 
         /* 2. Blink (깜빡이기) */
         .blink {
@@ -138,12 +140,19 @@
         /* 'by unit' (단위별) blink */
         .blink-by-unit span {
             animation: blink 1s steps(1, end) infinite;
-            display: inline-block; /* Required for spans */
-            animation-fill-mode: both; /* 딜레이 동안 숨겨지지 않게 */
+            display: inline-block; 
+            animation-fill-mode: both; 
         }
 
-        /* 3. Wave (물결) - JS로 span을 생성하여 적용 */
-        .wave span {
+        /* 3. Wave (물결) */
+        /* (수정) '전체' 단위 물결을 위한 규칙 추가 */
+        .wave {
+             animation: wave 1.5s ease-in-out infinite;
+             display: inline-block;
+             position: relative;
+        }
+        /* 'by unit' (단위별) 물결 */
+        .wave-by-unit span { 
             position: relative;
             display: inline-block;
             animation: wave 1.5s ease-in-out infinite;
@@ -164,7 +173,7 @@
             40%, 60% { transform: translate3d(4px, 0, 0); }
         }
         
-        /* 5. Bounce (통통 튀기) - '평범' 대신 추가 */
+        /* 5. Bounce (통통 튀기) */
         .bounce {
              animation: bounce 1s ease infinite;
         }
@@ -177,27 +186,26 @@
              animation: bounce 1s ease infinite;
              display: inline-block;
              position: relative;
-             animation-fill-mode: both; /* 딜레이 동안 숨겨지지 않게 */
+             animation-fill-mode: both; 
         }
 
-        /* (신규) 실시간 시계 텍스트 스타일 */
+        /* 실시간 시계 텍스트 스타일 */
         .clock-text {
-            /* 80pt(약 5rem/80px)를 기준으로 반응형 폰트 크기 설정 */
-            /* min: 2.5rem(40px), preferred: 6vw, max: 5rem(80px) */
             font-size: clamp(2.5rem, 6vw, 5rem);
-            line-height: 1.1; /* 줄 간격 좁게 */
-            letter-spacing: -0.025em; /* 자간 살짝 좁게 */
-            white-space: nowrap; /* 시계는 줄바꿈 없음 */
+            line-height: 1.1; 
+            letter-spacing: -0.025em; 
+            white-space: nowrap; 
         }
 
     </style>
 </head>
 <body class="bg-gray-900 text-white">
 
-    <!-- 1. 오프닝 화면 --><div id="opening-screen" class="fullscreen-container bg-gray-800 p-8 text-center">
+    <!-- 1. 오프닝 화면 -->
+    <div id="opening-screen" class="fullscreen-container bg-gray-800 p-8 text-center">
         <h1 class="text-6xl font-bold mb-8 text-blue-400">Jua 전광판 앱</h1>
         <p class="text-2xl mb-4">표시할 텍스트를 입력하세요.</p>
-        <!-- (수정) 문구 변경 및 스타일 강조 --><p class="text-lg mb-8 text-yellow-400 font-bold">집중해 주세요!</p>
+        <p class="text-lg mb-8 text-yellow-400 font-bold">집중해 주세요!</p>
         
         <button id="open-text-modal-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-full text-2xl shadow-lg transition duration-300">
             텍스트 입력하기
@@ -210,15 +218,20 @@
         </button>
     </div>
 
-    <!-- 2. 텍스트 입력 모달 (숨겨져 있음) --><!-- 이 섹션은 삭제되었습니다 --><!-- 3. 전광판 메인 화면 (숨겨져 있음) --><div id="main-screen" class="fullscreen-container hidden">
+    <!-- 3. 전광판 메인 화면 (숨겨져 있음) -->
+    <div id="main-screen" class="fullscreen-container hidden">
         
-        <!-- 전광판 텍스트 표시 영역 --><div id="display-text-wrapper">
+        <!-- 전광판 텍스트 표시 영역 -->
+        <div id="display-text-wrapper">
             <div id="display-text"></div>
         </div>
 
-        <!-- 컨트롤 패널 --><div id="controls">
-            <!-- (수정) 섹션 1: 텍스트/색상 및 효과음 버튼 그룹 --><div class="space-y-2">
-                <!-- (이동) 효과음 버튼 --><div class="grid grid-cols-5 gap-2">
+        <!-- 컨트롤 패널 -->
+        <div id="controls">
+            <!-- 섹션 1: 텍스트/색상 및 효과음 버튼 그룹 -->
+            <div class="space-y-2">
+                <!-- 효과음 버튼 -->
+                <div class="grid grid-cols-5 gap-2">
                     <button class="sound-btn" data-sound="1">배경음</button>
                     <button class="sound-btn" data-sound="2">성공</button>
                     <button class="sound-btn" data-sound="3">경고</button>
@@ -227,31 +240,30 @@
                 </div>
                 <div>
                     <label for="font-size-slider">글자 크기: <span id="font-size-value">100</span>pt</label>
-                    <input type="range" id="font-size-slider" min="10" max="200" value="100">
+                    <input type="range" id="font-size-slider" min="10" max="250" value="100">
                 </div>
                 <div class="flex items-center gap-2">
                     <label for="text-color-picker" class="flex-shrink-0">글자색:</label>
                     <input type="color" id="text-color-picker" value="#FFFF00">
                 </div>
                 
-                <!-- (수정) 3개 버튼을 위한 grid-cols-3 -->
-                <div class="grid grid-cols-3 gap-2">
+                <div class="grid grid-cols-4 gap-2">
                     <button id="back-btn" class="bg-red-600 hover:bg-red-700 text-sm py-2">
                         &lt; 처음으로
                     </button>
-                    <!-- (신규) TTS 버튼 -->
+                    <button id="edit-text-btn" class="bg-purple-500 hover:bg-purple-600 text-sm py-2">
+                        내용 수정
+                    </button>
                     <button id="tts-btn" class="bg-blue-500 hover:bg-blue-600 text-sm py-2">
                         🔊 읽어주기
                     </button>
-                    <!-- (수정) 문구 변경 -->
                     <button id="stop-sounds-btn" class="bg-yellow-500 hover:bg-yellow-600 text-black text-sm py-2">
                         ■ ALL STOP
                     </button>
                 </div>
             </div>
             
-            <!-- (수정) 섹션 2: 애니메이션 설정 그룹 -->
-            <!-- (오류 수정) 누락된 HTML 코드 복원 -->
+            <!-- 섹션 2: 애니메이션 설정 그룹 -->
             <div class="space-y-2">
                  <div>
                     <label for="animation-select">애니메이션 효과</label>
@@ -259,14 +271,13 @@
                         <option value="none">1. 평범하게</option>
                         <option value="marquee">2. 흐르기</option>
                         <option value="blink">3. 깜빡이기</option>
-            <!-- (오류 수정) 누락된 HTML 코드 복원 -->
                         <option value="wave">4. 물결치기</option>
                         <option value="shake">5. 흔들기</option>
                         <option value="bounce">6. 통통 튀기</option>
                     </select>
                 </div>
                 <div>
-                    <label for="animation-unit-select">단위 (깜빡/통통)</label>
+                    <label for="animation-unit-select">단위 (물결/깜빡/통통)</label>
                     <select id="animation-unit-select">
                         <option value="all">1. 전체</option>
                         <option value="word">2. 단어별</option>
@@ -283,11 +294,17 @@
                 </div>
             </div>
 
-            <!-- (이동) 섹션 3: 실시간 시계 --><div id="clock-container" class="space-y-1 text-center font-bold text-yellow-400 flex flex-col justify-center h-full min-h-[150px]">
+            <!-- 섹션 3: 실시간 시계 -->
+            <div id="clock-container" class="space-y-1 text-center font-bold text-yellow-400 flex flex-col justify-center h-full min-h-[150px]">
                 <div id="clock-date" class="clock-text"></div>
                 <div id="clock-time" class="clock-text"></div>
             </div>
         </div>
+
+        <!-- 메뉴 토글 버튼 -->
+        <button id="toggle-controls-btn" class="bg-gray-700 hover:bg-gray-600 text-white text-sm py-2 px-3 rounded-full">
+            메뉴 숨기기
+        </button>
     </div>
 
         <!-- 오디오 요소 (숨겨져 있음) -->
@@ -303,57 +320,56 @@
 
 
 
+<script>
+    // --- DOM 요소 ---
+    const openingScreen = document.getElementById('opening-screen');
+    const mainScreen = document.getElementById('main-screen');
+    const openModalBtn = document.getElementById('open-text-modal-btn');
+    const textPreview = document.getElementById('text-preview');
+    const startBtn = document.getElementById('start-btn');
+    
+    const backBtn = document.getElementById('back-btn');
+    const controls = document.getElementById('controls');
+    const textWrapper = document.getElementById('display-text-wrapper');
+    const displayText = document.getElementById('display-text');
+    const fontSizeSlider = document.getElementById('font-size-slider');
+    const fontSizeValue = document.getElementById('font-size-value');
+    const colorPicker = document.getElementById('text-color-picker');
+    const animationSelect = document.getElementById('animation-select');
+    const animationUnitSelect = document.getElementById('animation-unit-select');
+    const animationSpeedSlider = document.getElementById('animation-speed-slider'); 
+    const animationSpeedValue = document.getElementById('animation-speed-value'); 
+    
+    const clockDateEl = document.getElementById('clock-date');
+    const clockTimeEl = document.getElementById('clock-time');
+    
+    const loopToggle = document.getElementById('loop-toggle');
+    const soundBtns = document.querySelectorAll('.sound-btn');
+    const audioPlayers = [
+        document.getElementById('audio-1'),
+        document.getElementById('audio-2'),
+        document.getElementById('audio-3'),
+        document.getElementById('audio-4'),
+        document.getElementById('audio-5')
+    ];
 
-    <script>
-        // --- DOM 요소 선택 ---
-        const openingScreen = document.getElementById('opening-screen');
-        const mainScreen = document.getElementById('main-screen');
-        const openModalBtn = document.getElementById('open-text-modal-btn');
-        // const textModal = document.getElementById('text-modal'); // 삭제
-        // const closeModalBtn = document.getElementById('close-modal-btn'); // 삭제
-        // const submitTextBtn = document.getElementById('submit-text-btn'); // 삭제
-        // const textInput = document.getElementById('text-input'); // 삭제
-        const textPreview = document.getElementById('text-preview');
-        const startBtn = document.getElementById('start-btn');
-        const backBtn = document.getElementById('back-btn');
-        const allStopBtn = document.getElementById('stop-sounds-btn'); // (수정) 변수명 변경 (ID는 유지)
-        const ttsBtn = document.getElementById('tts-btn'); // (신규) TTS 버튼
+    const editModalBtn = document.getElementById('edit-text-btn');
+    const toggleControlsBtn = document.getElementById('toggle-controls-btn');
 
-        const displayTextWrapper = document.getElementById('display-text-wrapper');
-        const displayText = document.getElementById('display-text');
-        const fontSizeSlider = document.getElementById('font-size-slider');
-        const fontSizeValue = document.getElementById('font-size-value');
-        const colorPicker = document.getElementById('text-color-picker');
-        const animationSelect = document.getElementById('animation-select');
-        const animationUnitSelect = document.getElementById('animation-unit-select');
-        const animationSpeedSlider = document.getElementById('animation-speed-slider'); // (신규)
-        const animationSpeedValue = document.getElementById('animation-speed-value'); // (신규)
+
+    // --- 상태 변수 ---
+    let currentText = "";
+    let animationSpeedMultiplier = 1.0; 
+    let clockInterval = null; 
+
+    // --- 1. 오프닝 화면 및 팝업 로직 ---
+
+    window.receiveTextFromPopup = function(text) {
+        currentText = text.trim();
         
-        // (신규) 시계 요소
-        const clockDateEl = document.getElementById('clock-date');
-        const clockTimeEl = document.getElementById('clock-time');
-
-        const loopToggle = document.getElementById('loop-toggle');
-        const soundBtns = document.querySelectorAll('.sound-btn');
-        const audioPlayers = [
-            document.getElementById('audio-1'),
-            document.getElementById('audio-2'),
-            document.getElementById('audio-3'),
-            document.getElementById('audio-4'),
-            document.getElementById('audio-5')
-        ];
-
-        // --- 상태 변수 ---
-        let currentText = "";
-        let animationSpeedMultiplier = 1.0; // (신규)
-        let clockInterval = null; // (신규) 시계 인터벌 ID
-        // let modalMoveInterval = null; // 삭제
-
-        // --- 1. 오프닝 화면 및 모달 로직 ---
-
-        // 팝업에서 텍스트를 받아 처리하는 함수 (window.opener에서 호출됨)
-        window.receiveTextFromPopup = function(text) {
-            currentText = text.trim();
+        if (openingScreen.classList.contains('hidden')) {
+            updateDisplayText(currentText);
+        } else {
             if (currentText) {
                 textPreview.textContent = `입력된 텍스트: ${currentText.substring(0, 20)}...`;
                 startBtn.disabled = false;
@@ -366,406 +382,326 @@
                 startBtn.classList.remove('opacity-100', 'cursor-pointer');
             }
         }
+    }
 
-        // 팝업창 열기 버튼
-        openModalBtn.addEventListener('click', () => {
-            const popupWindow = window.open('', 'textInputWindow', 'width=500,height=350,resizable=yes,scrollbars=yes');
-            
-            // 메인 창의 Jua 폰트 링크 가져오기
-            const juaFontLink = document.querySelector('link[href*="family=Jua"]').href;
+    openModalBtn.addEventListener('click', () => {
+        openTextPopup(""); 
+    });
 
-            // 팝업창에 HTML 내용 쓰기
-            popupWindow.document.write(`
-                <!DOCTYPE html>
-                <html lang="ko">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>텍스트 입력</title>
-                    <script src="https://cdn.tailwindcss.com"><\/script>
-                    <link href="${juaFontLink}" rel="stylesheet">
-                    <style>
-                        body { font-family: 'Jua', sans-serif; padding: 1.5rem; background-color: #f4f4f5; }
-                    </style>
-                </head>
-                <body class="bg-gray-100">
-                    <h3 class="text-2xl font-bold mb-4 text-gray-800">텍스트 입력</h3>
-                    <p class="text-sm mb-4 text-gray-600">이 창을 다른 모니터로 옮겨서 입력하세요.</p>
-                    <textarea id="popup-text-input" rows="6" class="w-full p-3 border border-gray-300 rounded-lg text-lg text-black resize-none" placeholder="여기에 텍스트 입력..."></textarea>
-                    <div class="flex justify-end gap-4 mt-4">
-                        <button id="submit-popup-text-btn" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg">확인</button>
-                    </div>
-                    <script>
-                        document.getElementById('submit-popup-text-btn').addEventListener('click', () => {
-                            const text = document.getElementById('popup-text-input').value;
-                            // 메인 창(opener)의 함수를 호출하여 텍스트 전달
-                            try {
-                                window.opener.receiveTextFromPopup(text);
-                            } catch (e) {
-                                console.error('메인 창과 통신할 수 없습니다.', e);
-                            }
-                            window.close();
-                        });
-                        // 팝업이 열릴 때 textarea에 포커스
-                        window.onload = () => {
-                            document.getElementById('popup-text-input').focus();
+    editModalBtn.addEventListener('click', () => {
+        openTextPopup(currentText); 
+    });
+
+    function openTextPopup(initialText) {
+        const popupWindow = window.open('', 'textInputWindow', 'width=500,height=350,resizable=yes,scrollbars=yes');
+        const juaFontLink = document.querySelector('link[href*="family=Jua"]').href;
+        const safeInitialText = JSON.stringify(initialText);
+
+        popupWindow.document.write(`
+            <!DOCTYPE html>
+            <html lang="ko">
+            <head>
+                <meta charset="UTF-8">
+                <title>텍스트 입력/수정</title>
+                <script src="https://cdn.tailwindcss.com"><\/script>
+                <link href="${juaFontLink}" rel="stylesheet">
+                <style> body { font-family: 'Jua', sans-serif; padding: 1.5rem; background-color: #f4f4f5; } </style>
+            </head>
+            <body class="bg-gray-100">
+                <h3 class="text-2xl font-bold mb-4 text-gray-800">텍스트 입력/수정</h3>
+                <p class="text-sm mb-4 text-gray-600">이 창을 다른 모니터로 옮겨서 입력하세요.</p>
+                <textarea id="popup-text-input" rows="6" class="w-full p-3 border border-gray-300 rounded-lg text-lg text-black resize-none" placeholder="여기에 텍스트 입력..."></textarea>
+                <div class="flex justify-end gap-4 mt-4">
+                    <button id="submit-popup-text-btn" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg">확인</button>
+                </div>
+                <script>
+                    const textarea = document.getElementById('popup-text-input');
+                    textarea.value = ${safeInitialText};
+
+                    document.getElementById('submit-popup-text-btn').addEventListener('click', () => {
+                        const text = textarea.value;
+                        try {
+                            window.opener.receiveTextFromPopup(text);
+                        } catch (e) {
+                            console.error('메인 창과 통신할 수 없습니다.', e);
                         }
-                    <\/script>
-                </body>
-                </html>
-            `);
-            popupWindow.document.close();
-        });
+                        window.close();
+                    });
+                    window.onload = () => {
+                        textarea.focus();
+                        if (textarea.value) {
+                            textarea.select();
+                        }
+                    }
+                <\/script>
+            </body>
+            </html>
+        `);
+        popupWindow.document.close();
+    }
 
-        // 모달 닫기 (취소) // 삭제
-        // closeModalBtn.addEventListener('click', () => { ... });
 
-        // 모달 텍스트 제출 // 삭제
-        // submitTextBtn.addEventListener('click', () => { ... });
+    startBtn.addEventListener('click', () => {
+        openingScreen.classList.add('opacity-0');
+        setTimeout(() => {
+            openingScreen.classList.add('hidden');
+            mainScreen.classList.remove('hidden');
+            mainScreen.classList.remove('opacity-0');
+            
+            updateDisplayText(currentText);
+            
+            if (clockInterval) clearInterval(clockInterval); 
+            updateClock(); 
+            clockInterval = setInterval(updateClock, 1000); 
 
-        // 모달 움직임 시작 // 삭제
-        // function startModalMovement() { ... }
+            setTimeout(adjustToggleBtnPosition, 50); 
+        }, 500); 
+    });
 
-        // 모달 움직임 중지 // 삭제
-        // function stopModalMovement() { ... }
+    // --- 2. 메인 전광판 로직 ---
 
-        // --- 2. 화면 전환 로직 ---
-
-        // 전광판 시작
-        startBtn.addEventListener('click', () => {
-            if (currentText) {
-                openingScreen.classList.add('hidden');
-                mainScreen.classList.remove('hidden');
-                
-                // 텍스트 설정 및 애니메이션 초기화
-                updateDisplayText(currentText);
-                applyAnimation(animationSelect.value);
-
-                // 전체 화면 요청
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.warn(`전체 화면 모드를 시작할 수 없습니다: ${err.message}`);
-                });
-
-                // (신규) 시계 업데이트 시작
-                if (clockInterval) clearInterval(clockInterval); // 기존 것 정리
-                updateClock(); // 즉시 1회 실행
-                clockInterval = setInterval(updateClock, 1000); // 1초마다 실행
+    function adjustToggleBtnPosition() {
+        if (!mainScreen.classList.contains('hidden')) { 
+            const controlsHeight = controls.offsetHeight;
+            if (mainScreen.classList.contains('controls-hidden')) {
+                toggleControlsBtn.textContent = '메뉴 보이기';
+                toggleControlsBtn.style.bottom = '1rem';
+            } else {
+                toggleControlsBtn.textContent = '메뉴 숨기기';
+                toggleControlsBtn.style.bottom = `${controlsHeight + 16}px`; 
             }
-        });
+        }
+    }
 
-        // 처음으로 돌아가기
-        backBtn.addEventListener('click', () => {
+    toggleControlsBtn.addEventListener('click', () => {
+        mainScreen.classList.toggle('controls-hidden');
+        adjustToggleBtnPosition();
+    });
+    
+    new ResizeObserver(adjustToggleBtnPosition).observe(controls);
+
+
+    backBtn.addEventListener('click', () => {
+        mainScreen.classList.add('opacity-0');
+        stopAllMedia(); 
+        
+        setTimeout(() => {
             mainScreen.classList.add('hidden');
             openingScreen.classList.remove('hidden');
-            
-            // 전체 화면 종료
-            if (document.fullscreenElement) {
-                document.exitFullscreen();
-            }
+            openingScreen.classList.remove('opacity-0');
+            mainScreen.classList.remove('controls-hidden');
+            adjustToggleBtnPosition(); 
 
-            // (신규) 시계 업데이트 중지
-            if (clockInterval) {
-                clearInterval(clockInterval);
-                clockInterval = null;
-            }
+            if (clockInterval) clearInterval(clockInterval);
+            clockInterval = null;
+        }, 500);
+    });
 
-            // (수정) 모든 미디어 정지
-            stopAllMedia();
-        });
+    fontSizeSlider.addEventListener('input', () => {
+        const size = fontSizeSlider.value;
+        fontSizeValue.textContent = size;
+        displayText.style.fontSize = `${size}pt`;
+    });
 
-        // --- 3. 전광판 컨트롤 로직 ---
+    colorPicker.addEventListener('input', () => {
+        displayText.style.color = colorPicker.value;
+    });
 
-        // 글자 크기 조절
-        fontSizeSlider.addEventListener('input', (e) => {
-            const size = e.target.value;
-            displayText.style.fontSize = `${size}pt`;
-            fontSizeValue.textContent = size;
-        });
+    animationSpeedSlider.addEventListener('input', () => {
+        animationSpeedMultiplier = parseFloat(animationSpeedSlider.value);
+        animationSpeedValue.textContent = animationSpeedMultiplier.toFixed(2);
+        applyAnimation();
+    });
 
-        // 글자 색상 변경
-        colorPicker.addEventListener('input', (e) => {
-            displayText.style.color = e.target.value;
-        });
+    animationSelect.addEventListener('change', applyAnimation);
+    animationUnitSelect.addEventListener('change', applyAnimation);
 
-        // 애니메이션 변경
-        animationSelect.addEventListener('change', (e) => {
-            applyAnimation(e.target.value);
-        });
+    // --- 3. 텍스트/애니메이션 적용 ---
 
-        // 애니메이션 단위 변경
-        animationUnitSelect.addEventListener('change', (e) => {
-            applyAnimation(animationSelect.value); // 현재 애니메이션을 새 단위로 다시 적용
-        });
+    function updateDisplayText(text) {
+        currentText = text; 
+        applyAnimation(); 
+    }
 
-        // (신규) 애니메이션 속도 변경
-        animationSpeedSlider.addEventListener('input', (e) => {
-            animationSpeedMultiplier = parseFloat(e.target.value);
-            animationSpeedValue.textContent = animationSpeedMultiplier.toFixed(2);
-            // 현재 애니메이션을 새 속도로 다시 적용
-            applyAnimation(animationSelect.value);
-        });
+    // (수정) 애니메이션 적용 로직 (흐르기 정렬 버그 수정됨)
+    function applyAnimation() {
+        const text = currentText;
+        const effect = animationSelect.value;
+        const unit = animationUnitSelect.value;
+        
+        // --- 초기화 섹션 ---
+        displayText.innerHTML = ''; 
+        displayText.className = ''; 
+        
+        // (수정) wrapper의 가로 정렬만 'center'로 초기화 (세로 정렬은 CSS ID가 담당)
+        textWrapper.style.justifyContent = 'center'; 
+        
+        displayText.style.animationDuration = ''; 
+        displayText.style.animationDelay = ''; 
+        displayText.style.whiteSpace = 'pre-wrap'; // 기본값으로 리셋
 
-        // 애니메이션 적용 함수
-        function applyAnimation(animationType) {
-            // 1. 모든 이전 클래스 및 스타일 초기화
-            displayTextWrapper.classList.remove('marquee-wrapper');
-            displayText.className = ''; // 모든 애니메이션 클래스 제거
-            // (수정) 먼저 기본값(줄바꿈 허용)으로 리셋
-            displayText.style.whiteSpace = 'pre-wrap';
-            displayText.style.animationDuration = ''; // (신규) 지속시간 리셋
-            
-            const unit = animationUnitSelect.value; // 선택된 단위 (all, word, char)
-            
-            // (신규) 속도 계산 함수
-            let baseSpeed = 1.0;
-            // (수정) 로직 변경: (base * multiplier) -> (base / multiplier)
-            // '속도' 배율이므로, 2.0x는 2배 '빠른' 것 (지속시간은 절반)
-            const calculatedSpeed = (base) => (base / animationSpeedMultiplier) + 's';
+        // --- 속도 계산 ---
+        const baseDuration = {
+            marquee: 15, blink: 1, wave: 1.5, shake: 0.5, bounce: 1
+        };
+        const speed = baseDuration[effect] ? (baseDuration[effect] / animationSpeedMultiplier).toFixed(2) + 's' : '';
+        const delayUnit = 0.1 / animationSpeedMultiplier; 
 
-            // 2. 새 애니메이션 적용
-            switch (animationType) {
-                case 'marquee':
-                    baseSpeed = 15.0;
-                    // Marquee는 줄바꿈을 공백으로 변경
-                    updateDisplayText(currentText.replace(/\n/g, ' '));
-                    displayTextWrapper.classList.add('marquee-wrapper');
-                    displayText.classList.add('marquee');
-                    // (수정) Marquee일 때만 강제로 한 줄로 만듦
-                    displayText.style.whiteSpace = 'nowrap'; 
-                    displayText.style.animationDuration = calculatedSpeed(baseSpeed); // (신규) 속도 적용
-                    break;
-                case 'blink':
-                    baseSpeed = 1.0;
-                    if (unit === 'all') {
-                        updateDisplayText(currentText); // 원본 텍스트
-                        displayText.classList.add('blink');
-                        displayText.style.animationDuration = calculatedSpeed(baseSpeed); // (신규) 속도 적용
-                    } else {
-                        // 'word' 또는 'char'
-                        splitTextForAnimation(unit, baseSpeed); // (수정) baseSpeed 전달
-                        displayText.classList.add('blink-by-unit');
-                    }
-                    break;
-                case 'wave':
-                    baseSpeed = 1.5;
-                    // 'wave'는 항상 글자별로 작동
-                    splitTextForWave(baseSpeed); // (수정) baseSpeed 전달
-                    displayText.classList.add('wave');
-                    break;
-                case 'shake':
-                    baseSpeed = 0.5;
-                    updateDisplayText(currentText); // 원본 텍스트
-                    displayText.classList.add('shake');
-                    displayText.style.animationDuration = calculatedSpeed(baseSpeed); // (신규) 속도 적용
-                    break;
-                case 'bounce':
-                    baseSpeed = 1.0;
-                    if (unit === 'all') {
-                        updateDisplayText(currentText); // 원본 텍스트
-                        displayText.classList.add('bounce');
-                        displayText.style.animationDuration = calculatedSpeed(baseSpeed); // (신규) 속도 적용
-                    } else {
-                        // 'word' 또는 'char'
-                        splitTextForAnimation(unit, baseSpeed); // (수정) baseSpeed 전달
-                        displayText.classList.add('bounce-by-unit');
-                    }
-                    break;
-                case 'none':
-                default:
-                    updateDisplayText(currentText); // 원본 텍스트
-                    break;
-            }
+        // 1. 효과 없음 (none)
+        if (effect === 'none') {
+            displayText.textContent = text;
+            return;
         }
 
-        // '물결' 효과를 위해 텍스트를 span으로 쪼개는 함수
-        function splitTextForWave(baseSpeed) { // (수정) baseSpeed 받기
-            // (신규) 속도 및 딜레이 계산
-            const calculatedSpeed = (baseSpeed / animationSpeedMultiplier) + 's'; // (수정) 로직 변경
-            const delayIncrement = 0.1 / animationSpeedMultiplier; // (수정) 로직 변경
-            let currentDelay = 0;
-
-            displayText.innerHTML = currentText
-                .split('')
-                .map((char, i) => {
-                    if (char === '\n') {
-                        return '<br>'; // 줄바꿈 문자는 <br> 태그로
-                    }
-                    if (char !== ' ') {
-                        currentDelay += delayIncrement;
-                    }
-                    // (수정) 계산된 속도와 딜레이 적용
-                    return `<span style="animation-duration: ${calculatedSpeed}; animation-delay: ${currentDelay}s">${char === ' ' ? '&nbsp;' : char}</span>`;
-                })
-                .join('');
+        // 2. Marquee (흐르기)
+        if (effect === 'marquee') {
+            // (수정) 가로 정렬만 flex-start로 변경. (세로 정렬은 CSS ID의 'center'가 유지됨)
+            textWrapper.style.justifyContent = 'flex-start'; 
+            
+            displayText.classList.add('marquee');
+            displayText.textContent = text;
+            displayText.style.whiteSpace = 'nowrap'; 
+            displayText.style.animationDuration = (text.length * 0.5 / animationSpeedMultiplier).toFixed(2) + 's'; 
+            return;
         }
 
-        // '깜빡이기', '통통 튀기'를 위해 텍스트를 span으로 쪼개는 함수
-        function splitTextForAnimation(unit, baseSpeed) { // (수정) baseSpeed 받기
-            // unit: 'word' 또는 'char'
-            // 단어별 분리 시: 공백/줄바꿈을 포함하여 분리 (정규식 / (\s+) / 사용)
-            // 글자별 분리 시: ''으로 분리
-            const elements = (unit === 'char') ? currentText.split('') : currentText.split(/(\s+)/);
+        // 3. 단위별(span) 효과 (blink, wave, bounce)
+        
+        // (수정) 'shake'는 단위별로 적용하지 않음 (어색함)
+        // (수정) 'wave'가 'all'일 때 .wave 클래스가 적용되도록 수정됨
+        if (unit === 'all' || effect === 'shake') {
+            displayText.textContent = text;
+            displayText.classList.add(effect); // .wave, .blink, .bounce, .shake
+            if (speed) displayText.style.animationDuration = speed;
+        } else {
+            // 'word' 또는 'char' 단위 (wave, blink, bounce)
+            displayText.classList.add(effect + '-by-unit'); 
             
-            // (신규) 속도 및 딜레이 계산
-            let delay = 0;
-            const delayIncrement = 0.15 / animationSpeedMultiplier; // (수정) 로직 변경
-            const calculatedSpeed = (baseSpeed / animationSpeedMultiplier) + 's'; // (수정) 로직 변경
+            let units;
+            if (unit === 'word') {
+                units = text.split(/(\s+)/); 
+            } else { // char
+                units = Array.from(text); 
+            }
 
-            displayText.innerHTML = elements.map(item => {
-                if (item === '') return ''; // 정규식으로 생긴 빈 문자열 건너뛰기
-
-                if (item.match(/\n/)) {
-                    return item.replace(/\n/g, '<br>'); // 줄바꿈
-                }
-                if (item.match(/ /)) {
-                    return item.replace(/ /g, '&nbsp;'); // 공백
-                }
+            units.forEach((u, index) => {
+                const span = document.createElement('span');
+                span.textContent = u;
                 
-                // 글자 또는 단어
-                delay += delayIncrement;
-                // (수정) 계산된 속도와 딜레이 적용
-                return `<span style="animation-duration: ${calculatedSpeed}; animation-delay: ${delay}s">${item}</span>`;
-            }).join('');
-        }
-
-        // 원본 텍스트로 되돌리는 함수 (애니메이션 변경 시)
-        function updateDisplayText(text) {
-            displayText.innerHTML = ''; // 초기화 (중요)
-            displayText.textContent = text; // 순수 텍스트로 설정 (CSS의 pre-wrap이 \n을 처리)
-        }
-
-        // --- 4. 효과음 및 미디어 로직 ---
-
-        // (수정) ALL STOP 버튼
-        allStopBtn.addEventListener('click', () => {
-            stopAllMedia();
-        });
-
-        // (신규) TTS 버튼
-        ttsBtn.addEventListener('click', () => {
-            speakText(currentText);
-        });
-
-        // 반복 재생 토글
-        loopToggle.addEventListener('change', (e) => {
-            const isLooping = e.target.checked;
-            audioPlayers.forEach(audio => {
-                audio.loop = isLooping;
-            });
-        });
-
-        // 효과음 버튼 클릭
-        soundBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const soundIndex = parseInt(btn.dataset.sound) - 1;
-                const audio = audioPlayers[soundIndex];
-                
-                if (audio.src) { // Base64 소스가 있을 때만 재생
-                    playSound(audio);
+                if (u.trim() !== '') { 
+                    span.style.animationDuration = speed;
+                    if (effect === 'wave' || effect === 'bounce') {
+                        span.style.animationDelay = (index * delayUnit).toFixed(2) + 's';
+                    }
+                    if (effect === 'blink') {
+                         span.style.animationDelay = (index * (delayUnit * 2)).toFixed(2) + 's';
+                    }
                 } else {
-                    console.warn(`오디오 ${soundIndex + 1}에 Base64 소스가 없습니다.`);
-                    // 사용자에게 알림 (임시)
-                    btn.textContent = "소리 없음";
-                    setTimeout(() => { btn.textContent = `FX ${soundIndex + 1}`; }, 1000);
+                    span.innerHTML = '&nbsp;'; 
                 }
+                displayText.appendChild(span);
             });
-        });
+        }
+    }
 
-        // 사운드 재생 함수
-        function playSound(audio) {
-            const isLooping = loopToggle.checked;
-            
-            if (isLooping) {
-                // 반복 모드: 재생/일시정지 토글
-                if (audio.paused) {
-                    audio.play();
-                } else {
-                    audio.pause();
-                    audio.currentTime = 0; // 중지 시 처음으로
-                }
+
+    // --- 4. 사운드 및 TTS 로직 ---
+
+    soundBtns.forEach((btn, index) => {
+        const audio = audioPlayers[index];
+        const soundIndex = index; 
+
+        btn.addEventListener('click', () => {
+            if (audio.src && audio.src !== window.location.href && audio.src !== "base64 코드를 추가하세요.") {
+                playSound(audio);
             } else {
-                // 클릭 모드: 항상 처음부터 재생
-                audio.currentTime = 0;
+                console.warn(`Audio ${soundIndex + 1}에 Base64 소스가 없습니다.`);
+                btn.textContent = "소리 없음";
+                btn.disabled = true; 
+            }
+        });
+    });
+
+    function playSound(audio) {
+        const isLooping = loopToggle.checked;
+        if (isLooping) {
+            if (audio.paused) {
                 audio.play();
-            }
-        }
-
-        // (수정) 모든 미디어 정지 함수
-        function stopAllMedia() {
-            // 1. 오디오 정지
-            audioPlayers.forEach(audio => {
+            } else {
                 audio.pause();
-                audio.currentTime = 0;
-            });
-
-            // 2. 음성(TTS) 정지
-            if (window.speechSynthesis) {
-                window.speechSynthesis.cancel();
+                audio.currentTime = 0; 
             }
+        } else {
+            audio.currentTime = 0;
+            audio.play();
+        }
+    }
+
+    function stopAllMedia() {
+        audioPlayers.forEach(audio => {
+            audio.pause();
+            audio.currentTime = 0;
+        });
+        
+        if (window.speechSynthesis && window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+        }
+    }
+
+    document.getElementById('stop-sounds-btn').addEventListener('click', stopAllMedia);
+
+    document.getElementById('tts-btn').addEventListener('click', () => {
+        if (!currentText) return;
+        
+        if (window.speechSynthesis && window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+            return; 
         }
 
-        // (신규) TTS 재생 함수
-        function speakText(text) {
-            if (!text || !window.speechSynthesis) {
-                console.warn('음성 합성을 지원하지 않거나 텍스트가 없습니다.');
-                return;
-            }
+        speakText(currentText);
+    });
 
-            // 기존 음성 중지 (새 요청 시)
-            window.speechSynthesis.cancel();
-
+    function speakText(text) {
+        if ('speechSynthesis' in window) {
             const utterance = new SpeechSynthesisUtterance(text);
-
-            // (신규) 언어 감지 로직
-            // 한글 문자가 포함되어 있는지 확인
+            
             const hasKorean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(text);
 
             if (hasKorean) {
-                utterance.lang = 'ko-KR'; // 한글이 있으면 한국어로 설정
+                utterance.lang = 'ko-KR'; 
             } else {
-                utterance.lang = 'en-US'; // 한글이 없으면 영어(미국)로 기본 설정
+                utterance.lang = 'en-US'; 
             }
 
-            // (수정) 언어를 강제로 'ko-KR'로 고정하는 코드를 삭제합니다.
-            // utterance.lang = 'ko-KR'; // <-- 위 로직으로 대체됨
-            utterance.rate = 1.0;     // 기본 속도
-            utterance.pitch = 1.0;    // 기본 톤
+            utterance.rate = 1.0;     
+            utterance.pitch = 1.0;    
             
             window.speechSynthesis.speak(utterance);
         }
+    }
 
-        // --- (신규) 5. 시계 로직 ---
+    // --- 5. 시계 로직 ---
 
-        // (신규) 숫자 2자리로 패딩
-        function pad(num) {
-            return num.toString().padStart(2, '0');
-        }
+    function pad(num) {
+        return num.toString().padStart(2, '0');
+    }
 
-        // (신규) 시계 업데이트 함수
-        function updateClock() {
-            if (!clockDateEl || !clockTimeEl) return; // 요소가 없으면 중단
+    function updateClock() {
+        if (!clockDateEl || !clockTimeEl) return; 
 
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = pad(now.getMonth() + 1);
-            const day = pad(now.getDate());
-            
-            const hours = pad(now.getHours());
-            const minutes = pad(now.getMinutes());
-            const seconds = pad(now.getSeconds());
-
-            clockDateEl.textContent = `${year}. ${month}. ${day}.`;
-            clockTimeEl.textContent = `${hours}:${minutes}:${seconds}`;
-        }
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = pad(now.getMonth() + 1);
+        const day = pad(now.getDate());
         
-        // 초기 텍스트 설정 (페이지 로드 시)
-        updateDisplayText("");
+        const hours = pad(now.getHours());
+        const minutes = pad(now.getMinutes());
+        const seconds = pad(now.getSeconds());
 
-    </script>
+        clockDateEl.textContent = `${year}-${month}-${day}`;
+        clockTimeEl.textContent = `${hours}:${minutes}:${seconds}`;
+    }
 
+</script>
 </body>
 </html>
-
-
-
-
-
