@@ -255,7 +255,8 @@
             z-index: 15;
         }
         body.mode-2d .light-ray,
-        body.mode-2d .angle-arc,
+        /* ★★★ 사용자 요청: 2D 모드에서도 호 기호 숨김 */
+        /* body.mode-2d .angle-arc, */ 
         body.mode-2d .angle-text {
             display: block; /* 2D 모드에서만 표시 */
         }
@@ -268,16 +269,15 @@
             z-index: 18;
         }
         
-        /* ★ 각도 호 */
+        /* ★ 각도 호 (이제 숨겨짐) */
         .angle-arc {
             border: 2px dashed blue;
             border-top-color: transparent;
             border-left-color: transparent;
-            border-radius: 0 0 100% 0; /* 오른쪽 아래 호 모양 */
             background: rgba(0, 0, 255, 0.1);
-            transform-origin: 0% 100%; /* ★ 그림자 끝, 지면과 만나는 지점 기준 */
             box-sizing: border-box;
             z-index: 16;
+            /* display: none; */ /* 위에서 body.mode-2d .angle-arc를 주석 처리했으므로 이중으로 필요 X */
         }
         
         /* ★ 각도 텍스트 */
@@ -286,7 +286,7 @@
             color: blue;
             font-weight: bold;
             z-index: 17;
-            transform: none; /* 이전 transform 초기화 */
+            transform: none; 
         }
     </style>
 </head>
@@ -570,39 +570,39 @@
                 sun.style.left = `${sunX_Abs}px`;
                 sun.style.top = `${sunY_Abs}px`;
 
-                // ★ 각도 호 (그림자 끝 지점)
+                // ★ 각도 호 (그림자 끝 지점) - 로직은 실행되지만 CSS에 의해 숨겨짐
                 const arcRadius = 60; 
                 angleArc.style.width = `${arcRadius * 2}px`; 
                 angleArc.style.height = `${arcRadius * 2}px`;
-                angleArc.style.left = `${shadowEndX_Abs}px`;
+                angleArc.style.left = `${shadowEndX_Abs - arcRadius}px`;
                 angleArc.style.top = `${gnomonBottomY_Abs - arcRadius}px`;
+                angleArc.style.transform = `none`; 
                 
-                // 그림자가 왼쪽에 생길 때(오전)
                 if (percentOfDay < 0.5) {
-                    angleArc.style.transform = `translateX(-${arcRadius}px) translateY(-${arcRadius}px)`;
-                    angleArc.style.borderRadius = "0 0 0 100%"; // 왼쪽 아래 호
-                    angleArc.style.borderRightColor = 'transparent';
-                    angleArc.style.borderTopColor = 'transparent';
-                    angleArc.style.borderLeftColor = 'blue';
-                    angleArc.style.borderBottomColor = 'blue';
-                } else { // 그림자가 오른쪽에 생길 때(오후)
-                    angleArc.style.transform = `translateX(-${arcRadius}px) translateY(-${arcRadius}px)`;
-                    angleArc.style.borderRadius = "0 0 100% 0"; // 오른쪽 아래 호
-                    angleArc.style.borderLeftColor = 'transparent';
-                    angleArc.style.borderTopColor = 'transparent';
+                    angleArc.style.borderRadius = "0 0 100% 0"; 
                     angleArc.style.borderRightColor = 'blue';
+                    angleArc.style.borderTopColor = 'transparent';
+                    angleArc.style.borderLeftColor = 'transparent';
+                    angleArc.style.borderBottomColor = 'blue';
+                } else { 
+                    angleArc.style.borderRadius = "0 0 0 100%"; 
+                    angleArc.style.borderLeftColor = 'blue';
+                    angleArc.style.borderTopColor = 'transparent';
+                    angleArc.style.borderRightColor = 'transparent';
                     angleArc.style.borderBottomColor = 'blue';
                 }
 
                 // ★ 각도 텍스트 (호의 중앙 부근)
-                const textOffset = 15; // 텍스트를 호 안쪽으로
-                const textAngleRad = (percentOfDay < 0.5) ? Math.PI - (altitudeRad / 2) : (altitudeRad / 2);
-                const textX = shadowEndX_Abs + (arcRadius + textOffset) * Math.cos(textAngleRad);
-                const textY = gnomonBottomY_Abs - (arcRadius + textOffset) * Math.sin(textAngleRad);
+                const textOffset = 25; 
+                const textAngleRad = (percentOfDay < 0.5) ? (altitudeRad / 2) : (Math.PI - (altitudeRad / 2));
+                
+                const textX = shadowEndX_Abs + (arcRadius - textOffset) * Math.cos(textAngleRad);
+                const textY = gnomonBottomY_Abs - (arcRadius - textOffset) * Math.sin(textAngleRad);
                 
                 angleText.style.left = `${textX}px`;
                 angleText.style.top = `${textY}px`;
                 angleText.textContent = `${altitudeDeg.toFixed(1)}°`;
+                angleText.style.transform = 'translate(-50%, -50%)'; 
             }
         }
     </script>
