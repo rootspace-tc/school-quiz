@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사칙연산 빌드 게임</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Jua 글꼴 기본 적용 */
+        body, html {
+            font-family: 'Jua', sans-serif;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            /* 스크롤바 숨김 */
+            overflow: hidden;
+        }
+        
+        /* 기본 화면 스타일 */
+        .screen {
+            display: none; /* 기본적으로 모든 화면 숨김 */
+            width: 100%;
+            height: 100vh; /* 전체 화면 높이 */
+            overflow-y: auto; /* 내용 많을 시 스크롤 */
+            box-sizing: border-box; /* 패딩 포함 크기 계산 */
+        }
+        
+        /* 현재 활성화된 화면만 보여주기 */
+        .screen.active {
+            display: flex; /* flexbox로 레이아웃 */
+        }
+        
+        /* 반응형 글꼴 크기 */
+        .font-responsive-title {
+            font-size: clamp(1.5rem, 5vw, 3rem);
+        }
+        
+        .font-responsive-text {
+            font-size: clamp(1rem, 3vw, 1.75rem);
+        }
+
+        .font-responsive-small {
+            font-size: clamp(0.875rem, 2.5vw, 1.25rem);
+        }
+
+        /* 텍스트 테두리 효과 (그림자로 대체) */
+        .text-outline {
+            text-shadow: 
+                -1px -1px 0 #000,  
+                 1px -1px 0 #000,
+                -1px  1px 0 #000,
+                 1px  1px 0 #000,
+                 -2px -2px 5px rgba(0,0,0,0.5),
+                 2px  2px 5px rgba(0,0,0,0.5);
+        }
+
+        .text-shadow-soft {
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 드래그 가능한 아이템 */
+        .draggable {
+            touch-action: none; /* 모바일 터치 드래그 지원 */
+            user-select: none; /* 텍스트 선택 방지 */
+        }
+
+        /* 칠판 드랍 영역 */
+        #chalkboard-dropzone {
+            min-height: 150px; /* 최소 높이 */
+            border: 4px dashed #4a5568; /* 점선 테두리 */
+            background-color: #1a202c; /* 어두운 배경 */
+        }
+
+        /* 칠판에 드랍된 아이템 */
+        .chalk-item {
+            cursor: move;
+            padding: 0.5rem 1rem;
+            background-color: #e2e8f0;
+            color: #1a202c;
+            border-radius: 0.25rem;
+            margin: 0.25rem;
+            font-size: clamp(1.25rem, 4vw, 2rem);
+            border: 2px solid #a0aec0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 10;
+        }
+
+        /* 드래그 플레이스홀더 */
+        .drag-placeholder {
+            width: 60px; /* 칠판 아이템 크기와 유사하게 */
+            height: 60px; /* 칠판 아이템 높이와 유사하게 (패딩 고려) */
+            margin: 0.25rem;
+            border: 2px dashed #9ca3af; /* gray-400 */
+            background-color: rgba(75, 85, 99, 0.2); /* gray-600 with transparency */
+            border-radius: 0.25rem;
+            flex-shrink: 0; /* 크기 유지 */
+            box-sizing: border-box; /* 크기 계산 */
+        }
+
+        /* 모달 배경 */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.75); /* 반투명 배경 */
+        }
+
+        /* 설정 라디오 버튼 선택 시 하위 옵션 보이기 */
+        input[type="radio"]:checked + label + .settings-options {
+            display: block;
+        }
+        .settings-options {
+            display: none;
+            padding-left: 1.5rem;
+            padding-top: 0.5rem;
+            border-left: 2px solid #4a5568;
+            margin-left: 0.5rem;
+        }
+        
+        /* 인벤토리 컨테이너 (3줄 높이 고정 및 스크롤) */
+        #inventory-container {
+            max-height: 240px; /* 대략 3줄 높이 (item height + margin + padding) */
+            overflow-y: auto; /* 세로 스크롤바 */
+            overflow-x: hidden; /* 가로 스크롤바는 숨김 */
+            align-content: flex-start; /* 아이템이 위에서부터 채워지도록 */
+        }
+
+        /* 인벤토리 아이템 */
+        .inventory-item {
+            cursor: move;
+            padding: 0.5rem 1rem;
+            background-color: #4a5568; /* bg-gray-600 */
+            color: #fff;
+            border-radius: 0.25rem;
+            margin: 0.25rem;
+            font-size: clamp(1.25rem, 4vw, 2rem);
+            border: 2px solid #a0aec0; /* gray-400 */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            flex-shrink: 0; /* 아이템이 줄바꿈되지 않도록 */
+        }
+
+    </style>
+</head>
+<body class="bg-gray-900 text-white overflow-hidden">
+
+    <div id="opening-screen" class="screen active flex-col items-center justify-center p-4 text-center">
+        <h1 class="font-responsive-title text-shadow-soft mb-8">사칙연산 빌드 게임</h1>
+        <p class="font-responsive-text mb-4">참가 학생들의 이름을 쉼표(,)로 구분하여 입력하세요.</p>
+        <textarea id="student-names-input" class="w-full max-w-lg h-40 p-4 rounded-lg bg-gray-800 border border-gray-700 text-white font-responsive-text mb-6" placeholder="예시) 김철수, 이영희, 박지성"></textarea>
+        <div class="flex flex-col gap-4">
+            <button id="start-game-btn" class="text-white py-2 px-10 rounded-lg shadow-lg transition-transform duration-200 ease-in-out font-responsive-small hover:shadow-xl hover:scale-105 bg-green-600 hover:bg-green-700 text-2xl">게임 시작</button>
+            <button id="start-study-btn" class="text-white py-2 px-10 rounded-lg shadow-lg transition-transform duration-200 ease-in-out font-responsive-small hover:shadow-xl hover:scale-105 bg-blue-600 hover:bg-blue-700 text-2xl">공부 시작</button>
+        </div>
+    </div>
+
+    <div id="main-screen" class="screen flex-col p-4">
+        <header class="w-full flex justify-between items-center pb-4 border-b-2 border-gray-700 mb-4">
+            <button id="goto-opening-btn" class="text-white py-2 px-6 rounded-lg shadow-lg transition-transform duration-200 ease-in-out font-responsive-small hover:shadow-xl hover:scale-105 bg-gray-600 hover:bg-gray-700">🏠 처음으로</button>
+            <h1 class="font-responsive-title text-shadow-soft">학생 명단</h1>
+            <button id="open-settings-btn" class="text-white py-2 px-6 rounded-lg shadow-lg transition-transform duration-200 ease-in-out font-responsive-small hover:shadow-xl hover:scale-105 bg-yellow-500 hover:bg-yellow-600 text-black">⚙️ 설정</button>
+        </header>
+        <div id="student-list-container" class="w-full flex flex-wrap gap-2 p-2">
+            </div>
+        <div class="flex-grow flex items-center justify-center">
+            <p class="font-responsive-text text-gray-400">학생 이름을 클릭하여 게임을 진행하세요.</p>
+        </div>
+    </div>
+    
+    <div id="draw-screen" class="screen flex-col p-4">
+        <header class="w-full flex justify-between items-center pb-4 border-b-2 border-gray-700 mb-4">
+            <button class="home-btn text-white py-2 px-6 rounded-lg shadow-lg transition-transform duration-200 ease-in-out font-responsive-small hover:shadow-xl hover:scale-105 bg-gray-600 hover:bg-gray-700">🏠 메인으로</button>
+            <h1 id="draw-student-name" class="font-responsive-title text-shadow-soft">학생 이름</h1>
+            <button id="open-settings-draw-btn" class="text-white py-2 px-6 rounded-lg shadow-lg transition-transform duration-200 ease-in-out font-responsive-small hover:shadow-xl hover:scale-105 bg-yellow-500 hover:bg-yellow-600 text-black">⚙️ 설정</button>
+        </header>
+
+        <div class="flex-grow flex flex-col md:flex-row items-center justify-around gap-4 md:gap-8">
+            <div id="number-box" class="w-2/5 h-64 md:h-80 border-4 border-dashed rounded-2xl shadow-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ease-in-out hover:shadow-inner hover:scale-102 border-cyan-400 bg-cyan-900/50 hover:bg-cyan-900/80">
+                <h2 class="font-responsive-title mb-4">숫자 뽑기</h2>
+                <p class="font-responsive-text">(클릭)</p>
+            </div>
+            <div id="operator-box" class="w-2/5 h-64 md:h-80 border-4 border-dashed rounded-2xl shadow-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ease-in-out hover:shadow-inner hover:scale-102 border-amber-400 bg-amber-900/50 hover:bg-amber-900/80">
+                <h2 class="font-responsive-title mb-4">기호 뽑기</h2>
+                <p class="font-responsive-text">(클릭)</p>
+            </div>
+        </div>
+        
+        <div class="w-full max-w-4xl mx-auto mt-4 p-3 bg-gray-800 rounded-lg">
+            <h3 class="font-responsive-small text-center mb-2">이번에 뽑은 것:</h3>
+            <div id="current-draws-container" class="flex flex-wrap gap-2 justify-center min-h-[30px]">
+                </div>
+        </div>
+
+        <div id="draw-result" class="fixed bottom-80 left-1/2 -translate-x-1/2 bg-gray-800 border-2 border-white text-white p-12 rounded-2xl shadow-2xl text-9xl text-outline opacity-0 transition-all duration-500 ease-in-out scale-50">
+            </div>
+    </div>
+
+    <div id="equation-screen" class="screen flex-col p-4 h-full">
+        <header class="w-full flex justify-between items-center pb-4 border-b-2 border-gray-700 mb-4">
+            <button class="home-btn text-white py-2 px-6 rounded-lg shadow-lg transition-transform duration-200 ease-in-out font-responsive-small hover:shadow-xl hover:scale-105 bg-gray-600 hover:bg-gray-700">🏠 메인으로</button>
+            <h1 id="equation-student-name" class="font-responsive-title text-shadow-soft">학생 이름</h1> <button id="calculate-btn" class="text-white py-2 px-6 rounded-lg shadow-lg transition-transform duration-200 ease-in-out font-responsive-small hover:shadow-xl hover:scale-105 bg-green-600 hover:bg-green-700">결과 보기</button>
+        </header>
+
+        <div class="mb-4">
+            <h2 class="font-responsive-text mb-2">인벤토리 (드래그하세요 / 칠판 아이템을 여기에 드롭하여 되돌리기)</h2>
+            <div id="inventory-container" class="w-full bg-gray-800 p-4 rounded-lg flex flex-wrap gap-2 min-h-[80px] border-2 border-dashed border-gray-700">
+                </div>
+        </div>
+
+        <div class="flex-grow flex flex-col">
+            <h2 class="font-responsive-text mb-2">칠판 (아이템을 여기에 드롭하세요)</h2>
+            <div id="chalkboard-dropzone" class="w-full flex-grow p-4 rounded-lg flex flex-wrap items-start content-start relative">
+                <button id="clear-chalkboard-btn" class="absolute top-2 right-2 text-white py-1 px-3 rounded-lg shadow-lg transition-transform duration-200 ease-in-out font-responsive-small hover:shadow-xl hover:scale-105 bg-red-600 hover:bg-red-700 text-sm">모두 지우기</button>
+            </div>
+        </div>
+
+        <div id="result-display" class="w-full mt-4 p-4 bg-gray-800 rounded-lg text-center">
+            <h3 class="font-responsive-title text-yellow-400">= ?</h3>
+        </div>
+    </div>
+
+    <div id="student-context-menu" class="hidden fixed bg-gray-700 border border-gray-600 rounded-lg shadow-2xl z-50 p-2 flex flex-col gap-2">
+        <button id="goto-draw-btn" class="w-full text-white py-2 px-6 rounded-lg shadow-lg transition-transform duration-200 ease-in-out font-responsive-small hover:shadow-xl hover:scale-105 bg-blue-600 hover:bg-blue-700">아이템 뽑기</button>
+        <button id="goto-equation-btn" class="w-full text-white py-2 px-6 rounded-lg shadow-lg transition-transform duration-200 ease-in-out font-responsive-small hover:shadow-xl hover:scale-105 bg-purple-600 hover:bg-purple-700">방정식 만들기</button>
+    </div>
+
+    <div id="result-steps-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
+        <div class="bg-gray-800 w-full max-w-lg rounded-2xl shadow-2xl p-6 border-2 border-gray-700">
+            <h2 class="font-responsive-title mb-6 text-center">계산 과정</h2>
+            <div class="mb-4">
+                <h3 class="font-responsive-text text-gray-400 mb-2">원본 식:</h3>
+                <p id="steps-expression" class="font-responsive-text bg-gray-700 p-4 rounded-lg text-white break-words"></p>
+            </div>
+            <div class="mb-4">
+                <h3 class="font-responsive-text text-gray-400 mb-2">계산 순서:</h3>
+                <ul id="steps-list" class="list-disc list-inside pl-2 mb-4 space-y-1 text-gray-300 font-responsive-small">
+                    </ul>
+            </div>
+            <hr class="border-gray-600 my-4">
+            <div class="mb-6">
+                <h3 class="font-responsive-text text-gray-400 mb-2">결과:</h3>
+                <p id="steps-result" class="font-responsive-title text-green-400 text-center p-2"></p>
+            </div>
+            <div class="flex justify-end">
+                <button id="close-steps-btn" class="text-white py-2 px-6 rounded-lg shadow-lg transition-transform duration-200 ease-in-out font-responsive-small hover:shadow-xl hover:scale-105 bg-gray-600 hover:bg-gray-700">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
+        <div class="bg-gray-800 w-full max-w-2xl rounded-2xl shadow-2xl p-6 border-2 border-gray-700 max-h-[90vh] overflow-y-auto">
+            <h2 class="font-responsive-title mb-6 text-center">게임 설정</h2>
+            
+            <fieldset class="border-2 border-cyan-500 p-4 rounded-lg mb-6">
+                <legend class="font-responsive-text px-2 text-cyan-400">숫자 뽑기 설정</legend>
+                <div class="mb-2">
+                    <input type="radio" id="num-mode-range" name="num-mode" value="range" class="w-4 h-4 mr-1" checked>
+                    <label for="num-mode-range" class="font-responsive-small">범위에서 뽑기</label>
+                    <div class="settings-options">
+                        <div class="flex flex-col md:flex-row gap-4 mb-4">
+                            <div class="flex-1">
+                                <label for="num-min" class="block font-responsive-small mb-1">최소 숫자:</label>
+                                <input type="number" id="num-min" class="w-full p-2 rounded bg-gray-700 border border-gray-600 text-white font-responsive-text" value="1">
+                            </div>
+                            <div class="flex-1">
+                                <label for="num-max" class="block font-responsive-small mb-1">최대 숫자:</label>
+                                <input type="number" id="num-max" class="w-full p-2 rounded bg-gray-700 border border-gray-600 text-white font-responsive-text" value="9">
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="num-duplicates" class="w-5 h-5 mr-2 bg-gray-700 border-gray-600" checked>
+                            <label for="num-duplicates" class="font-responsive-small">숫자 중복 뽑기 허용 (범위 뽑기 전용)</label>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <input type="radio" id="num-mode-custom" name="num-mode" value="custom" class="w-4 h-4 mr-1">
+                    <label for="num-mode-custom" class="font-responsive-small">커스텀 목록에서 뽑기</label>
+                    <div class="settings-options">
+                        <label for="num-custom" class="block font-responsive-small mb-1">숫자 목록 (쉼표로 구분):</label>
+                        <input type="text" id="num-custom" class="w-full p-2 rounded bg-gray-700 border border-gray-600 text-white font-responsive-text" placeholder="1, 5, 10, 20">
+                        
+                        <div class="mt-4">
+                            <label class="block font-responsive-small mb-2">커스텀 목록 적용 범위:</label>
+                            <div class="flex gap-4 items-center mb-1">
+                                <input type="radio" id="num-scope-student" name="num-scope" value="student" class="w-4 h-4 mr-1" checked>
+                                <label for="num-scope-student" class="font-responsive-small">학생별 할당 (각자 목록 소진)</label>
+                            </div>
+                            <div class="flex gap-4 items-center">
+                                <input type="radio" id="num-scope-global" name="num-scope" value="global" class="w-4 h-4 mr-1">
+                                <label for="num-scope-global" class="font-responsive-small">전체 학생 공유 (공용 목록 소진)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset class="border-2 border-amber-500 p-4 rounded-lg mb-6">
+                <legend class="font-responsive-text px-2 text-amber-400">연산 기호 뽑기 설정</legend>
+                <div class="mb-2">
+                    <input type="radio" id="op-mode-checklist" name="op-mode" value="checklist" class="w-4 h-4 mr-1" checked>
+                    <label for="op-mode-checklist" class="font-responsive-small">체크리스트에서 랜덤 뽑기 (무한)</label>
+                    <div class="settings-options">
+                        <div id="op-checklist" class="grid grid-cols-3 md:grid-cols-5 gap-2">
+                            </div>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <input type="radio" id="op-mode-custom" name="op-mode" value="custom" class="w-4 h-4 mr-1">
+                    <label for="op-mode-custom" class="font-responsive-small">커스텀 목록에서 뽑기 (수량 제한)</label>
+                    <div class="settings-options">
+                        <label for="op-custom" class="block font-responsive-small mb-1">기호 목록 (쉼표로 구분):</label>
+                        <input type="text" id="op-custom" class="w-full p-2 rounded bg-gray-700 border border-gray-600 text-white font-responsive-text" placeholder="+, +, -, ×, ( )">
+                        
+                        <div class="mt-4">
+                            <label class="block font-responsive-small mb-2">커스텀 목록 적용 범위:</label>
+                            <div class="flex gap-4 items-center mb-1">
+                                <input type="radio" id="op-scope-student" name="op-scope" value="student" class="w-4 h-4 mr-1" checked>
+                                <label for="op-scope-student" class="font-responsive-small">학생별 할당 (각자 목록 소진)</label>
+                            </div>
+                            <div class="flex gap-4 items-center">
+                                <input type="radio" id="op-scope-global" name="op-scope" value="global" class="w-4 h-4 mr-1">
+                                <label for="op-scope-global" class="font-responsive-small">전체 학생 공유 (공용 목록 소진)</label>
+                            </div>
+                        </div>
+                        
+                        <hr class="border-gray-600 my-4">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="op-random" class="w-5 h-5 mr-2 bg-gray-700 border-gray-600" checked>
+                            <label for="op-random" class="font-responsive-small">커스텀 목록 뽑기 시 랜덤으로 뽑기</label>
+                        </div>
+                        <p class="font-responsive-small mt-1 text-gray-400">(해제 시, 목록 순서대로 나옵니다)</p>
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset class="border-2 border-gray-500 p-4 rounded-lg mb-6">
+                <legend class="font-responsive-text px-2 text-gray-400">칠판 설정</legend>
+                <div class="flex items-center">
+                    <input type="checkbox" id="chalk-concat-nums" class="w-5 h-5 mr-2 bg-gray-700 border-gray-600">
+                    <label for="chalk-concat-nums" class="font-responsive-small">숫자 자동 붙이기 (예: 2, 6 → 26)</label>
+                </div>
+            </fieldset>
+
+            <div class="flex justify-end gap-4 mt-8">
+                <button id="close-settings-btn" class="text-white py-2 px-6 rounded-lg shadow-lg transition-transform duration-200 ease-in-out font-responsive-small hover:shadow-xl hover:scale-105 bg-gray-600 hover:bg-gray-700">닫기</button>
+                <button id="save-settings-btn" class="text-white py-2 px-6 rounded-lg shadow-lg transition-transform duration-200 ease-in-out font-responsive-small hover:shadow-xl hover:scale-105 bg-green-600 hover:bg-green-700">설정 저장</button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="click-sound" preload="auto">
+        <source src="data:audio/mp3;base64,//vUZAAABexdUh1nIAJIglaSp7AAJ4GZMBnvAAFTieJPNcAAAALldqSh2FyJCIBFBGuM4ZOjIZjByXHloeVxzNBigVFN6A4HDUKAwiRC7GuQ5YqRiMRiMRikw3UpKSklEYjEYjEbjcvp8/1hhT09PT09PT09PLIxGKSxh+dPSUlJhhhhhhT09PT0+ef4U9Pbzzzz7rPv4Yf/4U9PTyuNxunp+50+denp8888MMMKlJSUlJG43T5/+GFinp6enp6e33Venp6ent59///CpSUlJSS+np7eesKSkl9PT09vMPDAACmrvimoafNNRthc2k/C4Mor4DuDfTYA4D1dNK4hiO8Zn8BwYLOvdwMCcHxwPzkSOlHa/BCCHLvghBD/BD8MQx/hj5QEPl38EDArBaMEsOgwagYTAdBUFAABwCAwdCsTJHTcMG8CIwCgjwEA2YA4CJq6kYHi8P0YOQlBp/3KGAcBMIBwzXaESMDwO88RlFzJXAsNl0ywyDQpDCOCBMAcEgwQQHx4Ewus1cIDgQ5KGmCIBqYAIDxgcgQSV/pc1NqTTAqBGYFIIxgZgYGBmAUlO+sMzD413biMqorxgKACuaAAFzAeAdMBoAsuTKYzllKqanpJr7V9eqtjaonAYAKQy63NZW5TDUH8zx/nNtaQRAkAcQAEKJs0BIAyVMgn4BLm02v+rTdtfruLZpS/C7nTUqLLJ9RqU/qahqL49/f/zm8cu9/xGAkYAwBoXACfyOONBa0i1ShU1KrVyNTMxa7/Msf7/7xx//1/O/+UpdG/GblxnrHLCtz5yqmaV/+PIhoPHP/1xKgAABEICsaibctUrcrE9RxxXU320m+HAwsjNxYgQAkxGDzDoLOZD0z2KDKpiBQugJ342nnNvy/uOp/DCtlalAfAglI85hot9xcr/BD2/0HymR/z/y3eCAABrtGBjsQxEJQcAgIBUkCIdB0DC+YDAUYGhCqcWFwMAIqgKYehKGFSYXHSZmqYYXiQZljAxmKYDOYAIVZhDAImCQB2//vUZCKH6Gd1Sa93wAJfYjeC7WwAIg3VHK7pMcmPi93AzA2YFgDkDRIBZcSECNfC9cAR9rDBYNg9/XLksXpL8Qk7pv++7/tbepxI81+Fu248von3n4Yft24vcljsM4fyHI3N508eiliHLMonaZyIpDksqVJRGIYlmdy9VqVuW6SkjEspLFak5MSy7nuVyyUSzeXK9vVS9lh3Cpuv/1OW9WOY/hzKkxypLGFTl7Ck3WsZUmGdvdSk5hhj3+3KTlPfwsbuVLt+v3CUSy7fq096pLK/bFft7P6/Zic5hv7du1hXp+8oLF2N9u09bSgABKc5EbhA36gT9Voi78sgOaeBdTWguDMgBNBXM8vOHWDRx84pNMuRQhJTBL3P080jgWveldSvcKhx5oot4HIFy4PremMBA4rdCwQd/UCE4cm5wQZPp/Ke3X5w50f05AoINYxUGExwHsIG0EAWHAYYJgZDYgA8eAYLACBgFBACmDgbmJAlhgwmARUmmBRmh0GnBSbgglD/nA4KlEZBGZwmBjIUFgIq0EvsBhTjrCstcFyotTTMZlCwymRcJCSWVQ1kEPVnCVNCnRfxQJpz7KBMul1NHmvRJHpOpr0bjLKWtMOROSKYk5VHZtuEqZp0NRa7SvqylhzXnKkVUKhkKgBRCpqStFQAgBJlwChlgqGYHQSNf5JFNDGElmxSwiaqSz1UKTSpETSWRIlxSFQsKhUTSkmSrORRl7Cpm5TiIQAgBDJKwQuWIg0ikRHWxTVoUKwqFTPWeyFiZqxECSMUmUSzUeWE0SwaJtyMYkJKhqSIULgCnpye41db63qnINZQtkICDInQ65F7S2mlM7Vu2eRrkvz9oyhXCqh5YGj1IoDUmGQo+IocHiY9JOAgWMkmwCa41LqCVzH+wPCr4eDbHzRlw1gTQPMqYP1ovFSxaOaeCzuMSQoydENTMICHMQMFIwxAyzAmA8MB8Bk0IrMHODDxUAg4sEK3jgQChMxAGKHI3ZnNnwgvUG2nodSAo/EiwOIkzXfU//vUZCAIh/11OoPbYXJrToaQPCMaW53CsS6wecklrBXYEI48aT+Ym2YPgRODs4LWRuFoSSsDo4B9AOwkhMQRqHsiLz8SS8rcjd/qtPrXSsbgdBYaBeHo5J1OGQSg6JBbUFoQS4RhBKZFEpOpgPiSXkiOvPMtQwJm3IUhsJJSVadNoj5mn2TJ0RklUH0PZuVybMsYhnA/BKPBREkvKCcXTUyfPaLswyHk8HZKakpCR0hRGUMW7WB5a0huHyZ89OoaPurjpuKy6HtYPR6J4eiEXThOcKSUdlk6hYjZeOUJepMkrDawVJaLT0QUJ53xBnLlJq6zzqNDJjqo0bXNf+a8OspMa+Sw1hqQZDhrG61WNSa1DWGu2axgqN8NY1Jo1WHS2cTDWepMYUhVkarGpdJqUNWjlw1z1hqR7RqvGoVxMOGqAUY1JnWdjrDWcNeChUqrVX35tTbxnm/5usIhouCxk8Dpi6BQcOpQKYYECNjMYPdVsjQoZcV9Y+uVvaZ3nChU2/LSl3OdKVhVAWCvzAMulbDUhVStNf2GR1sthQhCI4ggdEk7EEfZ9yNoeiy4qHonHwTDsdnwhE5PTmUw5GICQOoiqYiSACOvmR0JROZMaTBZ5kxrSz64+nddZMSbjQlGScknq1rDJKYu97Ik+taXWMlx0I0BkzXKGR80JLj3W9CLSc+tPteXQak06Pnu+1r98C6Oms8ymVQrmXFWNAwr+xqXqesAhWGAncmxkQLCLCHfF/ov/8n4QhXExPxBxPRQrmEInyEJlwook+qr/GZjs6qkewU5qvtcMKY/gZVJqSiSlI4x9Y17BTN9VQq8jMGOEgVg1grVYEqtVHXkJUYQoTpiHAUmFWEYZLmcYYbE4FDoGwBqhVQYc5JCsghYCyFSInojFzUxAFoGNLaBEkEqqizUTlzhiQqRE8SCXWTfW8XdVUL9FuVKEgkJKiTUEVl9pmoJl5qtRWVRbdIljCzkhV8KcqCqLOIoMxljqgTR2gKbLAuOpqz5qapWjL/R9SOZ//vUZEUA+ot1nzPawJABIBAALAABLqXWgC9rBYgAADSAAAAEwiksCxRIpZLJErkjWdo+rBM3TBWCZenSkcyhK5VVpimy8WuKXJUtLUtVua+rlaTO1YUqmkKxK2uQwZaLWFrJytzV6uZ22SsCcNeqczcF7LldBtlyugzZOVu6/WHPG3rDnjZqpk2BoTDXoe5hrwNCUxbG1Fhz4vkzp629WGbI5zEXqe9nLYnOWFbC2ZiT0wI15ur5LubE57XY9Pw7HqN/Y7IIeiMsh6IzkPR6fh2JU8ViU/DszOS6I0kWiNJGpVTy2JU8tlVuzkKwPNXA8cycRPzBTB0MOIN4wZARzCfCROCgPZwAWk6lg1gc4c004A3EIHQTXuQh0ahYHRjRLBpaZtOTKjKIihIcfiYzXsbGaMDXDPcW2ZKC2DG0XAYYiVwIwOoCVhkwYgIgFkBjAucMeFiBDBCUMWXkDHiIAQQVCEHQYBxEdwcdKcHHSUBwE7wcNVAt4xsIAo2WvUeLiLZLjr6LiLSLiMhLxsiLwNJLxu0Xja0gEaygHXcWQWKWTTpLJrqLKMFLLrWLYMVLYL9LZr+LgMVLhreLuKuLgKcF11xl1FuIJ1foZrPQwWYhmqNDBSCPaZiN6k0qE+E00+00E1FDE1E9011VE1Fg0114JJrAJWLLSvXwj4wtH9jKP7GEfGNo/tUR8bKj40VFNnyKDdUU25IoMqRQcFItwkiHBSLf5ItykxH9XfDy7IdXe/K74eXZArD4GYZBzDISw+FMMhLD4Uwx82GPYyt72UPYyt12lvOyh5GlvO0iES+vIkxBTUUzLjEwMKqqqqqqqqAAABVajhntjsUHzfpxTLAZj4/DngzvZzXDjn3DMCjgxgdDNQxDlhn1A+c5dKOmapFk02KLmqpRE00IpmzJEM0RImmFQ0oCJFkhUgcoQiDjBYYsEKiFhBYaFoBcNBAqAxwWOENEJAc4YGBmjgQU0dAEGQZCCoNBwhEFDZEEICm8DhJ2goKqACMo4ChLLLWr//vUZEeP+192Hsu6wMAAAA0gAAABAAABpAAAACAAADSAAAAEYLjMLQVYwkS0QvEyMvCyAuUwMtK0stqzhAM1tAK1xIpy1AnfSFcRCU09CSywuE4iAZt0hW8SGc9BKuFHlbpe5cRdVcJdZb4MC1Muqt1DJZyGKfKaSayqyayaKfKaSfSaKzUMl+pVJrKqpqqrJXLJQVYShqtpK5fKVq+lLlgVdLxTBY0j81VFFnheJniAJmaKLdEUm7pgtgWK8CRThpEuAis1su64aAVyGdRtnMscqXu1L3JljWou1mKMOljWpG1mQO1J3ZkL6yF2pE7MhcKTtZk7gwl2oGfWBZVLquNMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//vUZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" type="audio/mp3">
+    </audio>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- 전역 상태 관리 ---
+            let isStudyMode = false; // [추가] 공부 모드 플래그
+            let gameState = {
+                currentView: 'opening-screen',
+                students: {}, 
+                currentStudent: null, 
+                settings: {
+                    number: {
+                        mode: 'range', 
+                        min: 1,
+                        max: 9,
+                        allowDuplicates: true,
+                        customList: [], 
+                        customScope: 'student', 
+                    },
+                    operator: {
+                        mode: 'checklist', 
+                        checklist: ['(', ')', '+', '-', '×', '÷'], 
+                        customList: [], 
+                        random: true, 
+                        customScope: 'student', 
+                    },
+                    chalkboard: {
+                        concatenateNumbers: false
+                    }
+                },
+                availableOperators: ['+', '-', '×', '÷', '( )', '='], 
+                drawBoxCustomOperators: [], 
+                drawBoxCustomNumbers: [],
+                // [추가] 공부 모드 전용 상태
+                studyMode: {
+                    inventoryItems: [],
+                    chalkboard: []
+                }
+            };
+
+            // --- DOM 요소 캐싱 ---
+            const screens = document.querySelectorAll('.screen');
+            const openingScreen = document.getElementById('opening-screen');
+            const mainScreen = document.getElementById('main-screen');
+            const drawScreen = document.getElementById('draw-screen');
+            const equationScreen = document.getElementById('equation-screen');
+
+            const studentNamesInput = document.getElementById('student-names-input');
+            const startGameBtn = document.getElementById('start-game-btn');
+            const startStudyBtn = document.getElementById('start-study-btn'); // [추가]
+            const studentListContainer = document.getElementById('student-list-container');
+            const gotoOpeningBtn = document.getElementById('goto-opening-btn'); 
+            
+            const contextMenu = document.getElementById('student-context-menu');
+            const gotoDrawBtn = document.getElementById('goto-draw-btn');
+            const gotoEquationBtn = document.getElementById('goto-equation-btn');
+
+            const homeBtns = document.querySelectorAll('.home-btn');
+            const drawStudentName = document.getElementById('draw-student-name');
+            const numberBox = document.getElementById('number-box');
+            const operatorBox = document.getElementById('operator-box');
+            const drawResult = document.getElementById('draw-result');
+            const currentDrawsContainer = document.getElementById('current-draws-container'); 
+
+            const equationStudentName = document.getElementById('equation-student-name');
+            const inventoryContainer = document.getElementById('inventory-container');
+            const chalkboard = document.getElementById('chalkboard-dropzone');
+            const clearChalkboardBtn = document.getElementById('clear-chalkboard-btn');
+            const calculateBtn = document.getElementById('calculate-btn');
+            const resultDisplay = document.getElementById('result-display');
+            
+            const resultStepsModal = document.getElementById('result-steps-modal');
+            const closeStepsBtn = document.getElementById('close-steps-btn');
+            const stepsExpression = document.getElementById('steps-expression');
+            const stepsResult = document.getElementById('steps-result');
+            const stepsList = document.getElementById('steps-list'); 
+
+            const settingsModal = document.getElementById('settings-modal');
+            const openSettingsBtns = document.querySelectorAll('#open-settings-btn, #open-settings-draw-btn');
+            const closeSettingsBtn = document.getElementById('close-settings-btn');
+            const saveSettingsBtn = document.getElementById('save-settings-btn');
+            const numModeRange = document.getElementById('num-mode-range');
+            const numModeCustom = document.getElementById('num-mode-custom');
+            const numMinInput = document.getElementById('num-min');
+            const numMaxInput = document.getElementById('num-max');
+            const numDuplicatesInput = document.getElementById('num-duplicates');
+            const numCustomInput = document.getElementById('num-custom');
+            const opModeChecklist = document.getElementById('op-mode-checklist');
+            const opModeCustom = document.getElementById('op-mode-custom');
+            const opChecklist = document.getElementById('op-checklist');
+            const opCustomInput = document.getElementById('op-custom');
+            const opRandomInput = document.getElementById('op-random');
+            const chalkConcatNumsInput = document.getElementById('chalk-concat-nums');
+
+            const numScopeStudent = document.getElementById('num-scope-student');
+            const numScopeGlobal = document.getElementById('num-scope-global');
+            const opScopeStudent = document.getElementById('op-scope-student');
+            const opScopeGlobal = document.getElementById('op-scope-global');
+
+            const clickSound = document.getElementById('click-sound');
+
+            let currentDraggingElement = null; 
+            let currentDragSourceContainer = null; 
+            
+            const dragPlaceholder = document.createElement('div');
+            dragPlaceholder.className = 'drag-placeholder';
+            let placeholderActive = false; 
+            
+            const studentButtonColors = [
+                { bg: 'bg-blue-600', hover: 'hover:bg-blue-700' },
+                { bg: 'bg-green-600', hover: 'hover:bg-green-700' },
+                { bg: 'bg-red-600', hover: 'hover:bg-red-700' },
+                { bg: 'bg-yellow-600', hover: 'hover:bg-yellow-700' },
+                { bg: 'bg-indigo-600', hover: 'hover:bg-indigo-700' },
+                { bg: 'bg-pink-600', hover: 'hover:bg-pink-700' },
+                { bg: 'bg-teal-600', hover: 'hover:bg-teal-700' },
+                { bg: 'bg-orange-600', hover: 'hover:bg-orange-700' },
+            ];
+
+            // --- 오디오 로직 ---
+            function playClickSound() {
+                if (clickSound) {
+                    clickSound.currentTime = 0; 
+                    clickSound.play().catch(e => console.error("Audio play failed:", e));
+                }
+            }
+
+            document.addEventListener('click', (e) => {
+                if (e.target.closest('button, [role="button"], .cursor-pointer, input[type="radio"], input[type="checkbox"]')) {
+                    playClickSound();
+                }
+            }, true); 
+
+            // --- 화면 전환 로직 ---
+            function showScreen(screenId) {
+                screens.forEach(screen => {
+                    if (screen.id === screenId) {
+                        screen.classList.add('active');
+                    } else {
+                        screen.classList.remove('active');
+                    }
+                });
+                gameState.currentView = screenId;
+                hideContextMenu();
+            }
+
+            // --- 게임 시작 ---
+            startGameBtn.addEventListener('click', () => {
+                isStudyMode = false; // [추가] 게임 모드 플래그 설정
+                const names = studentNamesInput.value.split(',')
+                    .map(name => name.trim())
+                    .filter(name => name.length > 0);
+                
+                if (names.length === 0) {
+                    showTempMessage(studentNamesInput, '학생 이름을 1명 이상 입력하세요!', 'red');
+                    return;
+                }
+                
+                gameState.students = {};
+                names.forEach(name => {
+                    gameState.students[name] = { 
+                        inventoryItems: [], 
+                        chalkboard: [], 
+                        privateCustomNumPool: [], 
+                        privateCustomOpPool: []   
+                    };
+                });
+                
+                populateCustomPools(); 
+                renderStudentList();
+                showScreen('main-screen');
+            });
+
+            // [추가] 공부 시작 버튼 리스너
+            startStudyBtn.addEventListener('click', () => {
+                isStudyMode = true; // 공부 모드 플래그 설정
+                
+                // 공부 모드용 인벤토리 생성 (최초 1회만)
+                if (gameState.studyMode.inventoryItems.length === 0) {
+                    const studyItems = [];
+                    // 0~9 숫자
+                    for (let i = 0; i <= 9; i++) {
+                        studyItems.push({ type: 'number', value: i, id: 'study_num_' + i });
+                    }
+                    // 사칙연산 및 괄호
+                    ['+', '-', '×', '÷', '(', ')'].forEach((op, i) => {
+                        studyItems.push({ type: 'operator', value: op, id: 'study_op_' + i });
+                    });
+                    gameState.studyMode.inventoryItems = studyItems;
+                }
+                // 칠판은 비우고 시작
+                gameState.studyMode.chalkboard = [];
+                
+                equationStudentName.textContent = "연습 칠판"; // 제목 변경
+                renderStudyInventory();  // 공부 모드 인벤토리 렌더링
+                renderStudyChalkboard(); // 공부 모드 칠판 렌더링
+                showScreen('equation-screen');
+            });
+
+            gotoOpeningBtn.addEventListener('click', () => {
+                if (confirm('처음 화면으로 돌아가면 모든 학생 데이터가 초기화됩니다. (게임을 다시 시작해야 함)\n정말 돌아가시겠습니까?')) {
+                    showScreen('opening-screen');
+                }
+            });
+
+            // --- 학생 목록 렌더링 ---
+            function renderStudentList() {
+                studentListContainer.innerHTML = '';
+                const studentNames = Object.keys(gameState.students);
+                studentNames.forEach((name, index) => {
+                    const colorIndex = index % studentButtonColors.length;
+                    const color = studentButtonColors[colorIndex];
+                    
+                    const btnClasses = `inline-block mr-2 mb-2 flex-shrink-0 text-white py-4 px-8 rounded-lg shadow-lg transition-transform duration-200 ease-in-out hover:shadow-xl hover:scale-105 ${color.bg} ${color.hover} font-responsive-title`;
+                    
+                    const chip = document.createElement('button');
+                    chip.className = btnClasses;
+                    chip.textContent = name;
+                    chip.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        isStudyMode = false; // [추가] 학생 클릭 시 게임 모드로 전환
+                        gameState.currentStudent = name;
+                        showContextMenu(e.clientX, e.clientY);
+                    });
+                    studentListContainer.appendChild(chip);
+                });
+            }
+
+            // --- 컨텍스트 메뉴 ---
+            function showContextMenu(x, y) {
+                const menuWidth = contextMenu.offsetWidth || 150;
+                const menuHeight = contextMenu.offsetHeight || 100;
+                const docWidth = document.documentElement.clientWidth;
+                const docHeight = document.documentElement.clientHeight;
+
+                let left = x;
+                let top = y;
+
+                if (x + menuWidth > docWidth) left = docWidth - menuWidth - 5;
+                if (y + menuHeight > docHeight) top = docHeight - menuHeight - 5;
+                
+                contextMenu.style.left = `${left}px`;
+                contextMenu.style.top = `${top}px`;
+                contextMenu.classList.remove('hidden');
+            }
+
+            function hideContextMenu() {
+                contextMenu.classList.add('hidden');
+            }
+
+            document.body.addEventListener('click', hideContextMenu);
+
+            gotoDrawBtn.addEventListener('click', () => {
+                isStudyMode = false; // [추가]
+                drawStudentName.textContent = gameState.currentStudent;
+                currentDrawsContainer.innerHTML = '';
+                showScreen('draw-screen');
+            });
+
+            gotoEquationBtn.addEventListener('click', () => {
+                isStudyMode = false; // [추가]
+                equationStudentName.textContent = gameState.currentStudent;
+                renderInventory();
+                renderChalkboard(); 
+                showScreen('equation-screen');
+            });
+
+            homeBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // [수정] 모드에 따라 복귀 화면 변경
+                    if (isStudyMode) {
+                        showScreen('opening-screen');
+                    } else {
+                        showScreen('main-screen');
+                    }
+                });
+            });
+
+            // --- 뽑기 화면 로직 (게임 모드 전용) ---
+            numberBox.addEventListener('click', () => {
+                if (isStudyMode) return; // 공부 모드에서는 작동 안 함
+                const student = gameState.students[gameState.currentStudent];
+                const { mode, min, max, allowDuplicates, customScope } = gameState.settings.number;
+
+                let num;
+                let sourcePool = [];
+                let availableNumbers = [];
+
+                if (mode === 'range') {
+                    for (let i = min; i <= max; i++) sourcePool.push(i);
+                    availableNumbers = [...sourcePool];
+                    if (!allowDuplicates) {
+                        const numbersInInventory = student.inventoryItems
+                            .filter(item => item.type === 'number')
+                            .map(item => item.value);
+                        availableNumbers = sourcePool.filter(n => !numbersInInventory.includes(n));
+                    }
+                } else { 
+                    if (customScope === 'student') {
+                        availableNumbers = [...student.privateCustomNumPool];
+                    } else { 
+                        availableNumbers = [...gameState.drawBoxCustomNumbers];
+                    }
+                }
+
+                if (availableNumbers.length === 0) {
+                    const msg = mode === 'range' ? '더 이상 뽑을 수 있는 숫자가 없습니다!' : '커스텀 숫자 목록이 비었습니다!';
+                    showDrawResult(msg, false);
+                    return;
+                }
+                
+                const randIndex = Math.floor(Math.random() * availableNumbers.length);
+                num = availableNumbers[randIndex];
+
+                if (mode === 'custom') {
+                    if (customScope === 'student') {
+                        student.privateCustomNumPool.splice(randIndex, 1);
+                    } else { 
+                        gameState.drawBoxCustomNumbers.splice(randIndex, 1);
+                    }
+                }
+                
+                student.inventoryItems.push({ 
+                    type: 'number', 
+                    value: num, 
+                    id: `num_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, 
+                    isInChalkboard: false
+                });
+                showDrawResult(num, true);
+            });
+
+            operatorBox.addEventListener('click', () => {
+                if (isStudyMode) return; // 공부 모드에서는 작동 안 함
+                const student = gameState.students[gameState.currentStudent];
+                const { mode, checklist, random, customScope } = gameState.settings.operator;
+
+                let opToDraw;
+                let customPool = []; 
+
+                if (mode === 'checklist') {
+                    if (checklist.length === 0) {
+                        showDrawResult('선택된 기호가 없습니다!', false);
+                        return;
+                    }
+                    const randIndex = Math.floor(Math.random() * checklist.length);
+                    opToDraw = checklist[randIndex];
+                    
+                } else { 
+                    if (customScope === 'student') {
+                        customPool = student.privateCustomOpPool; 
+                    } else { 
+                        customPool = gameState.drawBoxCustomOperators; 
+                    }
+
+                    if (customPool.length === 0) {
+                        showDrawResult('커스텀 기호 목록이 비었습니다!', false);
+                        return;
+                    }
+
+                    if (random) {
+                        const randIndex = Math.floor(Math.random() * customPool.length);
+                        opToDraw = customPool.splice(randIndex, 1)[0]; 
+                    } else {
+                        opToDraw = customPool.shift(); 
+                    }
+                }
+
+                if (opToDraw === '( )' || opToDraw === '(' || opToDraw === ')') { 
+                    const openParenId = `op_${Date.now()}_open_${Math.random().toString(36).substr(2, 5)}`;
+                    const closeParenId = `op_${Date.now()}_close_${Math.random().toString(36).substr(2, 5)}`;
+                    
+                    student.inventoryItems.push({ type: 'operator', value: '(', id: openParenId, isInChalkboard: false });
+                    student.inventoryItems.push({ type: 'operator', value: ')', id: closeParenId, isInChalkboard: false });
+                    showDrawResult('( )', true); 
+                } else {
+                    student.inventoryItems.push({ 
+                        type: 'operator', 
+                        value: opToDraw, 
+                        id: `op_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, 
+                        isInChalkboard: false 
+                    });
+                    showDrawResult(opToDraw, true);
+                }
+            });
+
+            function showDrawResult(item, success) {
+                drawResult.textContent = item;
+                if (success) {
+                    drawResult.style.borderColor = '#34d399';
+                    drawResult.style.color = '#34d399';
+                    
+                    const drawChip = document.createElement('span');
+                    drawChip.className = 'font-responsive-small bg-gray-600 text-white py-1 px-3 rounded-full';
+                    drawChip.textContent = item;
+                    currentDrawsContainer.appendChild(drawChip);
+
+                } else {
+                    drawResult.style.borderColor = '#f87171';
+                    drawResult.style.color = '#f87171';
+                }
+                
+                drawResult.classList.remove('opacity-0', 'scale-50');
+                drawResult.classList.add('opacity-100', 'scale-100');
+                
+                setTimeout(() => {
+                    drawResult.classList.remove('opacity-100', 'scale-100');
+                    drawResult.classList.add('opacity-0', 'scale-50');
+                }, 1500);
+            }
+            
+            // --- 방정식 만들기 화면 로직 ---
+            
+            // [추가] 공부 모드 인벤토리 렌더링
+            function renderStudyInventory() {
+                inventoryContainer.innerHTML = '';
+                gameState.studyMode.inventoryItems.forEach((itemData) => {
+                    const itemEl = createInventoryItemElement(itemData, true); // isStudyMode = true
+                    inventoryContainer.appendChild(itemEl);
+                });
+            }
+
+            // [추가] 공부 모드 칠판 렌더링
+            function renderStudyChalkboard() {
+                chalkboard.innerHTML = '';
+                gameState.studyMode.chalkboard.forEach(itemData => {
+                    const chalkItem = createChalkItem(itemData.value, itemData.id, itemData.type, true); // isStudyMode = true
+                    chalkboard.appendChild(chalkItem);
+                });
+                chalkboard.appendChild(clearChalkboardBtn);
+                updateParentheses();
+            }
+
+            // (게임 모드) 학생 인벤토리 렌더링
+            function renderInventory() {
+                inventoryContainer.innerHTML = '';
+                const student = gameState.students[gameState.currentStudent];
+                
+                student.inventoryItems.forEach((itemData) => {
+                    const itemEl = createInventoryItemElement(itemData, false); // isStudyMode = false
+                    inventoryContainer.appendChild(itemEl);
+                });
+            }
+
+            // [수정] isStudyMode 파라미터 추가
+            function createInventoryItemElement(itemData, isStudyMode = false) {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'draggable inventory-item'; 
+                itemEl.textContent = itemData.value;
+                itemEl.draggable = true; // 공부 모드에서는 항상 true
+                itemEl.dataset.item = itemData.value;
+                itemEl.dataset.id = itemData.id;
+                itemEl.dataset.type = itemData.type;
+
+                // [수정] 게임 모드일 때만 비활성화 로직 적용
+                if (!isStudyMode && itemData.isInChalkboard) {
+                    itemEl.classList.add('opacity-50', 'pointer-events-none');
+                    itemEl.draggable = false;
+                }
+
+                itemEl.addEventListener('dragstart', (e) => {
+                    // [수정] 모드에 따라 source 변경
+                    const source = isStudyMode ? 'study-inventory' : 'inventory';
+                    e.dataTransfer.setData('text/plain', JSON.stringify({
+                        value: itemData.value,
+                        id: itemData.id,
+                        type: itemData.type,
+                        source: source
+                    }));
+                    currentDraggingElement = itemEl;
+                    currentDragSourceContainer = inventoryContainer; 
+                    // [수정] 공부 모드에서는 투명도 변경 안 함 (무한 아이템이므로)
+                    if (!isStudyMode) {
+                        setTimeout(() => itemEl.classList.add('opacity-20'), 0);
+                    }
+                });
+
+                itemEl.addEventListener('dragend', () => {
+                    if (!isStudyMode) {
+                        itemEl.classList.remove('opacity-20');
+                    }
+                    removePlaceholder(); 
+                    currentDraggingElement = null;
+                    currentDragSourceContainer = null;
+                });
+
+                itemEl.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // [수정] 공부 모드에서는 인벤토리 내 순서 변경 불가
+                    if (isStudyMode || itemEl === currentDraggingElement || currentDragSourceContainer !== inventoryContainer) {
+                        return;
+                    }
+
+                    const rect = itemEl.getBoundingClientRect();
+                    const midX = rect.left + rect.width / 2;
+                    if (e.clientX < midX) {
+                        inventoryContainer.insertBefore(dragPlaceholder, itemEl);
+                    } else {
+                        inventoryContainer.insertBefore(dragPlaceholder, itemEl.nextSibling);
+                    }
+                    placeholderActive = true;
+                });
+                
+                return itemEl;
+            }
+
+            // (게임 모드) 학생 칠판 렌더링
+            function renderChalkboard() {
+                chalkboard.innerHTML = '';
+                const student = gameState.students[gameState.currentStudent];
+                student.chalkboard.forEach(itemData => {
+                    const chalkItem = createChalkItem(itemData.value, itemData.id, itemData.type, false); // isStudyMode = false
+                    chalkboard.appendChild(chalkItem);
+                });
+                chalkboard.appendChild(clearChalkboardBtn); 
+                updateParentheses();
+            }
+
+
+            // --- [수정된 부분] ---
+            // 인벤토리 드랍 영역 로직
+            inventoryContainer.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                
+                // [수정] 칠판에서 오는 아이템일 때만 하이라이트 (게임 모드/공부 모드 공통)
+                if (currentDraggingElement && currentDraggingElement.classList.contains('chalk-item')) {
+                     inventoryContainer.style.backgroundColor = '#4a5568';
+                     return; // 칠판 아이템은 인벤토리 내부 순서 변경(플레이스홀더) 로직을 타지 않음
+                }
+
+                // --- 아래는 게임 모드 전용 (인벤토리 간 순서 변경) ---
+                if (isStudyMode) return; // 공부 모드는 인벤토리 간 순서 변경 X
+
+                // (게임 모드) 인벤토리 내부 드래그일 때 하이라이트
+                if (currentDraggingElement && currentDragSourceContainer === inventoryContainer) {
+                    inventoryContainer.style.backgroundColor = '#4a5568';
+                }
+                // (게임 모드) 인벤토리 내부 드래그 시 플레이스홀더 처리
+                if (currentDraggingElement && currentDragSourceContainer === inventoryContainer && e.target === inventoryContainer) {
+                    inventoryContainer.appendChild(dragPlaceholder);
+                    placeholderActive = true;
+                }
+            });
+
+            inventoryContainer.addEventListener('dragleave', (e) => {
+                // [수정] 모드와 관계 없이 배경색 초기화
+                inventoryContainer.style.backgroundColor = '#1f2937';
+                if (!inventoryContainer.contains(e.relatedTarget)) {
+                    removePlaceholder();
+                }
+            });
+            
+            inventoryContainer.addEventListener('drop', (e) => {
+                e.preventDefault();
+                inventoryContainer.style.backgroundColor = '#1f2937';
+                
+                const dataStr = e.dataTransfer.getData('text/plain');
+                if (!dataStr) {
+                    removePlaceholder();
+                    return;
+                }
+                
+                const data = JSON.parse(dataStr);
+
+                if (isStudyMode) {
+                    // (공부 모드) 칠판에서 온 아이템만 받아서 '제거' 처리
+                    if (data.source === 'chalkboard' && currentDraggingElement) {
+                        gameState.studyMode.chalkboard = gameState.studyMode.chalkboard.filter(item => item.id !== data.id);
+                        renderStudyChalkboard(); // 칠판 새로고침
+                    }
+                    // (공부 모드) 인벤토리 간 순서 변경은 막음
+
+                } else {
+                    // (게임 모드)
+                    const student = gameState.students[gameState.currentStudent];
+
+                    if (data.source === 'chalkboard' && currentDraggingElement) {
+                        // (게임 모드) 칠판에서 인벤토리로 되돌리기
+                        const itemInStudentData = student.inventoryItems.find(item => item.id === data.id);
+                        if (itemInStudentData) {
+                            itemInStudentData.isInChalkboard = false;
+                        }
+                        student.chalkboard = student.chalkboard.filter(item => item.id !== data.id);
+                        renderInventory(); 
+                        renderChalkboard(); 
+
+                    } else if (data.source === 'inventory' && currentDragSourceContainer === inventoryContainer && currentDraggingElement) {
+                        // (게임 모드) 인벤토리 내부 순서 변경
+                        const draggedItemIndex = student.inventoryItems.findIndex(item => item.id === data.id);
+                        if (draggedItemIndex !== -1) {
+                            const [draggedItem] = student.inventoryItems.splice(draggedItemIndex, 1);
+                            
+                            let targetIndex = Array.from(inventoryContainer.children).indexOf(dragPlaceholder);
+                            if (targetIndex === -1 || targetIndex === inventoryContainer.children.length - 1) { 
+                                student.inventoryItems.push(draggedItem);
+                            } else {
+                                student.inventoryItems.splice(targetIndex, 0, draggedItem);
+                            }
+                        }
+                        renderInventory(); 
+                    }
+                }
+
+                // 공통 로직
+                removePlaceholder();
+                currentDraggingElement = null;
+                currentDragSourceContainer = null;
+            });
+            // --- [수정된 부분 끝] ---
+
+
+            // 칠판 드랍 영역
+            function removePlaceholder() {
+                if (placeholderActive && dragPlaceholder.parentNode) {
+                    dragPlaceholder.parentNode.removeChild(dragPlaceholder);
+                }
+                placeholderActive = false;
+            }
+            
+            chalkboard.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                chalkboard.style.backgroundColor = '#2d3748';
+                
+                if (e.target === chalkboard) {
+                    chalkboard.insertBefore(dragPlaceholder, clearChalkboardBtn); 
+                    placeholderActive = true;
+                }
+            });
+            chalkboard.addEventListener('dragleave', (e) => {
+                chalkboard.style.backgroundColor = '#1a202c';
+                if (!chalkboard.contains(e.relatedTarget)) {
+                    removePlaceholder();
+                }
+            });
+            chalkboard.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation(); 
+                chalkboard.style.backgroundColor = '#1a202c';
+                
+                const dataStr = e.dataTransfer.getData('text/plain');
+                if (!dataStr) {
+                    removePlaceholder(); 
+                    return;
+                }
+
+                const data = JSON.parse(dataStr);
+                let itemData;
+                let currentChalkboard;
+                let placeholderIndex = Array.from(chalkboard.children).indexOf(dragPlaceholder);
+
+                // [수정] 모드에 따라 칠판 상태 분리
+                if (isStudyMode) {
+                    currentChalkboard = gameState.studyMode.chalkboard;
+                } else {
+                    currentChalkboard = gameState.students[gameState.currentStudent].chalkboard;
+                }
+
+                if (data.source === 'study-inventory') {
+                    // (공부 모드) 인벤토리에서 칠판으로 (아이템 복사)
+                    itemData = gameState.studyMode.inventoryItems.find(item => item.id === data.id);
+                    if (itemData) {
+                        // 칠판에 놓을 땐 고유 ID 새로 발급
+                        const itemCopy = { ...itemData, id: `chalk_${Date.now()}_${Math.random().toString(36).substr(2, 5)}` }; 
+                        
+                        if (placeholderIndex !== -1) {
+                            currentChalkboard.splice(placeholderIndex, 0, itemCopy);
+                        } else {
+                            currentChalkboard.push(itemCopy);
+                        }
+                    }
+                    renderStudyChalkboard(); // 공부 모드 칠판 렌더링
+
+                } else if (data.source === 'inventory') {
+                    // (게임 모드) 인벤토리에서 칠판으로
+                    const student = gameState.students[gameState.currentStudent];
+                    itemData = student.inventoryItems.find(item => item.id === data.id);
+                    if (itemData) {
+                        itemData.isInChalkboard = true;
+                        
+                        if (placeholderIndex !== -1) {
+                            currentChalkboard.splice(placeholderIndex, 0, itemData);
+                        } else {
+                            currentChalkboard.push(itemData);
+                        }
+                    }
+                    renderInventory(); // 게임 모드 인벤토리 렌더링
+                    renderChalkboard(); // 게임 모드 칠판 렌더링
+
+                } else if (data.source === 'chalkboard' && currentDraggingElement) {
+                    // (공통) 칠판 내부에서 순서 변경
+                    itemData = currentChalkboard.find(item => item.id === data.id);
+                    if (itemData) {
+                        const oldIndex = currentChalkboard.findIndex(item => item.id === itemData.id);
+                        currentChalkboard.splice(oldIndex, 1); 
+
+                        let newIndex = placeholderIndex;
+                        if (newIndex !== -1 && oldIndex < newIndex) {
+                            newIndex--; 
+                        }
+
+                        if (newIndex === -1 || newIndex >= currentChalkboard.length) {
+                            currentChalkboard.push(itemData);
+                        } else {
+                            currentChalkboard.splice(newIndex, 0, itemData);
+                        }
+                    }
+                    // 모드에 맞춰 칠판 렌더링
+                    if (isStudyMode) renderStudyChalkboard();
+                    else renderChalkboard();
+                } else {
+                    removePlaceholder();
+                    return; 
+                }
+                
+                removePlaceholder();
+                currentDraggingElement = null; 
+                currentDragSourceContainer = null;
+            });
+            
+            // [수정] isStudyMode 파라미터 추가
+            function createChalkItem(value, inventoryId, itemType, isStudyMode = false) {
+                const itemEl = document.createElement('span');
+                itemEl.className = 'chalk-item draggable';
+                itemEl.textContent = value;
+                itemEl.draggable = true;
+                itemEl.dataset.inventoryId = inventoryId;
+                itemEl.dataset.type = itemType;
+                itemEl.dataset.item = value; 
+
+                itemEl.addEventListener('dragstart', (e) => {
+                    e.stopPropagation();
+                    e.dataTransfer.setData('text/plain', JSON.stringify({ 
+                        value: value, 
+                        id: inventoryId, 
+                        type: itemType,
+                        source: 'chalkboard' // 칠판에서 나가는 건 공통
+                    }));
+                    currentDraggingElement = itemEl;
+                    currentDragSourceContainer = chalkboard; 
+                    setTimeout(() => itemEl.classList.add('opacity-20'), 0);
+                });
+
+                itemEl.addEventListener('dragend', (e) => {
+                    e.stopPropagation();
+                    itemEl.classList.remove('opacity-20');
+                    removePlaceholder(); 
+                    currentDraggingElement = null;
+                    currentDragSourceContainer = null;
+                });
+
+                itemEl.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (itemEl === currentDraggingElement) return;
+                    if (!currentDraggingElement) return;
+
+                    const rect = itemEl.getBoundingClientRect();
+                    const midX = rect.left + rect.width / 2;
+                    if (e.clientX < midX) {
+                        chalkboard.insertBefore(dragPlaceholder, itemEl);
+                    } else {
+                        chalkboard.insertBefore(dragPlaceholder, itemEl.nextSibling);
+                    }
+                    placeholderActive = true;
+                });
+
+                // [수정] 칠판 아이템 클릭: 모드에 따라 다르게 동작
+                itemEl.addEventListener('click', () => {
+                    if (isStudyMode) {
+                        // (공부 모드) 칠판에서 아이템 제거
+                        gameState.studyMode.chalkboard = gameState.studyMode.chalkboard.filter(item => item.id !== inventoryId);
+                        renderStudyChalkboard();
+                    } else {
+                        // (게임 모드) 칠판에서 인벤토리로 되돌리기
+                        const student = gameState.students[gameState.currentStudent];
+                        student.chalkboard = student.chalkboard.filter(item => item.id !== inventoryId);
+                        const itemInInventory = student.inventoryItems.find(item => item.id === inventoryId);
+                        if (itemInInventory) {
+                            itemInInventory.isInChalkboard = false;
+                        }
+                        renderInventory();
+                        renderChalkboard(); 
+                    }
+                });
+                
+                return itemEl;
+            }
+
+            // 칠판 지우기
+            clearChalkboardBtn.addEventListener('click', clearChalkboard);
+
+            // [수정] 모드에 따라 칠판 비우기
+            function clearChalkboard() {
+                if (isStudyMode) {
+                    gameState.studyMode.chalkboard = [];
+                    renderStudyChalkboard();
+                } else {
+                    const student = gameState.students[gameState.currentStudent];
+                    student.inventoryItems.forEach(item => {
+                        if (student.chalkboard.some(chalkItem => chalkItem.id === item.id)) {
+                            item.isInChalkboard = false;
+                        }
+                    });
+                    student.chalkboard = []; 
+                    renderInventory(); 
+                    renderChalkboard(); 
+                }
+                resultDisplay.innerHTML = '<h3 class="font-responsive-title text-yellow-400">= ?</h3>';
+            }
+
+
+            // --- 괄호 자동 변경 로직 ---
+            function updateParentheses() {
+                const items = Array.from(chalkboard.querySelectorAll('.chalk-item'));
+                
+                let currentDepth = 0;
+                let maxDepth = 0;
+                items.forEach(item => {
+                    const originalOp = item.dataset.item;
+                    if (originalOp === '(') {
+                        currentDepth++;
+                        if (currentDepth > maxDepth) {
+                            maxDepth = currentDepth;
+                        }
+                    } else if (originalOp === ')') {
+                        if (currentDepth > 0) {
+                            currentDepth--;
+                        }
+                    }
+                });
+
+                if (maxDepth === 0) return;
+
+                let nestingLevel = 0;
+                const parens = ['()', '{}', '[]']; 
+                const parensLength = parens.length;
+                const effectiveMaxDepth = Math.max(1, maxDepth);
+
+                items.forEach(item => {
+                    const originalOp = item.dataset.item; 
+
+                    if (originalOp === '(') {
+                        let symbolIndex = (effectiveMaxDepth - 1) - nestingLevel;
+                        let finalIndex = ((symbolIndex % parensLength) + parensLength) % parensLength;
+                        
+                        const [open] = parens[finalIndex];
+                        if (item.textContent !== open) item.textContent = open;
+                        nestingLevel++;
+                    } else if (originalOp === ')') {
+                        if (nestingLevel > 0) {
+                            nestingLevel--;
+                            
+                            let symbolIndex = (effectiveMaxDepth - 1) - nestingLevel;
+                            let finalIndex = ((symbolIndex % parensLength) + parensLength) % parensLength;
+
+                            const [, close] = parens[finalIndex];
+                            if (item.textContent !== close) item.textContent = close;
+                        } else {
+                            if (item.textContent !== ')') item.textContent = ')';
+                        }
+                    }
+                });
+            }
+
+            // --- 계산 로직 ---
+            calculateBtn.addEventListener('click', () => {
+                const items = Array.from(chalkboard.querySelectorAll('.chalk-item'));
+                let expression = ""; 
+                let originalExpression = ""; 
+                let resultText = ""; 
+                let resultStatus = "success"; 
+                
+                if (items.length === 0) {
+                    originalExpression = "식이 없습니다!";
+                    resultText = "오류";
+                    resultStatus = "error";
+                    resultDisplay.innerHTML = '<h3 class="font-responsive-title text-red-400">식이 없습니다!</h3>';
+                    
+                } else {
+                    // [수정] 공부 모드에서는 항상 숫자 붙이기 강제
+                    if (isStudyMode || gameState.settings.chalkboard.concatenateNumbers) {
+                        let currentNumStr = "";
+                        for (const item of items) {
+                            const text = item.textContent.trim();
+                            if (item.dataset.type === 'number') {
+                                currentNumStr += text;
+                            } else {
+                                if (currentNumStr.length > 0) {
+                                    expression += currentNumStr;
+                                    currentNumStr = "";
+                                }
+                                expression += text;
+                            }
+                        }
+                        if (currentNumStr.length > 0) expression += currentNumStr;
+                    } else {
+                        expression = items.map(item => item.textContent).join(' ');
+                    }
+
+                    originalExpression = items.map(item => item.textContent).join('');
+                    expression = expression.replace(/×/g, '*').replace(/÷/g, '/');
+                    expression = expression.replace(/[\[{]/g, '(').replace(/[\]}]/g, ')');
+                    
+                    const sanitizedExpression = expression.replace(/\s/g, '');
+                    if (!/^[\d()+\-*/.]*$/.test(sanitizedExpression)) {
+                        expression = "잘못된 문자 포함!"; 
+                        resultText = "오류";
+                        resultStatus = "error";
+                        resultDisplay.innerHTML = `<h3 class="font-responsive-title text-red-400">${expression}</h3>`;
+                        
+                    } else if (sanitizedExpression.includes('()') || sanitizedExpression.includes('++') || sanitizedExpression.includes('--') || sanitizedExpression.includes('**') || sanitizedExpression.includes('//')) {
+                        expression = "잘못된 식입니다!";
+                        resultText = "오류";
+                        resultStatus = "error";
+                        resultDisplay.innerHTML = `<h3 class="font-responsive-title text-red-400">${expression}</h3>`;
+
+                    } else {
+                        try {
+                            // [수정] 공부 모드에서는 숫자 연속 검사 스킵
+                            if (!isStudyMode && !gameState.settings.chalkboard.concatenateNumbers && /\d\s+\d/.test(expression)) {
+                                throw new Error("연산자 없이 숫자가 연속되었습니다.");
+                            }
+                            
+                            let evalExpression = expression.replace(/(\d)\(/g, '$1*('); 
+                            evalExpression = evalExpression.replace(/\)(\d)/g, ')*$1'); 
+                            evalExpression = evalExpression.replace(/\)\(/g, ')*('); 
+                            
+                            const result = new Function('return ' + evalExpression)();
+                            
+                            if (typeof result === 'number' && !isNaN(result)) {
+                                resultText = result.toString();
+                                resultDisplay.innerHTML = `<h3 class="font-responsive-title text-green-400">= ${result}</h3>`;
+                            } else {
+                                originalExpression = "계산 오류!";
+                                resultText = "오류";
+                                resultStatus = "error";
+                                resultDisplay.innerHTML = `<h3 class="font-responsive-title text-red-400">${expression}</h3>`;
+                            }
+                        } catch (error) {
+                            console.error('Calculation error:', error);
+                            
+                            if (error.message === "연산자 없이 숫자가 연속되었습니다.") {
+                                originalExpression = "연산자 없이 숫자가 연속되었습니다.";
+                            } else {
+                                originalExpression = "계산 불가! (식 오류)";
+                            }
+                            resultText = "오류";
+                            resultStatus = "error";
+                            resultDisplay.innerHTML = `<h3 class="font-responsive-title text-red-400">${originalExpression}</h3>`; 
+                        }
+                    }
+                }
+                
+                showResultStepsModal(originalExpression, resultText, resultStatus);
+            });
+            
+            function showResultStepsModal(originalExpr, result, status) {
+                stepsExpression.textContent = originalExpr;
+                stepsResult.textContent = result;
+                stepsList.innerHTML = ''; 
+
+                if (status === 'error') {
+                    stepsResult.classList.remove('text-green-400');
+                    stepsResult.classList.add('text-red-400');
+                    stepsExpression.classList.add('text-red-400');
+                } else {
+                    stepsResult.classList.remove('text-red-400');
+                    stepsResult.classList.add('text-green-400');
+                    stepsExpression.classList.remove('text-red-400');
+                    
+                    let steps = [];
+                    const hasParen = originalExpr.match(/[(){}\[\]]/);
+                    const hasMulDiv = originalExpr.match(/[\×\÷]/);
+                    const hasAddSub = originalExpr.match(/[+\-]/); 
+
+                    if (hasParen) steps.push('<li>괄호 안의 식을 먼저 계산합니다.</li>');
+                    if (hasMulDiv) steps.push(`<li>곱셈(×)과 나눗셈(÷)을 계산합니다.</li>`);
+                    if (hasAddSub) steps.push(`<li>덧셈(+)과 뺄셈(-)을 계산합니다.</li>`);
+                    
+                    if (steps.length === 0 && result !== "오류") {
+                        steps.push('<li>식이 완성되었습니다.</li>');
+                    }
+
+                    stepsList.innerHTML = steps.map((step, index) => {
+                        return step.replace('<li>', `<li><span class="font-bold mr-1">${index + 1}.</span>`);
+                    }).join('');
+                }
+                
+                resultStepsModal.classList.remove('hidden');
+                resultStepsModal.classList.add('flex');
+            }
+            
+            closeStepsBtn.addEventListener('click', () => {
+                resultStepsModal.classList.add('hidden');
+                resultStepsModal.classList.remove('flex');
+            });
+
+
+            // --- 설정 모달 로직 (게임 모드 전용) ---
+            function openSettingsModal() {
+                // 숫자
+                const numSettings = gameState.settings.number;
+                numMinInput.value = numSettings.min;
+                numMaxInput.value = numSettings.max;
+                numDuplicatesInput.checked = numSettings.allowDuplicates;
+                numCustomInput.value = numSettings.customList.join(', ');
+                numModeRange.checked = numSettings.mode === 'range';
+                numModeCustom.checked = numSettings.mode === 'custom';
+                numScopeStudent.checked = numSettings.customScope === 'student'; 
+                numScopeGlobal.checked = numSettings.customScope === 'global'; 
+
+                // 기호
+                const opSettings = gameState.settings.operator;
+                opCustomInput.value = opSettings.customList.join(', ');
+                opRandomInput.checked = opSettings.random;
+                renderOperatorChecklist(); 
+                opModeChecklist.checked = opSettings.mode === 'checklist';
+                opModeCustom.checked = opSettings.mode === 'custom';
+                opScopeStudent.checked = opSettings.customScope === 'student'; 
+                opScopeGlobal.checked = opSettings.customScope === 'global'; 
+                
+                // 칠판
+                chalkConcatNumsInput.checked = gameState.settings.chalkboard.concatenateNumbers;
+
+                updateRadioOptionsVisibility();
+                settingsModal.classList.remove('hidden');
+                settingsModal.classList.add('flex');
+            }
+
+            document.querySelectorAll('input[name="num-mode"], input[name="op-mode"]').forEach(radio => {
+                radio.addEventListener('change', updateRadioOptionsVisibility);
+            });
+
+            function updateRadioOptionsVisibility() {
+                document.querySelectorAll('.settings-options').forEach(opt => opt.style.display = 'none');
+                document.querySelectorAll('input[type="radio"]:checked + label + .settings-options').forEach(opt => opt.style.display = 'block');
+            }
+
+            function renderOperatorChecklist() {
+                opChecklist.innerHTML = '';
+                gameState.availableOperators.forEach(op => {
+                    const isParenSet = op === '( )';
+                    const isChecked = isParenSet ? 
+                        gameState.settings.operator.checklist.includes('(') : 
+                        gameState.settings.operator.checklist.includes(op);
+                        
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center';
+                    div.innerHTML = `
+                        <input type="checkbox" id="op-${op}" value="${op}" class="op-check w-5 h-5 mr-2 bg-gray-700 border-gray-600" ${isChecked ? 'checked' : ''}>
+                        <label for="op-${op}" class="font-responsive-small text-2xl">${op}</label>
+                    `;
+                    opChecklist.appendChild(div);
+                });
+            }
+
+            function closeSettingsModal() {
+                settingsModal.classList.add('hidden');
+                settingsModal.classList.remove('flex');
+            }
+
+            function saveSettings() {
+                // 숫자
+                gameState.settings.number.mode = document.querySelector('input[name="num-mode"]:checked').value;
+                gameState.settings.number.min = parseInt(numMinInput.value) || 1;
+                gameState.settings.number.max = parseInt(numMaxInput.value) || 9;
+                gameState.settings.number.allowDuplicates = numDuplicatesInput.checked;
+                gameState.settings.number.customList = numCustomInput.value.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+                gameState.settings.number.customScope = document.querySelector('input[name="num-scope"]:checked').value; 
+
+                // 기호
+                gameState.settings.operator.mode = document.querySelector('input[name="op-mode"]:checked').value;
+                gameState.settings.operator.random = opRandomInput.checked;
+                
+                const checkedOperators = [];
+                opChecklist.querySelectorAll('.op-check:checked').forEach(cb => {
+                    const value = cb.value;
+                    if (value === '( )') {
+                        checkedOperators.push('(');
+                        checkedOperators.push(')');
+                    } else {
+                        checkedOperators.push(value);
+                    }
+                });
+                gameState.settings.operator.checklist = checkedOperators;
+                
+                gameState.settings.operator.customList = opCustomInput.value.split(',')
+                    .map(s => s.trim())
+                    .filter(s => s.length > 0);
+                gameState.settings.operator.customScope = document.querySelector('input[name="op-scope"]:checked').value; 
+                
+                // 칠판
+                gameState.settings.chalkboard.concatenateNumbers = chalkConcatNumsInput.checked;
+
+                populateCustomPools(); 
+                closeSettingsModal();
+            }
+
+            function populateCustomPools() {
+                const numSettings = gameState.settings.number;
+                const opSettings = gameState.settings.operator;
+
+                // 1. (GLOBAL)
+                gameState.drawBoxCustomNumbers = [...numSettings.customList];
+                gameState.drawBoxCustomOperators = [];
+                opSettings.customList.forEach(op => {
+                    if (op === '( )') { 
+                        gameState.drawBoxCustomOperators.push('(');
+                        gameState.drawBoxCustomOperators.push(')');
+                    } else {
+                        gameState.drawBoxCustomOperators.push(op);
+                    }
+                });
+
+                // 2. (STUDENT)
+                for (const studentName in gameState.students) {
+                    const student = gameState.students[studentName];
+                    student.privateCustomNumPool = [...numSettings.customList];
+                    student.privateCustomOpPool = [];
+                    opSettings.customList.forEach(op => {
+                        if (op === '( )') { 
+                            student.privateCustomOpPool.push('(');
+                            student.privateCustomOpPool.push(')');
+                        } else {
+                            student.privateCustomOpPool.push(op);
+                        }
+                    });
+                }
+            }
+
+            // [수정] 빠진 리스너 3줄 다시 추가
+            openSettingsBtns.forEach(btn => btn.addEventListener('click', openSettingsModal));
+            closeSettingsBtn.addEventListener('click', closeSettingsModal);
+            saveSettingsBtn.addEventListener('click', saveSettings);
+
+            // --- 유틸리티 함수 ---
+            function showTempMessage(element, message, color = 'green') {
+                const originalBorder = element.style.borderColor;
+                const borderColor = color === 'red' ? '#f87171' : '#34d399';
+                element.style.borderColor = borderColor;
+                element.style.boxShadow = `0 0 10px ${borderColor}`;
+                
+                let msgEl = element.parentNode.querySelector('.temp-message');
+                if (!msgEl) {
+                    msgEl = document.createElement('div');
+                    msgEl.className = 'font-responsive-small mt-2 temp-message';
+                    element.parentNode.insertBefore(msgEl, element.nextSibling);
+                }
+                msgEl.textContent = message;
+                msgEl.style.color = borderColor;
+
+                setTimeout(() => {
+                    element.style.borderColor = originalBorder;
+                    element.style.boxShadow = 'none';
+                    msgEl.remove();
+                }, 2000);
+            }
+
+            // --- 초기화 ---
+            openSettingsModal(); 
+            closeSettingsModal(); 
+            showScreen('opening-screen');
+
+        });
+    </script>
+
+</body>
+</html>
