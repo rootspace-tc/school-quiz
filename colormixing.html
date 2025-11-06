@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>색 혼합 배우기</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vanilla-picker@2.1.2/dist/vanilla-picker.min.css">
+    
+    <style>
+        /* CSS: 전체적인 디자인 */
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: 'Jua', sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            overflow: hidden;
+        }
+
+        body {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            grid-template-areas:
+                "header"
+                "main"
+                "palette";
+            gap: 15px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            grid-area: header;
+            text-align: center;
+            margin: 0;
+            font-size: 2.5rem;
+            color: #2c3e50;
+        }
+
+        /* 메인 영역: 문제와 캔버스 */
+        .main-container {
+            grid-area: main;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            min-height: 0; /* 그리드/플렉스 아이템이 부모를 넘어가지 않도록 함 */
+        }
+
+        /* 문제 및 정답 영역 (왼쪽) */
+        .problem-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* 세로 중앙 정렬 */
+            gap: 20px;
+            padding: 25px;
+            background: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            text-align: center; /* 내부 요소들을 중앙 정렬 */
+        }
+
+        .problem-container h2 {
+            margin: 0;
+            font-size: 1.8rem;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px; /* 제목과 색상 견본 사이 간격 */
+        }
+
+        /* '물감 튄 자국' 디자인 */
+        .splotch {
+            width: 180px; /* 문제 색상 크기 조정 */
+            height: 180px;
+            margin: 0 auto; /* 가로 중앙 정렬 */
+            border: 3px solid rgba(0,0,0,0.1);
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+            
+            border-radius: 40% 60% 70% 30% / 30% 50% 50% 70%;
+            transition: all 0.3s ease;
+        }
+
+        #problem-swatch {
+            background-color: #ccc;
+        }
+
+        #answer-container {
+            display: none; /* 초기에는 숨김 */
+            margin-top: 20px;
+        }
+        
+        #answer-container h3 {
+            font-size: 1.5rem;
+            margin: 10px 0;
+        }
+
+        .answer-swatches {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        /* 정답 색상 견본 (작은 원) */
+        .answer-swatch {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* 캔버스 영역 (오른쪽) */
+        .canvas-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 20px;
+            position: relative; /* 캔버스 위 오버레이를 위해 */
+        }
+
+        #mix-canvas {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            background-color: #fff; /* 캔버스 자체의 배경(흰 종이) */
+            cursor: crosshair; /* 붓 모양 커서 */
+        }
+
+        .canvas-overlay-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.8rem;
+            color: rgba(0,0,0,0.3);
+            text-align: center;
+            pointer-events: none; /* 캔버스 클릭에 방해되지 않도록 */
+        }
+
+        /* 팔레트 영역 (하단) */
+        .palette-container {
+            grid-area: palette;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+            align-items: center;
+        }
+
+        /* 컬러 피커 컨테이너 */
+        .color-picker-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #picker-wrapper {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        #color-picker-target {
+            width: 100px;
+            height: 100px;
+            border: 2px solid #eee;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+            border-radius: 50%; /* 피커 버튼은 원형으로 */
+        }
+        
+        .current-color {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #current-swatch {
+            width: 100px;
+            height: 100px;
+            background-color: rgb(128, 128, 128);
+            border-radius: 55% 45% 30% 70% / 50% 60% 40% 50%;
+            border: 2px solid #eee;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .paint-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 100%;
+        }
+
+        button {
+            font-family: 'Jua', sans-serif;
+            font-size: 1.2rem;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: white;
+            flex-grow: 1;
+        }
+
+        #paint-1-btn { background-color: #3498db; }
+        #paint-2-btn { background-color: #e67e22; }
+        #check-btn   { background-color: #2ecc71; }
+        #next-btn    { background-color: #9b59b6; display: none; }
+
+        button:hover {
+            opacity: 0.85;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            opacity: 0.7;
+        }
+
+        #result-text {
+            font-size: 1.5rem;
+            color: #34495e;
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>🎨 물감 색 혼합 배우기 🎨</h1>
+
+    <main class="main-container">
+
+        <section class="problem-container">
+            <h2>문제의 색상</h2>
+            <div id="problem-swatch" class="splotch"></div>
+            
+            <div id="result-area">
+                <p id="result-text"></p>
+                <div id="answer-container">
+                    <h3>정답 조합</h3>
+                    <div class="answer-swatches">
+                        <div id="answer-1" class="answer-swatch"></div>
+                        <div id="answer-2" class="answer-swatch"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="canvas-container">
+            <h2>나의 캔버스 (흰 종이)</h2>
+            <canvas id="mix-canvas" width="600" height="400"></canvas>
+            <div class="canvas-overlay-text" id="canvas-overlay">
+                여기에 물감을 칠해 보세요!
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="palette-container">
+        
+        <div class="color-picker-container">
+            <div id="color-picker-target" style="background-color: rgb(128,128,128);"></div>
+            <span>클릭하여 색상 선택</span>
+        </div>
+
+        <div class="current-color">
+            <div id="current-swatch"></div>
+            <span>현재 선택한 색</span>
+        </div>
+
+        <div class="paint-actions">
+            <button id="paint-1-btn" data-color-target="1">1. 첫 번째 색 칠하기</button>
+            <button id="paint-2-btn" data-color-target="2" disabled>2. 두 번째 색 칠하기</button>
+            <button id="check-btn" disabled>3. 정답 확인하기</button>
+            <button id="next-btn">다음 문제</button>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/vanilla-picker@2.1.2/dist/vanilla-picker.min.js"></script>
+
+    <script>
+        // JavaScript: 게임 로직
+        window.onload = function() {
+            
+            // --- 1. 전역 변수 및 DOM 요소 가져오기 ---
+            const canvas = document.getElementById('mix-canvas');
+            const ctx = canvas.getContext('2d');
+            const canvasOverlay = document.getElementById('canvas-overlay');
+
+            // 팔레트
+            const colorPickerTarget = document.getElementById('color-picker-target');
+            const currentSwatch = document.getElementById('current-swatch');
+
+            // 문제
+            const problemSwatch = document.getElementById('problem-swatch');
+            
+            // 버튼
+            const paint1Btn = document.getElementById('paint-1-btn');
+            const paint2Btn = document.getElementById('paint-2-btn');
+            const checkBtn = document.getElementById('check-btn');
+            const nextBtn = document.getElementById('next-btn');
+
+            // 결과
+            const resultText = document.getElementById('result-text');
+            const answerContainer = document.getElementById('answer-container');
+            const answer1 = document.getElementById('answer-1');
+            const answer2 = document.getElementById('answer-2');
+
+            // 게임 상태 변수
+            let color1Paintings = []; // 사용자가 칠한 첫 번째 색상 물감 자국들
+            let color2Paintings = []; // 사용자가 칠한 두 번째 색상 물감 자국들
+            let problemColor = null; // 문제로 출제된 색
+            let correctColor1 = null; // 정답 1
+            let correctColor2 = null; // 정답 2
+            let activePaintingColorTarget = null; // 현재 칠하고 있는 색상 (1 또는 2)
+            let selectedColor = { r: 128, g: 128, b: 128 }; // 현재 선택된 색상 (초기값)
+
+            let isPainting = false; // 마우스 드래그 중인지
+            let lastX, lastY; // 마지막 마우스 위치
+
+            // 문제 은행 (감산 혼합에서 잘 섞이는 색상 위주)
+            const baseColors = [
+                { r: 255, g: 0, b: 0 },    // 빨강 (Magenta-ish)
+                { r: 0, g: 255, b: 0 },    // 초록 (Yellow-ish)
+                { r: 0, g: 0, b: 255 },    // 파랑 (Cyan-ish)
+                { r: 255, g: 255, b: 0 }, // 노랑 (R+G)
+                { r: 0, g: 255, b: 255 }, // 시안 (G+B)
+                { r: 255, g: 0, b: 255 }, // 마젠타 (R+B)
+                { r: 255, g: 128, b: 0 }, // 주황
+                { r: 128, g: 0, b: 128 }, // 보라
+                { r: 0, g: 128, b: 0 },    // 중간 초록
+            ];
+
+            // --- 2. 헬퍼 함수 ---
+
+            /** RGB 객체를 CSS 문자열 "rgb(r, g, b)"로 변환 */
+            function rgbToCss(rgb) {
+                return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+            }
+
+            /**
+             * 두 색상을 감산 혼합(Multiply)합니다.
+             * 물감 혼합의 원리: (C1 * C2) / 255
+             */
+            function subtractiveMix(c1, c2) {
+                return {
+                    r: Math.round((c1.r * c2.r) / 255),
+                    g: Math.round((c1.g * c2.g) / 255),
+                    b: Math.round((c1.b * c2.b) / 255)
+                };
+            }
+
+            /** * 두 RGB 색상 간의 유사도를 계산합니다 (0-100%)
+             * 3D RGB 공간에서의 유클리드 거리를 사용합니다.
+             */
+            function calculateColorSimilarity(rgb1, rgb2) {
+                const deltaR = rgb1.r - rgb2.r;
+                const deltaG = rgb1.g - rgb2.g;
+                const deltaB = rgb1.b - rgb2.b;
+
+                // 3D 공간에서의 거리 계산
+                const distance = Math.sqrt(deltaR * deltaR + deltaG * deltaG + deltaB * deltaB);
+
+                // 최대 가능한 거리 (검정[0,0,0] vs 흰색[255,255,255])
+                const maxDistance = Math.sqrt(3 * (255 * 255)); // 약 441.67
+
+                // 거리를 유사도(%)로 변환 (거리가 0이면 100% 유사)
+                const similarity = (1 - (distance / maxDistance)) * 100;
+                return similarity.toFixed(1); // 소수점 첫째 자리까지
+            }
+
+            /** 비정형 물감 자국 그리기 함수 */
+            function drawSplotch(context, x, y, size, color, rotation = 0) {
+                context.save();
+                context.translate(x, y);
+                context.rotate(rotation);
+                context.fillStyle = rgbToCss(color);
+                
+                context.beginPath();
+                // 복잡한 bezier 곡선으로 비정형 모양 생성
+                context.moveTo(0, -size / 2);
+                context.bezierCurveTo(size / 3, -size / 2, size / 2, -size / 4, size / 2, 0);
+                context.bezierCurveTo(size / 2, size / 4, size / 3, size / 2, 0, size / 2);
+                context.bezierCurveTo(-size / 3, size / 2, -size / 2, size / 4, -size / 2, 0);
+                context.bezierCurveTo(-size / 2, -size / 4, -size / 3, -size / 2, 0, -size / 2);
+                context.closePath();
+                context.fill();
+                context.restore();
+            }
+
+            // --- 3. 핵심 게임 로직 함수 ---
+
+            /** 새 문제를 생성 */
+            function generateProblem() {
+                // 1. 문제 색상 2개 무작위 선택 (겹치지 않게, 너무 어둡지 않은 색 위주로)
+                let availableColors = baseColors.filter(c => (c.r > 50 && c.g > 50 && c.b > 50) || (c.r > 100 || c.g > 100 || c.b > 100)); // 너무 어두운 색은 제외
+                if (availableColors.length < 2) availableColors = baseColors; // 최소한의 색상 보장
+
+                let index1 = Math.floor(Math.random() * availableColors.length);
+                let index2 = index1;
+                while (index2 === index1) {
+                    index2 = Math.floor(Math.random() * availableColors.length);
+                }
+                
+                correctColor1 = availableColors[index1];
+                correctColor2 = availableColors[index2];
+
+                // 2. 두 색을 혼합하여 문제 색상(problemColor) 생성
+                problemColor = subtractiveMix(correctColor1, correctColor2);
+                
+                // 혼합된 색이 너무 어두우면 다시 생성 (예: 빨강 + 초록 + 파랑 -> 거의 검정)
+                // 평균 밝기가 너무 낮으면 다시 시도
+                const avgBrightness = (problemColor.r + problemColor.g + problemColor.b) / 3;
+                if (avgBrightness < 50) { // 너무 어둡다면 다시
+                    console.log("Generated too dark, retrying problem...");
+                    generateProblem();
+                    return;
+                }
+
+                // 3. UI 업데이트
+                problemSwatch.style.backgroundColor = rgbToCss(problemColor);
+
+                // 4. 상태 초기화
+                color1Paintings = [];
+                color2Paintings = [];
+                activePaintingColorTarget = null;
+                drawCanvas(); // 캔버스 비우기
+
+                resultText.textContent = '';
+                answerContainer.style.display = 'none';
+                checkBtn.disabled = true;
+                paint1Btn.disabled = false;
+                paint2Btn.disabled = true;
+                paint1Btn.textContent = '1. 첫 번째 색 칠하기';
+                paint2Btn.textContent = '2. 두 번째 색 칠하기';
+                checkBtn.style.display = 'block'; // 정답 확인 버튼은 다시 보이게
+                nextBtn.style.display = 'none';
+                canvasOverlay.textContent = '여기에 물감을 칠해 보세요!';
+            }
+
+            /** 현재 선택된 색상 견본 업데이트 */
+            function updateCurrentColorSwatch() {
+                currentSwatch.style.backgroundColor = rgbToCss(selectedColor);
+                colorPickerTarget.style.backgroundColor = rgbToCss(selectedColor); // 피커 버튼 색상도 업데이트
+            }
+            
+            // --- 캔버스 드로잉 이벤트 핸들러 ---
+            function startPainting(e) {
+                if (!activePaintingColorTarget) return; // 칠하기 버튼을 누르지 않았으면 동작 안 함
+
+                isPainting = true;
+                const rect = canvas.getBoundingClientRect();
+                lastX = e.clientX - rect.left;
+                lastY = e.clientY - rect.top;
+
+                addSplotch(lastX, lastY); // 첫 클릭 시 물감 자국 하나 추가
+            }
+
+            function paint(e) {
+                if (!isPainting || !activePaintingColorTarget) return;
+
+                const rect = canvas.getBoundingClientRect();
+                const currentX = e.clientX - rect.left;
+                const currentY = e.clientY - rect.top;
+
+                const distance = Math.sqrt(Math.pow(currentX - lastX, 2) + Math.pow(currentY - lastY, 2));
+                if (distance > 15) { // 일정 거리 이상 이동해야 새 자국 추가 (조금 더 넓게 칠해지도록)
+                    addSplotch(currentX, currentY);
+                    lastX = currentX;
+                    lastY = currentY;
+                }
+            }
+
+            function stopPainting() {
+                if (isPainting) { // 드래그가 끝났을 때만
+                    isPainting = false;
+                    
+                    // 칠하기 중인 색상 타겟을 비활성화 (버튼 눌러야만 다시 칠할 수 있도록)
+                    // activePaintingColorTarget = null; // 이 부분을 주석 처리하여, 한 번 누른 색상은 계속 칠할 수 있도록 함
+                    
+                    // 색상이 칠해졌으면 다음 단계 버튼 활성화
+                    if (color1Paintings.length > 0) paint2Btn.disabled = false;
+                    if (color1Paintings.length > 0 && color2Paintings.length > 0) checkBtn.disabled = false;
+
+                    // 버튼 텍스트 원상 복구
+                    if (activePaintingColorTarget === 1) {
+                        paint1Btn.textContent = '1. 첫 번째 색 칠하기 완료';
+                        paint1Btn.disabled = true; // 첫 번째 색은 한 번만 칠하도록
+                    } else if (activePaintingColorTarget === 2) {
+                        paint2Btn.textContent = '2. 두 번째 색 칠하기 완료';
+                        paint2Btn.disabled = true; // 두 번째 색도 한 번만 칠하도록
+                    }
+                    canvasOverlay.textContent = '물감이 칠해졌습니다. 다음 단계를 진행해주세요.';
+                }
+            }
+
+            function addSplotch(x, y) {
+                const size = Math.random() * 60 + 80; // 80px ~ 140px 크기
+                const rotation = Math.random() * Math.PI * 2; // 무작위 회전
+                const newSplotch = { x, y, size, color: selectedColor, rotation };
+
+                if (activePaintingColorTarget === 1) {
+                    color1Paintings.push(newSplotch);
+                } else if (activePaintingColorTarget === 2) {
+                    color2Paintings.push(newSplotch);
+                }
+                drawCanvas();
+            }
+
+            /** 캔버스에 모든 물감 자국 그리기 */
+            function drawCanvas() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // 캔버스 전체 지우기
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvas.width, canvas.height); // 흰 종이 배경
+
+                // 첫 번째 색상 물감 자국들 그리기 (기본 모드)
+                ctx.globalCompositeOperation = 'source-over';
+                color1Paintings.forEach(p => {
+                    drawSplotch(ctx, p.x, p.y, p.size, p.color, p.rotation);
+                });
+
+                // 두 번째 색상 물감 자국들 그리기 (감산 혼합 모드)
+                if (color2Paintings.length > 0) {
+                    // 이 부분이 핵심: 두 번째 색상을 그릴 때 'multiply' 모드로 설정
+                    ctx.globalCompositeOperation = 'multiply';
+                    color2Paintings.forEach(p => {
+                        drawSplotch(ctx, p.x, p.y, p.size, p.color, p.rotation);
+                    });
+                }
+                // 다음 그림을 위해 항상 'source-over'로 복원
+                ctx.globalCompositeOperation = 'source-over'; 
+
+                // 캔버스 오버레이 텍스트 표시 여부
+                if (color1Paintings.length === 0 && color2Paintings.length === 0) {
+                    canvasOverlay.style.display = 'block';
+                } else {
+                    canvasOverlay.style.display = 'none';
+                }
+            }
+            
+            /** '색 칠하기' 버튼 클릭 시 */
+            function handlePaintButtonClick(targetNumber) {
+                // 현재 칠하고 있는 색상 타겟을 설정
+                activePaintingColorTarget = targetNumber;
+                canvasOverlay.textContent = `${targetNumber}번째 물감을 캔버스에 칠해주세요! 마우스를 클릭하고 드래그하세요.`;
+
+                // 칠하기 시작 버튼을 누르면 다른 버튼들을 비활성화하고, 현재 칠하는 버튼의 텍스트를 변경
+                paint1Btn.disabled = (targetNumber === 1); // 1번 칠하기 중이면 1번 버튼 비활성화 (새로운 칠하기 막음)
+                paint2Btn.disabled = (targetNumber === 2) || (color1Paintings.length === 0); // 2번 칠하기 중이거나 1번 칠 안했으면 2번 비활성화
+                checkBtn.disabled = true;
+                nextBtn.disabled = true;
+
+                if (targetNumber === 1) {
+                    paint1Btn.textContent = '1. 칠하는 중...';
+                } else { // targetNumber === 2
+                    paint2Btn.textContent = '2. 칠하는 중...';
+                }
+            }
+
+            /** '정답 확인' 버튼 클릭 시 */
+            function checkAnswer() {
+                if (color1Paintings.length === 0 || color2Paintings.length === 0) {
+                    alert('두 가지 색을 모두 캔버스에 칠해야 합니다!');
+                    return;
+                }
+
+                // 캔버스의 최종 혼합된 색을 픽셀 데이터로 추출
+                // 캔버스를 임시로 복제하여 최종 결과 색상을 얻습니다.
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                tempCtx.fillStyle = '#FFFFFF';
+                tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+                tempCtx.globalCompositeOperation = 'source-over';
+                color1Paintings.forEach(p => {
+                    drawSplotch(tempCtx, p.x, p.y, p.size, p.color, p.rotation);
+                });
+
+                tempCtx.globalCompositeOperation = 'multiply';
+                color2Paintings.forEach(p => {
+                    drawSplotch(tempCtx, p.x, p.y, p.size, p.color, p.rotation);
+                });
+                tempCtx.globalCompositeOperation = 'source-over';
+
+                // 캔버스의 중앙 부분 픽셀 평균 색상 추출 (겹치는 부분)
+                // 겹치는 영역을 대략적으로 잡아 중앙 부분의 픽셀을 샘플링
+                const sampleAreaX1 = canvas.width / 4;
+                const sampleAreaY1 = canvas.height / 4;
+                const sampleAreaX2 = canvas.width * 3 / 4;
+                const sampleAreaY2 = canvas.height * 3 / 4;
+
+                const imageData = tempCtx.getImageData(sampleAreaX1, sampleAreaY1, sampleAreaX2 - sampleAreaX1, sampleAreaY2 - sampleAreaY1).data;
+                let rSum = 0, gSum = 0, bSum = 0, pixelCount = 0;
+
+                for (let i = 0; i < imageData.length; i += 4) {
+                    const r = imageData[i];
+                    const g = imageData[i + 1];
+                    const b = imageData[i + 2];
+                    const a = imageData[i + 3];
+
+                    // 투명하지 않고 (완전 흰색이 아닌) 색상 픽셀만 계산
+                    if (a > 0 && !(r === 255 && g === 255 && b === 255)) { 
+                        rSum += r;
+                        gSum += g;
+                        bSum += b;
+                        pixelCount++;
+                    }
+                }
+
+                let userMixedColor = { r: 255, g: 255, b: 255 }; // 기본 흰색
+                if (pixelCount > 0) {
+                    userMixedColor = {
+                        r: Math.round(rSum / pixelCount),
+                        g: Math.round(gSum / pixelCount),
+                        b: Math.round(bSum / pixelCount)
+                    };
+                } else {
+                    alert('캔버스에 물감이 충분히 칠해지지 않았거나 겹치는 부분이 없습니다. 더 넓게 칠하거나 겹쳐서 칠해 보세요.');
+                    return;
+                }
+
+                // 2. 사용자의 혼합 색과 문제의 색 비교
+                const similarity = calculateColorSimilarity(userMixedColor, problemColor);
+
+                // 3. 결과 표시
+                resultText.textContent = `문제의 색과 ${similarity}% 일치합니다!`;
+                
+                // 4. 정답 공개
+                answer1.style.backgroundColor = rgbToCss(correctColor1);
+                answer2.style.backgroundColor = rgbToCss(correctColor2);
+                answerContainer.style.display = 'block';
+
+                // 5. 버튼 상태 변경
+                checkBtn.style.display = 'none';
+                nextBtn.style.display = 'block';
+                paint1Btn.disabled = true;
+                paint2Btn.disabled = true;
+                activePaintingColorTarget = null;
+                canvasOverlay.textContent = '정답을 확인했습니다. 다음 문제로 진행해주세요!';
+            }
+
+            // --- 4. 이벤트 리스너 연결 ---
+            
+            // Vanilla Picker 초기화
+            const picker = new Picker({
+                parent: colorPickerTarget,
+                popup: 'right', // 팝업 위치
+                color: selectedColor,
+                alpha: false, // 투명도 조절 비활성화
+                onDone: function(color) {
+                    selectedColor = color.rgb; // Picker에서 선택된 색상 저장
+                    updateCurrentColorSwatch(); // 선택 색상 견본 업데이트
+                }
+            });
+
+            // 초기 Picker 버튼 및 현재 색상 견본 업데이트
+            updateCurrentColorSwatch();
+
+
+            // 캔버스 드로잉 이벤트
+            canvas.addEventListener('mousedown', startPainting);
+            canvas.addEventListener('mouseup', stopPainting);
+            canvas.addEventListener('mouseout', stopPainting); // 캔버스 밖으로 나가면 드래그 중단
+            canvas.addEventListener('mousemove', paint);
+
+            // 버튼
+            paint1Btn.addEventListener('click', () => handlePaintButtonClick(1));
+            paint2Btn.addEventListener('click', () => handlePaintButtonClick(2));
+            checkBtn.addEventListener('click', checkAnswer);
+            nextBtn.addEventListener('click', generateProblem);
+
+            // --- 5. 게임 시작 ---
+            generateProblem(); // 첫 번째 문제 출제
+        };
+    </script>
+
+</body>
+</html>
