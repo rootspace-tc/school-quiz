@@ -156,7 +156,7 @@
             flex-wrap: wrap; /* 창이 좁을 때 줄바꿈 */
         }
         #turn-indicator {
-            font-size: 2.5rem;
+            font-size: 4rem;
             font-weight: bold;
             animation: pulse 2s infinite;
         }
@@ -500,9 +500,7 @@
             
             <div id="hint-display">
                 <span id="turn-indicator">Red Team 턴</span>
-                <br>
-                <span>힌트: <b id="hint-word-display">-</b> / 횟수: <b id="hint-count-display">-</b></span>
-            </div>
+                <!-- 힌트 및 횟수 표시는 제거됩니다 --></div>
             
             <div id="right-controls">
                 <span id="font-controls">
@@ -1077,14 +1075,13 @@
             passTurn();
         });
         
-        function passTurn() {
+       function passTurn() {
             currentTurn = (currentTurn === 'red') ? 'blue' : 'red';
             guessesLeft = 0;
             selectedStudent = null;
             document.querySelectorAll('.student-name.selected').forEach(el => el.classList.remove('selected'));
             updateTurnIndicator();
-            document.getElementById('hint-word-display').textContent = "-";
-            document.getElementById('hint-count-display').textContent = "-";
+            // 힌트 및 횟수 표시 기능이 제거되었으므로 관련 코드도 삭제합니다.
         }
 
         function updateTurnIndicator() {
