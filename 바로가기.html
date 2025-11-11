@@ -236,7 +236,7 @@
         
         <div id="breadcrumbs" class=""><span class="breadcrumb-link">Home</span><span class="breadcrumb-separator">&gt;</span><span>자투리 놀이</span></div>
 
-        <ul id="link-list"><li draggable="true" class="link-item" style="background-color: rgb(255, 173, 173);">치킨 레이스</li><li draggable="true" class="link-item" style="background-color: rgb(255, 214, 165);">다른 도형 찾기</li><li draggable="true" class="link-item" style="background-color: rgb(253, 255, 182);">크리처 카운터</li><li draggable="true" class="link-item" style="background-color: rgb(202, 255, 191);">동물 모양 찾기</li><li draggable="true" class="link-item" style="background-color: rgb(155, 246, 255);">기억력 게임</li><li draggable="true" class="link-item" style="background-color: rgb(160, 196, 255);">공 튕기기</li><li draggable="true" class="link-item" style="background-color: rgb(189, 178, 255);">햄버거 만들기</li><li draggable="true" class="link-item" style="background-color: rgb(255, 198, 255);">숫자야구(네자리)</li><li draggable="true" class="link-item" style="background-color: rgb(255, 173, 173);">배틀쉽</li><li draggable="true" class="link-item" style="background-color: rgb(255, 214, 165);">방탈출</li><li draggable="true" class="link-item" style="background-color: rgb(253, 255, 182);">폭탄 피하기</li><li draggable="true" class="link-item" style="background-color: rgb(202, 255, 191);">도블(스마트폰 가능 버전)</li><li draggable="true" class="link-item" style="background-color: rgb(155, 246, 255);">도블</li><li draggable="true" class="link-item" style="background-color: rgb(160, 196, 255);">타일 매칭 게임</li><li draggable="true" class="link-item" style="background-color: rgb(189, 178, 255);">야찌 게임</li><li draggable="true" class="link-item" style="background-color: rgb(255, 198, 255);">코드네임</li><li id="add-btn" class="link-item">+</li></ul>
+        <ul id="link-list"><li draggable="true" class="link-item" style="background-color: rgb(255, 173, 173);">치킨 레이스</li><li draggable="true" class="link-item" style="background-color: rgb(255, 214, 165);">다른 도형 찾기</li><li draggable="true" class="link-item" style="background-color: rgb(253, 255, 182);">크리처 카운터</li><li draggable="true" class="link-item" style="background-color: rgb(202, 255, 191);">동물 모양 찾기</li><li draggable="true" class="link-item" style="background-color: rgb(155, 246, 255);">기억력 게임</li><li draggable="true" class="link-item" style="background-color: rgb(160, 196, 255);">공 튕기기</li><li draggable="true" class="link-item" style="background-color: rgb(189, 178, 255);">햄버거 만들기</li><li draggable="true" class="link-item" style="background-color: rgb(255, 198, 255);">숫자야구(네자리)</li><li draggable="true" class="link-item" style="background-color: rgb(255, 173, 173);">배틀쉽</li><li draggable="true" class="link-item" style="background-color: rgb(255, 214, 165);">방탈출</li><li draggable="true" class="link-item" style="background-color: rgb(253, 255, 182);">폭탄 피하기</li><li draggable="true" class="link-item" style="background-color: rgb(202, 255, 191);">도블(스마트폰 가능 버전)</li><li draggable="true" class="link-item" style="background-color: rgb(155, 246, 255);">도블</li><li draggable="true" class="link-item" style="background-color: rgb(160, 196, 255);">타일 매칭 게임</li><li draggable="true" class="link-item" style="background-color: rgb(189, 178, 255);">야찌 게임</li><li draggable="true" class="link-item" style="background-color: rgb(255, 198, 255);">코드네임</li><li draggable="true" class="link-item" style="background-color: rgb(255, 173, 173);">추리 게임</li><li id="add-btn" class="link-item">+</li></ul>
 
         <div class="button-container">
             <button id="reorder-mode-btn" class="">↔️ 순서 변경 모드</button>
@@ -267,10 +267,10 @@
 
     <div id="action-modal" class="modal" style="display: none;">
         <div class="modal-content">
-            <h2 id="action-title">자투리 놀이</h2>
+            <h2 id="action-title">추리 게임</h2>
             <div class="modal-buttons">
-                <button id="action-primary-btn" style="display: inline-block;">열기</button> 
-                <button id="action-copy-btn" style="display: none;">주소 복사하기</button>
+                <button id="action-primary-btn" style="display: inline-block;">접속하기</button> 
+                <button id="action-copy-btn" style="display: inline-block;">주소 복사하기</button>
                 <button id="action-edit-btn">수정하기</button>
                 <button id="action-delete-btn">삭제하기</button>
                 <button id="action-close-btn">닫기</button>
@@ -278,7 +278,7 @@
         </div>
     </div>
 
-    <div class="notification" id="notification">바로가기가 추가되었습니다. [파일로 저장하기]를 눌러주세요!</div>
+    <div class="notification" id="notification">파일이 저장되었습니다! 이제 이 새 파일을 사용하세요.</div>
 
     <script>
         // --- 데이터 구조 ---
@@ -582,6 +582,11 @@
                 "type": "link",
                 "name": "코드네임",
                 "url": "https://rootspace-tc.github.io/school-quiz/codename.html"
+            },
+            {
+                "type": "link",
+                "name": "추리 게임",
+                "url": "https://rootspace-tc.github.io/school-quiz/reasoning.html"
             }
         ],
         "color": "#caffbf"
