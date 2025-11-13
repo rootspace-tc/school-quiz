@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>6학년 2학기 과학 - 2. 계절의 변화</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Gowun Dodum', sans-serif;
+            /* 테마 색상 변경: orange-50 -> blue-50 */
+            background-color: #f0f9ff; /* bg-blue-50 */
+        }
+        h1, h2, h3, h4, h5, h6, .btn, .toc-link {
+            font-family: 'Jua', sans-serif;
+        }
+        .page-content {
+            font-size: 2.2rem; /* 기본 글자 크기 조정 */
+            line-height: 1.8;
+        }
+        .page, .btn {
+            transition: all 0.3s ease-in-out;
+        }
+        
+        /* --- Animation Effects (템플릿과 동일) --- */
+        .anim-item {
+            opacity: 0; /* Hidden by default */
+        }
+        .anim-item.visible {
+            opacity: 1;
+            animation-duration: 0.7s;
+            animation-fill-mode: both;
+            animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translate3d(0, 30px, 0); }
+            to { opacity: 1; transform: translate3d(0, 0, 0); }
+        }
+        .fadeInUp { animation-name: fadeInUp; }
+        
+        @keyframes zoomIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .zoomIn { animation-name: zoomIn; }
+
+    </style>
+</head>
+<body class="bg-blue-50 flex items-center justify-center min-h-screen py-10">
+
+    <div class="container w-full max-w-7xl mx-auto p-4 md:p-8">
+        
+        <header class="text-center mb-8">
+             <h1 class="text-4xl md:text-5xl font-bold text-blue-800">6학년 2학기 과학</h1>
+            <h2 class="text-3xl md:text-4xl text-blue-600">2. 계절의 변화</h2>
+        </header>
+
+        <div class="flex justify-center items-center gap-4 my-6">
+            <span class="text-lg text-gray-700" style="font-family: 'Jua', sans-serif;">글자 크기</span>
+             <button id="font-decrease" class="btn bg-white border-2 border-blue-300 text-blue-700 w-10 h-10 rounded-full text-2xl font-bold hover:bg-blue-100 active:scale-95">-</button>
+            <button id="font-increase" class="btn bg-white border-2 border-blue-300 text-blue-700 w-10 h-10 rounded-full text-2xl font-bold hover:bg-blue-100 active:scale-95">+</button>
+        </div>
+
+        <main id="main-content" class="bg-white rounded-2xl shadow-lg p-6 md:p-10 relative cursor-pointer min-h-[600px]">
+            
+            <div id="page-0" class="page">
+                <h3 class="text-5xl font-bold text-center text-blue-700 mb-8">목차</h3>
+                <ul class="text-2xl grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <li><a href="#" class="toc-link block p-4 bg-blue-100 rounded-lg hover:bg-blue-200" data-page="1">1. 하루 동안 태양 고도, 그림자, 기온</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-blue-100 rounded-lg hover:bg-blue-200" data-page="2">2. 하루 동안의 관계 그래프</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-blue-100 rounded-lg hover:bg-blue-200" data-page="3">3. 계절별 태양 남중 고도, 낮/밤, 기온</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-blue-100 rounded-lg hover:bg-blue-200" data-page="4">4. 태양 고도와 태양 에너지</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-blue-100 rounded-lg hover:bg-blue-200" data-page="5">5. 계절 변화가 생기는 까닭</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-blue-100 rounded-lg hover:bg-blue-200" data-page="6">6. (활동) 나만의 해시계 만들기</a></li>
+                </ul>
+            </div>
+
+            <div id="page-1" class="page hidden page-content">
+                <h3 class="text-5xl font-bold text-blue-700 mb-4 anim-item fadeInUp">1. 하루 동안 태양 고도, 그림자, 기온</h3>
+                <p class="anim-item zoomIn">아침에 태양이 동쪽에서 떠서 저녁에 서쪽으로 지기까지 태양의 높이는 계속 달라집니다. 태양이 지표면과 이루는 각을 <strong class="text-cyan-600">태양의 고도</strong>라고 합니다.</p>
+                <p class="anim-item zoomIn">태양의 고도는 태양이 <strong class="text-blue-800">정남쪽</strong>에 위치했을 때 가장 높습니다. 이때를 태양이 <strong class="text-blue-800">남중</strong>했다고 하며, 이때의 고도를 <strong class="text-blue-800">태양의 남중 고도</strong>라고 합니다.</p>
+            </div>
+
+            <div id="page-2" class="page hidden page-content">
+                <h3 class="text-5xl font-bold text-blue-700 mb-4 anim-item fadeInUp">2. 하루 동안의 관계 그래프</h3>
+                <p class="anim-item zoomIn"><strong class="text-cyan-600">태양의 고도가 높아질수록</strong> 그림자의 길이는 <strong class="text-blue-800">짧아집니다.</strong> (태양의 고도와 그림자 길이는 반비례합니다.)</p>
+                <p class="anim-item zoomIn">지표면은 태양 고도가 높을 때(남중할 때) 가장 강한 빛을 받지만, 공기의 온도가 높아지는 데에는 시간이 걸립니다. 따라서 하루 중 기온이 가장 높은 시각은 태양이 남중한 시각보다 <strong class="text-blue-800">약 두 시간 뒤</strong>(오후 2시 30분경)입니다.</p>
+            </div>
+
+            <div id="page-3" class="page hidden page-content">
+                <h3 class="text-5xl font-bold text-blue-700 mb-4 anim-item fadeInUp">3. 계절별 태양 남중 고도, 낮/밤, 기온</h3>
+                <p class="anim-item zoomIn"><strong class="text-cyan-600">여름</strong>은 태양의 남중 고도가 <strong class="text-blue-800">높고</strong> 낮의 길이가 <strong class="text-blue-800">길며</strong>, 기온이 <strong class="text-blue-800">높습니다.</strong></p>
+                <p class="anim-item zoomIn"><strong class="text-cyan-600">겨울</strong>은 태양의 남중 고도가 <strong class="text-blue-800">낮고</strong> 낮의 길이가 <strong class="text-blue-800">짧으며</strong>, 기온이 <strong class="text-blue-800">낮습니다.</strong></p>
+                <p class="anim-item zoomIn">태양의 남중 고도는 6월경에 가장 높지만, 월평균 기온은 지표면이 데워지는 데 시간이 걸려 <strong class="text-blue-800">8월경</strong>에 가장 높게 나타납니다.</p>
+            </div>
+            
+            <div id="page-4" class="page hidden page-content">
+                <h3 class="text-5xl font-bold text-blue-700 mb-4 anim-item fadeInUp">4. 태양 고도와 태양 에너지</h3>
+                <p class="anim-item zoomIn"><strong class="text-cyan-600">태양의 고도가 높아질수록</strong>, 일정한 면적의 지표면에 도달하는 태양 에너지양이 <strong class="text-blue-800">많아집니다.</strong></p>
+                <p class="anim-item zoomIn">지표면에 도달하는 태양 에너지양이 많아지면 지표면이 더 많이 데워져 <strong class="text-blue-800">기온도 높아집니다.</strong></p>
+                <p class="anim-item zoomIn">태양 전지판 실험에서 태양의 고도가 높을 때 프로펠러가 더 <strong class="text-blue-800">빠르게</strong> 회전하는 것도 이 때문입니다.</p>
+            </div>
+
+            <div id="page-5" class="page hidden page-content">
+                <h3 class="text-5xl font-bold text-blue-700 mb-4 anim-item fadeInUp">5. 계절 변화가 생기는 까닭</h3>
+                <p class="anim-item zoomIn">계절 변화가 생기는 까닭은 <strong class="text-cyan-600">지구의 자전축이 23.5° 기울어진 채</strong>로 태양 주위를 <strong class="text-cyan-600">공전</strong>하기 때문입니다.</p>
+                <p class="anim-item zoomIn">자전축이 기울어진 채 공전하면 지구의 위치에 따라(여름, 겨울) 태양의 남중 고도가 달라집니다. 이로 인해 지표면이 받는 태양 에너지양이 달라져 계절 변화가 생깁니다.</p>
+                <p class="anim-item zoomIn">만약 지구의 자전축이 <strong class="text-blue-800">수직인 채 공전</strong>한다면, 1년 내내 태양의 남중 고도가 <strong class="text-blue-800">변하지 않아</strong> 계절 변화가 생기지 않습니다.</p>
+            </div>
+
+            <div id="page-6" class="page hidden page-content" style="font-size: 1.6rem; line-height: 1.7;">
+                <h3 class="text-4xl md:text-5xl font-bold text-blue-700 mb-6 anim-item fadeInUp">6. (활동) 나만의 해시계 만들기</h3>
+                <div class="space-y-5">
+                    <div class="anim-item zoomIn">
+                        <h4 class="text-3xl text-blue-700">가. 해시계란?</h4>
+                        <ul class="list-disc list-inside mt-2 ml-4">
+                            <li>시계가 없던 시절, <strong class="text-cyan-600">그림자를 이용</strong>하여 대략적인 시각을 알 수 있게 만든 장치입니다.</li>
+                            <li>그림자는 항상 태양의 <strong class="text-blue-800">반대쪽</strong>에 생깁니다.</li>
+                        </ul>
+                    </div>
+                     <div class="anim-item zoomIn">
+                        <h4 class="text-3xl text-blue-700">나. 앙부일구</h4>
+                        <ul class="list-disc list-inside mt-2 ml-4">
+                            <li>조선 시대에 만들어진 자랑스러운 우리나라의 과학 유산입니다.</li>
+                            <li><strong class="text-blue-800">시각</strong>뿐만 아니라 <strong class="text-blue-800">절기</strong>까지 알 수 있도록 만들었습니다.</li>
+                        </ul>
+                    </div>
+                     <div class="anim-item zoomIn">
+                        <h4 class="text-3xl text-blue-700">다. 해시계의 원리</h4>
+                        <ul class="list-disc list-inside mt-2 ml-4">
+                            <li><strong class="text-cyan-600">시각 측정:</strong> 하루 동안 태양의 위치가 달라지면서 그림자의 <strong class="text-blue-800">위치</strong>가 변하는 원리를 이용합니다.</li>
+                            <li><strong class="text-cyan-600">절기 측정:</strong> 계절에 따라 태양의 남중 고도가 달라져 그림자의 <strong class="text-blue-800">길이</strong>가 변하는 원리를 이용합니다.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+        </main>
+
+        <footer id="navigation" class="mt-8 flex justify-between items-center hidden">
+             <button id="prev-btn" class="btn bg-blue-500 text-white py-2 px-6 rounded-lg text-xl hover:bg-blue-600 active:scale-95">이전</button>
+            <button id="toc-btn" class="btn bg-gray-400 text-white py-2 px-6 rounded-lg text-xl hover:bg-gray-500 active:scale-95">목차로</button>
+            <button id="next-btn" class="btn bg-blue-500 text-white py-2 px-6 rounded-lg text-xl hover:bg-blue-600 active:scale-95">다음</button>
+        </footer>
+    </div>
+
+    <script>
+        // 템플릿의 JS 기능과 동일하게 작동
+        const mainContent = document.getElementById('main-content');
+        const pages = document.querySelectorAll('.page');
+        const tocLinks = document.querySelectorAll('.toc-link');
+        const navigation = document.getElementById('navigation');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const tocBtn = document.getElementById('toc-btn');
+        const fontIncreaseBtn = document.getElementById('font-increase');
+        const fontDecreaseBtn = document.getElementById('font-decrease');
+        const pageContents = document.querySelectorAll('.page-content');
+
+        let currentPage = 0;
+        const totalPages = pages.length;
+        
+        let currentAnimatables = [];
+        let animationIndex = 0;
+
+        function showPage(pageNumber) {
+            pages.forEach(page => {
+                page.classList.add('hidden');
+                page.querySelectorAll('.anim-item').forEach(item => item.classList.remove('visible'));
+            });
+            
+            const pageToShow = document.getElementById(`page-${pageNumber}`);
+            if (pageToShow) {
+                pageToShow.classList.remove('hidden');
+                mainContent.classList.toggle('cursor-pointer', pageNumber !== 0);
+            }
+
+            if (pageNumber === 0) {
+                navigation.classList.add('hidden');
+            } else {
+                navigation.classList.remove('hidden');
+                prevBtn.disabled = pageNumber === 1;
+                nextBtn.disabled = pageNumber === pages.length - 1; // 동적으로 마지막 페이지 감지
+                prevBtn.classList.toggle('opacity-50', prevBtn.disabled);
+                nextBtn.classList.toggle('opacity-50', nextBtn.disabled);
+                
+                currentAnimatables = Array.from(pageToShow.querySelectorAll('.anim-item'));
+                animationIndex = 0;
+            }
+            
+            currentPage = pageNumber;
+        }
+
+        mainContent.addEventListener('click', (e) => {
+            if (currentPage === 0) return; 
+            if (e.target.closest('button, a')) return;
+
+            if (animationIndex < currentAnimatables.length) {
+                currentAnimatables[animationIndex].classList.add('visible');
+                animationIndex++;
+            }
+        });
+
+        tocLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const pageNum = parseInt(link.dataset.page, 10);
+                showPage(pageNum);
+            });
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 1) showPage(currentPage - 1);
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentPage < pages.length - 1) showPage(currentPage + 1);
+        });
+
+        tocBtn.addEventListener('click', () => showPage(0));
+
+        let currentFontSize = 2.2;
+        const FONT_STEP = 0.1;
+        
+        function updateFontSize() {
+            pageContents.forEach(content => {
+                // PDF 내용에 맞춰 마지막 페이지 ID(page-6)를 특별 관리하도록 수정
+                if (content.id === 'page-6') {
+                    content.style.fontSize = `${currentFontSize - 0.6}rem`;
+                } else {
+                    content.style.fontSize = `${currentFontSize}rem`;
+                }
+            });
+        }
+
+        fontIncreaseBtn.addEventListener('click', () => {
+            currentFontSize += FONT_STEP;
+            updateFontSize();
+        });
+
+        fontDecreaseBtn.addEventListener('click', () => {
+            if (currentFontSize > 1.2) {
+                currentFontSize -= FONT_STEP;
+                updateFontSize();
+            }
+        });
+
+        showPage(0);
+        updateFontSize();
+    </script>
+
+</body>
+</html>
