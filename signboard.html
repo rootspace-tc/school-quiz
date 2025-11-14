@@ -523,7 +523,8 @@
         applyAnimation(); 
     }
 
-    // (수정) 애니메이션 적용 로직 (흐르기 정렬 버그 수정됨)
+// (수정) 애니메이션 적용 로직 (흐르기 정렬 버그 수정됨)
+    // (재수정) 단위별(word/char) 애니메이션 시 <br> 태그를 명시적으로 삽입하여 줄바꿈이 깨지지 않도록 수정
     function applyAnimation() {
         const text = currentText;
         const effect = animationSelect.value;
@@ -560,7 +561,7 @@
             
             displayText.classList.add('marquee');
             displayText.textContent = text;
-            displayText.style.whiteSpace = 'nowrap'; 
+            displayText.style.whiteSpace = 'nowrap'; // (중요) 흐르기 효과는 강제로 한 줄로 만듦
             displayText.style.animationDuration = (text.length * 0.5 / animationSpeedMultiplier).toFixed(2) + 's'; 
             return;
         }
@@ -574,36 +575,56 @@
             displayText.classList.add(effect); // .wave, .blink, .bounce, .shake
             if (speed) displayText.style.animationDuration = speed;
         } else {
+            // --- (수정된 단위별 로직) ---
             // 'word' 또는 'char' 단위 (wave, blink, bounce)
             displayText.classList.add(effect + '-by-unit'); 
             
-            let units;
-            if (unit === 'word') {
-                units = text.split(/(\s+)/); 
-            } else { // char
-                units = Array.from(text); 
-            }
+            // 1. 먼저 텍스트를 줄바꿈(\n) 기준으로 나눕니다.
+            const lines = text.split('\n');
 
-            units.forEach((u, index) => {
-                const span = document.createElement('span');
-                span.textContent = u;
+            lines.forEach((line, lineIndex) => {
                 
-                if (u.trim() !== '') { 
-                    span.style.animationDuration = speed;
-                    if (effect === 'wave' || effect === 'bounce') {
-                        span.style.animationDelay = (index * delayUnit).toFixed(2) + 's';
-                    }
-                    if (effect === 'blink') {
-                         span.style.animationDelay = (index * (delayUnit * 2)).toFixed(2) + 's';
-                    }
-                } else {
-                    span.innerHTML = '&nbsp;'; 
+                let units;
+                if (unit === 'word') {
+                    // 2. \n이 이미 처리되었으므로, 스페이스(공백) 기준으로 단어를 나눕니다.
+                    units = line.split(/(\s+)/); // 공백(스페이스) 유지를 위해 캡처
+                } else { // char
+                    units = Array.from(line); // 한 글자씩 나눔
                 }
-                displayText.appendChild(span);
+
+                // 3. 해당 줄(line)의 단위(unit)들을 처리합니다.
+                units.forEach((u, index) => {
+                    const span = document.createElement('span');
+                    
+                    if (u.trim() !== '') { 
+                        // 실제 텍스트
+                        span.textContent = u;
+                        span.style.animationDuration = speed;
+                        if (effect === 'wave' || effect === 'bounce') {
+                            span.style.animationDelay = (index * delayUnit).toFixed(2) + 's';
+                        }
+                        if (effect === 'blink') {
+                             span.style.animationDelay = (index * (delayUnit * 2)).toFixed(2) + 's';
+                        }
+                    } else if (u === ' ') {
+                        // 스페이스는 &nbsp;로 치환하여 공간 유지
+                        span.innerHTML = '&nbsp;';
+                    } else {
+                        // split(/(\s+)/)로 인해 생긴 빈 문자열 등은 무시
+                        if(u) span.innerHTML = u.replace(/ /g, '&nbsp;');
+                        else return; // 빈 문자열 span은 추가하지 않음
+                    }
+                    displayText.appendChild(span);
+                });
+
+                // 4. 마지막 줄이 아니라면, <br> 태그를 명시적으로 추가합니다.
+                if (lineIndex < lines.length - 1) {
+                    displayText.appendChild(document.createElement('br'));
+                }
             });
+            // --- (수정된 로직 끝) ---
         }
     }
-
 
     // --- 4. 사운드 및 TTS 로직 ---
 
