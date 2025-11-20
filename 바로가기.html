@@ -236,7 +236,7 @@
         
         <div id="breadcrumbs" class=""><span class="breadcrumb-link">Home</span><span class="breadcrumb-separator">&gt;</span><span>실시간 플랫폼</span></div>
 
-        <ul id="link-list"><li draggable="true" class="link-item" style="background-color: rgb(255, 173, 173);">꽃잎 퀴즈 플랫폼</li><li draggable="true" class="link-item" style="background-color: rgb(255, 214, 165);">완성형 퀴즈 플랫폼(최신화)</li><li draggable="true" class="link-item" style="background-color: rgb(253, 255, 182);">실시간 퀴즈 플랫폼(최신화)</li><li draggable="true" class="link-item" style="background-color: rgb(202, 255, 191);">사각형 점수판 퀴즈 플랫폼</li><li draggable="true" class="link-item" style="background-color: rgb(155, 246, 255);">로또 퀴즈 플랫폼</li><li draggable="true" class="link-item" style="background-color: rgb(160, 196, 255);">방 선택 플랫폼</li><li draggable="true" class="link-item" style="background-color: rgb(189, 178, 255);">뽑기 퀴즈</li><li id="add-btn" class="link-item">+</li></ul>
+        <ul id="link-list"><li draggable="true" class="link-item" style="background-color: rgb(255, 173, 173);">꽃잎 퀴즈 플랫폼</li><li draggable="true" class="link-item" style="background-color: rgb(255, 214, 165);">완성형 퀴즈 플랫폼(최신화)</li><li draggable="true" class="link-item" style="background-color: rgb(253, 255, 182);">실시간 퀴즈 플랫폼(최신화)</li><li draggable="true" class="link-item" style="background-color: rgb(202, 255, 191);">사각형 점수판 퀴즈 플랫폼</li><li draggable="true" class="link-item" style="background-color: rgb(155, 246, 255);">로또 퀴즈 플랫폼</li><li draggable="true" class="link-item" style="background-color: rgb(160, 196, 255);">방 선택 플랫폼</li><li draggable="true" class="link-item" style="background-color: rgb(189, 178, 255);">뽑기 퀴즈</li><li draggable="true" class="link-item" style="background-color: rgb(255, 198, 255);">보스 레이드</li><li id="add-btn" class="link-item">+</li></ul>
 
         <div class="button-container">
             <button id="reorder-mode-btn" class="">↔️ 순서 변경 모드</button>
@@ -267,10 +267,10 @@
 
     <div id="action-modal" class="modal" style="display: none;">
         <div class="modal-content">
-            <h2 id="action-title">뽑기 퀴즈</h2>
+            <h2 id="action-title">실시간 플랫폼</h2>
             <div class="modal-buttons">
-                <button id="action-primary-btn" style="display: inline-block;">접속하기</button> 
-                <button id="action-copy-btn" style="display: inline-block;">주소 복사하기</button>
+                <button id="action-primary-btn" style="display: inline-block;">열기</button> 
+                <button id="action-copy-btn" style="display: none;">주소 복사하기</button>
                 <button id="action-edit-btn">수정하기</button>
                 <button id="action-delete-btn">삭제하기</button>
                 <button id="action-close-btn">닫기</button>
@@ -278,7 +278,7 @@
         </div>
     </div>
 
-    <div class="notification" id="notification">바로가기가 추가되었습니다. [파일로 저장하기]를 눌러주세요!</div>
+    <div class="notification show" id="notification">바로가기가 추가되었습니다. [파일로 저장하기]를 눌러주세요!</div>
 
     <script>
         // --- 데이터 구조 ---
@@ -443,6 +443,11 @@
                 "type": "link",
                 "name": "뽑기 퀴즈",
                 "url": "http://inoroutquiz.web.app"
+            },
+            {
+                "type": "link",
+                "name": "보스 레이드",
+                "url": "https://bossraid.web.app"
             }
         ],
         "color": "#ffadad"
