@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4학년 2학기 과학 - 2. 생물과 환경</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts CDN -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+    <style>
+        /* 학습지 전용 폰트 및 스타일 */
+        body {
+            font-family: 'Gowun Dodum', sans-serif;
+            background-color: #f0fdf4; /* bg-green-50 */
+        }
+        h1, h2, h3, h4, h5, h6, .btn, .toc-link {
+            font-family: 'Jua', sans-serif;
+        }
+        .page-content {
+            font-size: 2.5rem; /* 기본 글자 크기 (40px) */
+            line-height: 1.8;
+        }
+        .page, .btn {
+            transition: all 0.3s ease-in-out;
+        }
+        
+        /* --- 클릭 시 나타나는 애니메이션 효과 --- */
+        .anim-item {
+            opacity: 0; /* 기본적으로 숨김 */
+        }
+        .anim-item.visible {
+            opacity: 1;
+            animation-duration: 0.7s;
+            animation-fill-mode: both;
+            animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translate3d(0, 30px, 0); }
+            to { opacity: 1; transform: translate3d(0, 0, 0); }
+        }
+        .fadeInUp { animation-name: fadeInUp; }
+        
+        @keyframes fadeInLeft {
+            from { opacity: 0; transform: translate3d(-30px, 0, 0); }
+            to { opacity: 1; transform: translate3d(0, 0, 0); }
+        }
+        .fadeInLeft { animation-name: fadeInLeft; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .fadeIn { animation-name: fadeIn; }
+
+        @keyframes zoomIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .zoomIn { animation-name: zoomIn; }
+
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen py-10">
+
+    <div class="container w-full max-w-7xl mx-auto p-4 md:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-green-800">4학년 2학기 과학</h1>
+            <h2 class="text-3xl md:text-4xl text-green-600">2. 생물과 환경</h2>
+        </header>
+
+        <!-- 글자 크기 조절 버튼 -->
+        <div class="flex justify-center items-center gap-4 my-6">
+            <span class="text-lg text-gray-700" style="font-family: 'Jua', sans-serif;">글자 크기</span>
+            <button id="font-decrease" class="btn bg-white border-2 border-green-300 text-green-700 w-10 h-10 rounded-full text-2xl font-bold hover:bg-green-100 active:scale-95">-</button>
+            <button id="font-increase" class="btn bg-white border-2 border-green-300 text-green-700 w-10 h-10 rounded-full text-2xl font-bold hover:bg-green-100 active:scale-95">+</button>
+        </div>
+
+        <!-- 메인 학습 콘텐츠 -->
+        <main id="main-content" class="bg-white rounded-2xl shadow-lg p-6 md:p-10 relative cursor-pointer min-h-[600px]">
+            
+            <!-- 페이지 0: 목차 -->
+            <div id="page-0" class="page">
+                <h3 class="text-5xl font-bold text-center text-green-700 mb-8">목차</h3>
+                <ul class="text-2xl grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <li><a href="#" class="toc-link block p-4 bg-green-100 rounded-lg hover:bg-green-200" data-page="1">1. 생태계란 무엇일까요?</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-green-100 rounded-lg hover:bg-green-200" data-page="2">2. 생태계의 구성 요소</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-green-100 rounded-lg hover:bg-green-200" data-page="3">3. 생물 요소의 역할</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-green-100 rounded-lg hover:bg-green-200" data-page="4">4. 먹고 먹히는 관계</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-green-100 rounded-lg hover:bg-green-200" data-page="5">5. 안정적인 생태계</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-green-100 rounded-lg hover:bg-green-200" data-page="6">6. 인간 활동과 환경 오염</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-green-100 rounded-lg hover:bg-green-200" data-page="7">7. 생태계 보전</a></li>
+                </ul>
+            </div>
+
+            <!-- 페이지 1: 생태계란? -->
+            <div id="page-1" class="page hidden page-content">
+                <h3 class="text-5xl font-bold text-green-700 mb-4 anim-item fadeInUp">1. 생태계란 무엇일까요?</h3>
+                <ul class="space-y-4">
+                    <li class="anim-item fadeInLeft"><span class="mr-3">🌍</span>어떤 장소에서 서로 <strong class="text-emerald-600">영향을 주고받는 생물</strong>과</li>
+                    <li class="anim-item fadeInLeft"><span class="mr-3"></span>그 생물을 둘러싼 <strong class="text-emerald-600">환경</strong>을 통틀어 <strong class="text-emerald-800">생태계</strong>라고 해요.</li>
+                    <li class="anim-item fadeInLeft"><span class="mr-3">🏞️</span>생태계는 화단, 연못, 숲, 강, 바다 등 크기가 다양해요.</li>
+                </ul>
+            </div>
+
+            <!-- 페이지 2: 생태계의 구성 요소 -->
+            <div id="page-2" class="page hidden page-content">
+                <h3 class="text-5xl font-bold text-green-700 mb-4 anim-item fadeInUp">2. 생태계의 구성 요소</h3>
+                <p class="anim-item zoomIn">생태계는 <strong class="text-emerald-800">생물 요소</strong>와 <strong class="text-emerald-800">비생물 요소</strong>로 나눌 수 있어요.</p>
+                <ul class="mt-4 space-y-3">
+                    <li class="anim-item fadeInLeft"><span class="mr-3">🌱</span><strong class="text-emerald-600">생물 요소:</strong> 살아 있는 것 (예: 토끼, 부들, 미역, 곰팡이)</li>
+                    <li class="anim-item fadeInLeft"><span class="mr-3">☀️</span><strong class="text-emerald-600">비생물 요소:</strong> 살아 있지 않은 것 (예: 물, 흙, 공기, 온도, 햇빛)</li>
+                </ul>
+            </div>
+
+            <!-- 페이지 3: 생물 요소의 역할 -->
+            <div id="page-3" class="page hidden page-content">
+                <h3 class="text-5xl font-bold text-green-700 mb-4 anim-item fadeInUp">3. 생물 요소의 역할</h3>
+                <p class="anim-item fadeIn">생물 요소는 역할에 따라 3가지로 나눌 수 있어요.</p>
+                <ul class="mt-4 space-y-4 anim-item zoomIn">
+                    <li><span class="mr-3">🌿</span><strong class="text-emerald-600">생산자:</strong> 햇빛을 이용해 스스로 양분을 만들어요. (예: 식물)</li>
+                    <li><span class="mr-3">🐇</span><strong class="text-emerald-600">소비자:</strong> 다른 생물을 먹어서 양분을 얻어요. (예: 동물)</li>
+                    <li><span class="mr-3">🍄</span><strong class="text-emerald-600">분해자:</strong> 죽은 생물이나 배출물을 분해해요. (예: 버섯, 세균)</li>
+                </ul>
+            </div>
+
+            <!-- 페이지 4: 먹고 먹히는 관계 -->
+            <div id="page-4" class="page hidden page-content">
+                <h3 class="text-5xl font-bold text-green-700 mb-4 anim-item fadeInUp">4. 먹고 먹히는 관계</h3>
+                <p class="anim-item fadeIn">생태계의 생물들은 먹고 먹히는 관계를 맺고 있어요.</p>
+                <ul class="mt-4 space-y-4">
+                    <li class="anim-item fadeInLeft"><span class="mr-3">🔗</span><strong class="text-emerald-600">먹이사슬:</strong> 생물들의 먹이 관계가 <strong class="text-emerald-800">사슬</strong>처럼 단순하게 연결된 것.</li>
+                    <li class="anim-item fadeInLeft"><span class="mr-3">🕸️</span><strong class="text-emerald-600">먹이그물:</strong> 여러 개의 먹이사슬이 <strong class="text-emerald-800">그물</strong>처럼 복잡하게 얽힌 것.</li>
+                </ul>
+            </div>
+            
+            <!-- 페이지 5: 안정적인 생태계 -->
+            <div id="page-5" class="page hidden page-content">
+                <h3 class="text-5xl font-bold text-green-700 mb-4 anim-item fadeInUp">5. 안정적인 생태계</h3>
+                <ul class="space-y-4">
+                    <li class="anim-item zoomIn">생물들의 먹이 관계(먹이그물)가 <strong class="text-emerald-800">복잡할수록</strong> 생태계는 <strong class="text-emerald-800">안정적</strong>으로 유지돼요.</li>
+                    <li class="anim-item zoomIn">먹이그물이 복잡하면...</li>
+                    <li class="anim-item zoomIn">한 종류의 생물이 사라져도 다른 먹이가 있기 때문에, 다른 생물들이 살아남을 수 있어요.</li>
+                </ul>
+            </div>
+            
+            <!-- 페이지 6: 인간 활동과 환경 오염 -->
+            <div id="page-6" class="page hidden page-content">
+                <h3 class="text-5xl font-bold text-green-700 mb-4 anim-item fadeInUp">6. 인간 활동과 환경 오염</h3>
+                 <p class="anim-item zoomIn">인간의 활동으로 <strong class="text-red-600">환경이 오염</strong>되면 생태계가 <strong class="text-red-700">훼손</strong>돼요.</p>
+                <ul class="mt-4 space-y-3">
+                    <li class="anim-item fadeInLeft"><span class="mr-3">💨</span><strong class="text-emerald-600">대기오염:</strong> 공장 매연, 자동차 배기가스 등</li>
+                    <li class="anim-item fadeInLeft"><span class="mr-3">🌱</span><strong class="text-emerald-600">토양오염:</strong> 쓰레기 매립, 농약 등</li>
+                    <li class="anim-item fadeInLeft"><span class="mr-3">💧</span><strong class="text-emerald-600">수질오염:</strong> 생활 하수, 공장 폐수, 기름 유출 등</li>
+                </ul>
+            </div>
+
+            <!-- 페이지 7: 생태계 보전 -->
+            <div id="page-7" class="page hidden page-content">
+                <h3 class="text-5xl font-bold text-green-700 mb-4 anim-item fadeInUp">7. 생태계 보전</h3>
+                 <p class="anim-item zoomIn">생태계는 한번 훼손되면 되돌리기 어려워 <strong class="text-emerald-800">보전</strong>이 중요해요.</p>
+                <ul class="mt-4 space-y-3">
+                    <li class="anim-item fadeInLeft"><span class="mr-3">♻️</span><strong class="text-emerald-600">우리가 할 일:</strong> 쓰레기 분리배출, 물건 재사용, 물 아껴 쓰기</li>
+                    <li class="anim-item fadeInLeft"><span class="mr-3">🏢</span><strong class="text-emerald-600">사회/국가:</strong> 생태계 보전 규칙 만들기, 생태 공원 조성</li>
+                    <li class="anim-item fadeInLeft"><span class="mr-3">🐦</span><strong class="text-emerald-600">실천 예시:</strong> 새가 유리에 부딪히지 않도록 '새 충돌 방지 테이프' 붙이기</li>
+                </ul>
+            </div>
+        </main>
+
+        <!-- 페이지 이동 버튼 -->
+        <footer id="navigation" class="mt-8 flex justify-between items-center hidden">
+            <button id="prev-btn" class="btn bg-green-500 text-white py-2 px-6 rounded-lg text-xl hover:bg-green-600 active:scale-95">이전</button>
+            <button id="toc-btn" class="btn bg-gray-400 text-white py-2 px-6 rounded-lg text-xl hover:bg-gray-500 active:scale-95">목차로</button>
+            <button id="next-btn" class="btn bg-green-500 text-white py-2 px-6 rounded-lg text-xl hover:bg-green-600 active:scale-95">다음</button>
+        </footer>
+    </div>
+
+    <!-- 페이지 기능 활성화 스크립트 (원본과 동일) -->
+    <script>
+        const mainContent = document.getElementById('main-content');
+        const pages = document.querySelectorAll('.page');
+        const tocLinks = document.querySelectorAll('.toc-link');
+        const navigation = document.getElementById('navigation');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const tocBtn = document.getElementById('toc-btn');
+        const fontIncreaseBtn = document.getElementById('font-increase');
+        const fontDecreaseBtn = document.getElementById('font-decrease');
+        const pageContents = document.querySelectorAll('.page-content');
+
+        let currentPage = 0;
+        const totalPages = pages.length; // 페이지 수 자동 계산
+        
+        let currentAnimatables = [];
+        let animationIndex = 0;
+
+        // 특정 페이지를 보여주는 함수
+        function showPage(pageNumber) {
+            // 모든 페이지 숨기기
+            pages.forEach(page => {
+                page.classList.add('hidden');
+                // 애니메이션 아이템 초기화
+                page.querySelectorAll('.anim-item').forEach(item => item.classList.remove('visible'));
+            });
+            
+            // 요청된 페이지 보여주기
+            const pageToShow = document.getElementById(`page-${pageNumber}`);
+            if (pageToShow) {
+                pageToShow.classList.remove('hidden');
+                // 목차 페이지에서는 클릭 애니메이션 비활성화
+                mainContent.classList.toggle('cursor-pointer', pageNumber !== 0);
+            }
+
+            // 네비게이션 버튼 표시/숨기기 및 상태 업데이트
+            if (pageNumber === 0) {
+                navigation.classList.add('hidden'); // 목차에서는 숨김
+            } else {
+                navigation.classList.remove('hidden'); // 학습 페이지에서는 표시
+                prevBtn.disabled = pageNumber === 1; // 첫 페이지
+                nextBtn.disabled = pageNumber === pages.length -1; // 마지막 페이지
+                prevBtn.classList.toggle('opacity-50', prevBtn.disabled);
+                nextBtn.classList.toggle('opacity-50', nextBtn.disabled);
+                
+                // 현재 페이지의 애니메이션 아이템 목록 가져오기
+                currentAnimatables = Array.from(pageToShow.querySelectorAll('.anim-item'));
+                animationIndex = 0;
+            }
+            
+            currentPage = pageNumber;
+        }
+
+        // 메인 콘텐츠 클릭 시 애니메이션 아이템 순차적 표시
+        mainContent.addEventListener('click', (e) => {
+            if (currentPage === 0) return; // 목차에서는 작동 안 함
+            if (e.target.closest('button, a')) return; // 버튼/링크 클릭 시 무시
+
+            if (animationIndex < currentAnimatables.length) {
+                currentAnimatables[animationIndex].classList.add('visible');
+                animationIndex++;
+            }
+        });
+
+        // 목차 링크 클릭 이벤트
+        tocLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const pageNum = parseInt(link.dataset.page, 10);
+                showPage(pageNum);
+            });
+        });
+
+        // 네비게이션 버튼 이벤트
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 1) showPage(currentPage - 1);
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentPage < pages.length-1) showPage(currentPage + 1);
+        });
+
+        tocBtn.addEventListener('click', () => showPage(0));
+
+        // 글자 크기 조절
+        let currentFontSize = 2.5; // CSS에 정의된 기본값 (2.5rem)
+        const FONT_STEP = 0.1;
+        
+        function updateFontSize() {
+            pageContents.forEach(content => {
+                content.style.fontSize = `${currentFontSize}rem`;
+            });
+        }
+        
+        fontIncreaseBtn.addEventListener('click', () => {
+            currentFontSize += FONT_STEP;
+            updateFontSize();
+        });
+        
+        fontDecreaseBtn.addEventListener('click', () => {
+            if (currentFontSize > 1.0) { // 최소 1.0rem
+                currentFontSize -= FONT_STEP;
+                updateFontSize();
+            }
+        });
+
+        // 초기화
+        showPage(0); // 목차 페이지부터 시작
+        updateFontSize(); // 초기 폰트 크기 적용
+    </script>
+
+</body>
+</html>
