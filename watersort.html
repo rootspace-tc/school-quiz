@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>워터 소트 퍼즐 (Water Sort Puzzle)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 구글 폰트: Jua -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #1e1e2e; /* 다크 모드 배경 */
+            color: white;
+            user-select: none;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* 튜브 스타일 */
+        .tube {
+            width: 70px;
+            height: 240px; /* 4칸(50px * 4) + 여유 + 바닥 */
+            border-left: 4px solid rgba(255, 255, 255, 0.4);
+            border-right: 4px solid rgba(255, 255, 255, 0.4);
+            border-bottom: 4px solid rgba(255, 255, 255, 0.4);
+            border-radius: 0 0 25px 25px; /* 둥근 바닥 (플라스크 느낌) */
+            position: relative;
+            display: flex;
+            flex-direction: column-reverse; /* 아래에서 위로 쌓임 */
+            overflow: visible; /* 물 따르는 애니메이션을 위해 */
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            background-color: rgba(255, 255, 255, 0.05); /* 유리 느낌 */
+            margin: 10px;
+        }
+
+        /* 튜브 입구 (테두리 장식) */
+        .tube::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -6px;
+            width: calc(100% + 8px);
+            height: 10px;
+            border: 4px solid rgba(255, 255, 255, 0.4);
+            border-radius: 10px;
+            box-sizing: border-box;
+        }
+
+        /* 선택된 튜브 (위로 올라옴) */
+        .tube.selected {
+            transform: translateY(-30px);
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* 물(액체) 스타일 */
+        .liquid {
+            width: 100%;
+            height: 50px; /* 전체 높이의 1/4 (최대 4칸) */
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        /* 물 표면 둥글게 (맨 윗칸이거나 혼자 있을 때) */
+        .liquid:last-child {
+            border-radius: 5px 5px 0 0;
+        }
+        /* 튜브 바닥의 물 둥글게 */
+        .liquid:first-child {
+            border-radius: 0 0 20px 20px;
+        }
+        /* 꽉 찼을 때 바닥과 위 모두 둥글게 */
+        .liquid:first-child:last-child {
+            border-radius: 0 0 20px 20px;
+        }
+        
+        /* 반짝이는 효과 */
+        .liquid::after {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            width: 5px;
+            height: 80%;
+            background-color: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+
+        /* 승리 파티클 효과 컨테이너 */
+        #confetti {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        /* 버튼 스타일 */
+        .game-btn {
+            background: linear-gradient(145deg, #4f46e5, #4338ca);
+            box-shadow: 0 4px 0 #312e81;
+            transition: all 0.1s;
+        }
+        .game-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        /* 컨트롤 버튼 그룹 */
+        .control-btn {
+            padding: 8px 16px;
+            border-radius: 0.75rem;
+            font-size: 1.125rem;
+            font-weight: 700;
+            transition: background-color 0.2s;
+        }
+
+        /* 시작 오버레이 스타일 */
+        #start-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+        
+        /* 숨김 클래스 */
+        .hidden {
+            display: none !important;
+        }
+
+        /* 시작 버튼 애니메이션 */
+        .pulse-btn {
+            animation: pulse-scale 1.5s infinite;
+        }
+        @keyframes pulse-scale {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center h-screen relative">
+
+    <div id="confetti"></div>
+
+    <!-- 타이머 표시 -->
+    <div id="timer" class="absolute top-6 right-6 text-3xl font-bold bg-black/30 px-4 py-2 rounded-xl text-yellow-300">
+        ⏱️ 00:00
+    </div>
+
+    <!-- 헤더 -->
+    <header class="text-center mb-4">
+        <h1 class="text-5xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+            🧪 워터 소트 퍼즐
+        </h1>
+        <p class="text-gray-400 text-xl">같은 색깔 물끼리 모아보세요!</p>
+    </header>
+
+    <!-- 난이도 선택 -->
+    <div class="flex gap-4 mb-4">
+        <button onclick="initGame('easy')" class="game-btn px-6 py-2 rounded-xl text-lg font-bold">쉬움</button>
+        <button onclick="initGame('normal')" class="game-btn px-6 py-2 rounded-xl text-lg font-bold">보통</button>
+        <button onclick="initGame('hard')" class="game-btn px-6 py-2 rounded-xl text-lg font-bold">어려움</button>
+    </div>
+
+    <!-- 게임 컨트롤 (다시하기 / 새 게임) -->
+    <div class="flex gap-4 mb-8">
+        <button onclick="resetCurrentLevel()" class="control-btn bg-gray-600 hover:bg-gray-500">↺ 처음 상태로 (다시하기)</button>
+        <button onclick="startNewGame()" class="control-btn bg-emerald-600 hover:bg-emerald-500">✨ 새로운 게임</button>
+    </div>
+
+    <!-- 튜브들이 놓일 게임 보드 -->
+    <div id="game-board" class="flex flex-wrap justify-center items-end gap-2 max-w-4xl p-4 relative">
+        <!-- 자바스크립트로 튜브 생성 -->
+        
+        <!-- 시작 오버레이 (게임 보드 위에 표시) -->
+        <div id="start-overlay" class="rounded-3xl">
+            <button onclick="startGame()" class="pulse-btn bg-emerald-500 hover:bg-emerald-400 text-white text-3xl font-bold px-12 py-6 rounded-2xl shadow-lg border-b-4 border-emerald-700 transition-transform active:translate-y-1 active:border-b-0">
+                ▶ 게임 시작
+            </button>
+        </div>
+    </div>
+
+    <!-- 메시지 창 -->
+    <div id="message" class="mt-8 text-2xl font-bold text-yellow-400 h-8"></div>
+
+    <!-- [추가] 커스텀 확인 모달 (브라우저 기본 confirm 대체) -->
+    <div id="confirm-modal" class="hidden absolute inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center">
+        <div class="bg-[#2a2a40] p-8 rounded-3xl text-center border-2 border-gray-600 shadow-2xl transform transition-all scale-100">
+            <h3 class="text-3xl font-bold text-white mb-2">새 게임을 할까요?</h3>
+            <p class="text-gray-400 text-lg mb-8">현재 진행 중인 게임은 저장되지 않습니다.</p>
+            <div class="flex gap-4 justify-center">
+                <button onclick="confirmNewGame()" class="bg-emerald-500 hover:bg-emerald-400 text-white px-8 py-3 rounded-2xl text-xl font-bold shadow-lg transition-transform active:scale-95">
+                    네, 좋아요!
+                </button>
+                <button onclick="closeConfirmModal()" class="bg-gray-600 hover:bg-gray-500 text-white px-8 py-3 rounded-2xl text-xl font-bold shadow-lg transition-transform active:scale-95">
+                    아니요
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 게임 설정 및 데이터 ---
+        const COLORS = [
+            '#ef4444', // Red
+            '#3b82f6', // Blue
+            '#eab308', // Yellow
+            '#22c55e', // Green
+            '#a855f7', // Purple
+            '#f97316', // Orange
+            '#ec4899', // Pink
+            '#14b8a6', // Teal
+            '#6366f1'  // Indigo
+        ];
+        
+        const TUBE_CAPACITY = 4; // 튜브 하나당 최대 4칸
+        
+        let tubes = []; // 현재 튜브 상태 (2차원 배열)
+        let initialTubes = []; // 리셋용 초기 상태
+        let selectedTubeIndex = -1; // 현재 선택된 튜브 (-1은 선택 안됨)
+        let isAnimating = false;
+        let isGameActive = false; // 게임 활성 상태
+        
+        // 추가된 상태 변수들
+        let currentDifficulty = 'easy'; // 현재 난이도 저장
+        let timerInterval = null;
+        let secondsElapsed = 0;
+        let audioCtx = null; // Web Audio API 컨텍스트
+
+        // --- 오디오 시스템 (Web Audio API) ---
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // 뽁! 소리 (선택 시)
+        function playPopSound() {
+            initAudio();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            osc.type = 'sine';
+            // 주파수 빠르게 떨어뜨려 '뽁' 느낌 내기
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        // [수정됨] 쪼르륵 물소리 (Bubble Stream 방식)
+        function playPourSound() {
+            initAudio();
+            const now = audioCtx.currentTime;
+            const bubbleCount = 7; // 물방울 개수
+            const duration = 0.4; // 전체 지속 시간
+
+            for(let i=0; i<bubbleCount; i++) {
+                const startTime = now + (Math.random() * duration);
+                createBubble(startTime);
+            }
+        }
+
+        // 물방울 하나 생성 (뿅!)
+        function createBubble(startTime) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            // 물방울은 사인파의 피치가 급격히 올라가며 발생
+            osc.type = 'sine';
+            // 랜덤한 시작 주파수 (500~1000Hz)
+            const startFreq = 500 + Math.random() * 500;
+            
+            osc.frequency.setValueAtTime(startFreq, startTime);
+            // 0.05초 동안 주파수가 위로 솟구침 (Glug sound)
+            osc.frequency.exponentialRampToValueAtTime(startFreq * 2, startTime + 0.05);
+
+            // 볼륨 엔벨로프 (짧게 치고 빠짐)
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(0.3, startTime + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.05);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start(startTime);
+            osc.stop(startTime + 0.1);
+        }
+
+        function playWinSound() {
+            // 승리 시 간단한 팡파레 (3화음)
+            initAudio();
+            const notes = [523.25, 659.25, 783.99]; // 도, 미, 솔
+            notes.forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.value = freq;
+                
+                gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.1 + (i*0.05));
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6 + (i*0.05));
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime + (i*0.1));
+                osc.stop(audioCtx.currentTime + 1);
+            });
+        }
+
+
+        // --- 타이머 로직 ---
+        function startTimer() {
+            stopTimer(); // 기존 타이머 정지
+            secondsElapsed = 0;
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+            const seconds = (secondsElapsed % 60).toString().padStart(2, '0');
+            document.getElementById('timer').innerText = `⏱️ ${minutes}:${seconds}`;
+        }
+
+
+        // --- 초기화: 난이도별 설정 ---
+        function initGame(difficulty) {
+            currentDifficulty = difficulty; 
+            let colorCount, emptyCount;
+
+            if (difficulty === 'easy') {
+                colorCount = 3; emptyCount = 2; 
+            } else if (difficulty === 'normal') {
+                colorCount = 5; emptyCount = 2; 
+            } else {
+                colorCount = 7; emptyCount = 2; 
+            }
+
+            generateLevel(colorCount, emptyCount);
+            render();
+            
+            // 타이머 정지 및 초기화
+            stopTimer();
+            secondsElapsed = 0;
+            updateTimerDisplay();
+
+            // 게임 비활성화 및 시작 버튼 표시
+            isGameActive = false;
+            document.getElementById('start-overlay').classList.remove('hidden');
+            
+            document.getElementById('message').innerText = "준비가 되면 시작 버튼을 누르세요!";
+            document.getElementById('message').className = "mt-8 text-2xl font-bold text-gray-400 h-8";
+            document.getElementById('confetti').innerHTML = '';
+        }
+
+        // --- [NEW] 게임 시작 함수 ---
+        function startGame() {
+            initAudio(); // 오디오 컨텍스트 활성화 (사용자 제스처)
+            isGameActive = true;
+            document.getElementById('start-overlay').classList.add('hidden');
+            startTimer();
+            document.getElementById('message').innerText = "튜브를 클릭해서 물을 옮기세요!";
+            document.getElementById('message').className = "mt-8 text-2xl font-bold text-yellow-400 h-8";
+            playPopSound(); // 시작음
+        }
+
+        // --- [수정] 새로운 게임 버튼 로직 (커스텀 모달 사용) ---
+        function startNewGame() {
+            // 브라우저 기본 confirm 대신 커스텀 모달 표시
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function confirmNewGame() {
+            closeConfirmModal();
+            initGame(currentDifficulty);
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+        }
+
+        // --- 레벨 생성기 (Reverse Shuffling) ---
+        function generateLevel(colorCount, emptyCount) {
+            tubes = [];
+            for (let i = 0; i < colorCount; i++) {
+                let tube = [];
+                for (let j = 0; j < TUBE_CAPACITY; j++) {
+                    tube.push(COLORS[i]);
+                }
+                tubes.push(tube);
+            }
+            for (let i = 0; i < emptyCount; i++) {
+                tubes.push([]);
+            }
+
+            const shuffleMoves = colorCount * 50; 
+            for (let i = 0; i < shuffleMoves; i++) {
+                const fromIdx = Math.floor(Math.random() * tubes.length);
+                const toIdx = Math.floor(Math.random() * tubes.length);
+
+                if (fromIdx === toIdx) continue;
+                if (tubes[fromIdx].length === 0) continue; 
+                if (tubes[toIdx].length >= TUBE_CAPACITY) continue; 
+
+                const color = tubes[fromIdx].pop();
+                tubes[toIdx].push(color);
+            }
+            initialTubes = JSON.parse(JSON.stringify(tubes));
+            selectedTubeIndex = -1;
+        }
+
+        // --- 현재 레벨 다시하기 ---
+        function resetCurrentLevel() {
+            tubes = JSON.parse(JSON.stringify(initialTubes));
+            selectedTubeIndex = -1;
+            render();
+            // 다시하기는 보통 바로 리셋되길 원하므로 타이머만 리셋하고 바로 시작
+            stopTimer();
+            secondsElapsed = 0;
+            updateTimerDisplay();
+            startTimer();
+            
+            document.getElementById('message').innerText = "처음 상태로 돌아갔습니다.";
+            document.getElementById('confetti').innerHTML = '';
+        }
+
+        // --- 화면 그리기 ---
+        function render() {
+            const board = document.getElementById('game-board');
+            
+            // 기존 오버레이 유지 (삭제되지 않도록)
+            const overlay = document.getElementById('start-overlay');
+            board.innerHTML = ''; // 초기화
+            if(overlay) board.appendChild(overlay); // 오버레이 다시 붙이기
+
+            tubes.forEach((tube, index) => {
+                const tubeEl = document.createElement('div');
+                tubeEl.className = `tube ${index === selectedTubeIndex ? 'selected' : ''}`;
+                tubeEl.onclick = () => handleTubeClick(index);
+
+                tube.forEach(color => {
+                    const liquid = document.createElement('div');
+                    liquid.className = 'liquid';
+                    liquid.style.backgroundColor = color;
+                    tubeEl.appendChild(liquid);
+                });
+
+                board.insertBefore(tubeEl, overlay); // 오버레이 뒤에 튜브 추가
+            });
+        }
+
+        // --- 클릭 핸들러 ---
+        function handleTubeClick(index) {
+            // 게임이 시작되지 않았거나 애니메이션 중이면 무시
+            if (!isGameActive || isAnimating) return; 
+
+            // 최초 클릭 시 오디오 컨텍스트 초기화
+            initAudio();
+
+            // 1. 선택
+            if (selectedTubeIndex === -1) {
+                if (tubes[index].length === 0) return; 
+                selectedTubeIndex = index;
+                playPopSound(); 
+                render();
+                return;
+            }
+
+            // 2. 선택 해제
+            if (selectedTubeIndex === index) {
+                selectedTubeIndex = -1;
+                playPopSound(); 
+                render();
+                return;
+            }
+
+            // 3. 이동 시도
+            attemptPour(selectedTubeIndex, index);
+        }
+
+        // --- 물 붓기 로직 ---
+        function attemptPour(fromIdx, toIdx) {
+            const fromTube = tubes[fromIdx];
+            const toTube = tubes[toIdx];
+
+            const colorToMove = fromTube[fromTube.length - 1];
+            const targetColor = toTube.length > 0 ? toTube[toTube.length - 1] : null;
+
+            if (toTube.length >= TUBE_CAPACITY) {
+                showMessage("튜브가 꽉 찼습니다!");
+                shakeTube(toIdx);
+                selectedTubeIndex = -1;
+                render();
+                return;
+            }
+
+            if (targetColor !== null && targetColor !== colorToMove) {
+                showMessage("같은 색깔 위에만 부을 수 있습니다!");
+                shakeTube(toIdx);
+                selectedTubeIndex = -1;
+                render();
+                return;
+            }
+
+            let movedCount = 0;
+            const spaceAvailable = TUBE_CAPACITY - toTube.length;
+
+            while (
+                fromTube.length > 0 && 
+                fromTube[fromTube.length - 1] === colorToMove && 
+                movedCount < spaceAvailable
+            ) {
+                fromTube.pop(); 
+                toTube.push(colorToMove); 
+                movedCount++;
+            }
+
+            selectedTubeIndex = -1;
+            playPourSound(); // [변경된 효과음]
+            render();
+            checkWin();
+        }
+
+        // --- 승리 조건 검사 ---
+        function checkWin() {
+            const isWin = tubes.every(tube => {
+                if (tube.length === 0) return true; 
+                if (tube.length !== TUBE_CAPACITY) return false; 
+                
+                const firstColor = tube[0];
+                return tube.every(color => color === firstColor);
+            });
+
+            if (isWin) {
+                stopTimer();
+                isGameActive = false; // 게임 종료 상태
+                const finalTime = document.getElementById('timer').innerText.replace('⏱️ ', '');
+                document.getElementById('message').innerHTML = `🎉 축하합니다! ${finalTime}만에 성공! 🎉`;
+                document.getElementById('message').className = "mt-8 text-3xl font-bold text-green-400 h-8 animate-bounce";
+                createConfetti();
+                playWinSound();
+            } else {
+                document.getElementById('message').innerText = "";
+            }
+        }
+
+        function showMessage(text) {
+            const msgEl = document.getElementById('message');
+            msgEl.innerText = text;
+            setTimeout(() => {
+                if(msgEl.innerText === text) msgEl.innerText = "";
+            }, 1500);
+        }
+
+        function shakeTube(index) {
+            const tubeEls = document.getElementsByClassName('tube');
+            // 오버레이 때문에 인덱스가 밀릴 수 있으므로 튜브 클래스만 선택
+            // 튜브는 오버레이(마지막) 앞에 추가됨
+            if (tubeEls[index]) {
+                tubeEls[index].animate([
+                    { transform: 'translateX(0)' },
+                    { transform: 'translateX(-5px)' },
+                    { transform: 'translateX(5px)' },
+                    { transform: 'translateX(0)' }
+                ], {
+                    duration: 300
+                });
+            }
+        }
+
+        function createConfetti() {
+            const colors = ['#f00', '#0f0', '#00f', '#ff0', '#0ff', '#f0f'];
+            let confettiHtml = '';
+            for(let i=0; i<100; i++) {
+                const left = Math.random() * 100;
+                const animDelay = Math.random() * 2;
+                const bg = colors[Math.floor(Math.random() * colors.length)];
+                confettiHtml += `<div style="
+                    position: absolute;
+                    left: ${left}%;
+                    top: -10px;
+                    width: 10px;
+                    height: 10px;
+                    background: ${bg};
+                    animation: fall 3s linear ${animDelay}s infinite;
+                "></div>`;
+            }
+            
+            const style = document.createElement('style');
+            style.innerHTML = `
+                @keyframes fall {
+                    to { transform: translateY(100vh) rotate(720deg); }
+                }
+            `;
+            document.head.appendChild(style);
+            document.getElementById('confetti').innerHTML = confettiHtml;
+        }
+
+        // 게임 초기화 (대기 상태)
+        initGame('easy');
+
+    </script>
+</body>
+</html>
