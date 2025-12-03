@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>디지털 물감놀이: 컬러 매치</title>
+    <!-- Tailwind CSS (스타일링) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 아이콘 사용을 위한 FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #f0f9ff;
+            user-select: none;
+            overflow: hidden; /* 스크롤 방지 */
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 섞이는 효과 애니메이션 */
+        @keyframes mix-swirl {
+            0% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; transform: rotate(0deg); }
+            33% { border-radius: 70% 30% 30% 70% / 60% 40% 40% 60%; transform: rotate(120deg); }
+            66% { border-radius: 30% 70% 60% 40% / 50% 60% 30% 70%; transform: rotate(240deg); }
+            100% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; transform: rotate(360deg); }
+        }
+
+        .mixing-blob {
+            transition: background-color 0.5s ease;
+            animation: mix-swirl 6s linear infinite;
+            box-shadow: inset -10px -10px 30px rgba(0,0,0,0.1), 10px 10px 30px rgba(0,0,0,0.1);
+        }
+
+        /* 버튼 스타일 */
+        .paint-btn-body {
+            position: relative;
+            overflow: hidden;
+            border-bottom-width: 8px;
+            transition: transform 0.1s;
+        }
+        .paint-btn:active .paint-btn-body {
+            transform: scale(0.95);
+            border-bottom-width: 2px;
+            margin-top: 6px;
+        }
+        .paint-shine {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 12px;
+            background-color: rgba(255,255,255,0.3);
+        }
+        .paint-shadow {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 6px;
+            background-color: rgba(0,0,0,0.15);
+        }
+        
+        /* 결과 모달 애니메이션 */
+        @keyframes slide-up {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-content {
+            animation: slide-up 0.3s ease-out;
+        }
+
+        /* 반응형 컨테이너 */
+        #game-container-wrapper {
+            /* 초기 크기 설정 (기준 해상도) */
+            width: 1024px; 
+            /* height는 내용에 따라 유동적이지만 기준을 잡음 */
+            transform-origin: center center;
+            transition: transform 0.1s ease-out; /* 부드러운 리사이징 */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 메인 컨테이너 래퍼 (자동 스케일링 대상) -->
+    <div id="game-container-wrapper">
+        <!-- 실제 게임 UI 컨테이너 -->
+        <div class="bg-white rounded-[3rem] shadow-2xl p-10 w-full relative overflow-hidden border-4 border-indigo-50">
+            
+            <!-- 상단 헤더 -->
+            <header class="text-center mb-10">
+                <h1 class="text-6xl text-indigo-600 mb-4 drop-shadow-sm">🎨 색을 섞으면? </h1>
+                <p class="text-gray-500 text-2xl">버튼 색과 똑같은 물감으로 목표 색을 만들어보세요!<br>(실제 물감과 조금 다를 수 있어요.)</p>
+            </header>
+
+            <!-- 게임 영역 -->
+            <div class="flex justify-around items-center mb-12 px-10 gap-10">
+                <!-- 목표 색상 (Target) -->
+                <div class="flex flex-col items-center">
+                    <span class="text-gray-600 text-3xl mb-6">목표 색상</span>
+                    <div id="target-color" class="w-64 h-64 rounded-full shadow-inner border-[12px] border-gray-100 relative mixing-blob">
+                        <div id="target-overlay" class="absolute inset-0 flex items-center justify-center text-white text-4xl opacity-0 transition-opacity bg-black/20 rounded-full">
+                            정답!
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VS 배지 -->
+                <div class="text-6xl font-black text-gray-200 italic">VS</div>
+
+                <!-- 내 색상 (Current) -->
+                <div class="flex flex-col items-center">
+                    <span class="text-gray-600 text-3xl mb-6">내가 만든 색</span>
+                    <div id="my-color" class="w-64 h-64 rounded-full shadow-inner border-[12px] border-gray-100 bg-white mixing-blob relative flex items-center justify-center">
+                        <span id="empty-msg" class="text-gray-300 text-2xl text-center leading-relaxed">물감을<br>짜주세요</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 물감 팔레트 -->
+            <div class="bg-gray-50 rounded-[2.5rem] p-8 mb-10 border-2 border-gray-100">
+                <div class="grid grid-cols-5 gap-6 mb-8">
+                    <!-- 1. 빨강 -->
+                    <button onclick="addDrop('red')" class="paint-btn flex flex-col items-center gap-3 group">
+                        <div class="paint-btn-body w-full h-24 bg-red-500 rounded-b-3xl rounded-t-lg shadow-xl border-red-700">
+                            <div class="paint-shine"></div><div class="paint-shadow"></div>
+                        </div>
+                        <span class="text-xl text-gray-600 group-hover:text-red-500 transition-colors">빨강</span>
+                    </button>
+                    <!-- 2. 주황 -->
+                    <button onclick="addDrop('orange')" class="paint-btn flex flex-col items-center gap-3 group">
+                        <div class="paint-btn-body w-full h-24 bg-orange-500 rounded-b-3xl rounded-t-lg shadow-xl border-orange-700">
+                            <div class="paint-shine"></div><div class="paint-shadow"></div>
+                        </div>
+                        <span class="text-xl text-gray-600 group-hover:text-orange-500 transition-colors">주황</span>
+                    </button>
+                    <!-- 3. 노랑 -->
+                    <button onclick="addDrop('yellow')" class="paint-btn flex flex-col items-center gap-3 group">
+                        <div class="paint-btn-body w-full h-24 bg-yellow-400 rounded-b-3xl rounded-t-lg shadow-xl border-yellow-600">
+                            <div class="paint-shine"></div><div class="paint-shadow"></div>
+                        </div>
+                        <span class="text-xl text-gray-600 group-hover:text-yellow-500 transition-colors">노랑</span>
+                    </button>
+                    <!-- 4. 초록 -->
+                    <button onclick="addDrop('green')" class="paint-btn flex flex-col items-center gap-3 group">
+                        <div class="paint-btn-body w-full h-24 bg-green-500 rounded-b-3xl rounded-t-lg shadow-xl border-green-700">
+                            <div class="paint-shine"></div><div class="paint-shadow"></div>
+                        </div>
+                        <span class="text-xl text-gray-600 group-hover:text-green-500 transition-colors">초록</span>
+                    </button>
+                    <!-- 5. 파랑 -->
+                    <button onclick="addDrop('blue')" class="paint-btn flex flex-col items-center gap-3 group">
+                        <div class="paint-btn-body w-full h-24 bg-blue-600 rounded-b-3xl rounded-t-lg shadow-xl border-blue-800">
+                            <div class="paint-shine"></div><div class="paint-shadow"></div>
+                        </div>
+                        <span class="text-xl text-gray-600 group-hover:text-blue-600 transition-colors">파랑</span>
+                    </button>
+                    
+                    <!-- 6. 보라 -->
+                    <button onclick="addDrop('purple')" class="paint-btn flex flex-col items-center gap-3 group">
+                        <div class="paint-btn-body w-full h-24 bg-purple-600 rounded-b-3xl rounded-t-lg shadow-xl border-purple-800">
+                            <div class="paint-shine"></div><div class="paint-shadow"></div>
+                        </div>
+                        <span class="text-xl text-gray-600 group-hover:text-purple-600 transition-colors">보라</span>
+                    </button>
+                    <!-- 7. 분홍 -->
+                    <button onclick="addDrop('pink')" class="paint-btn flex flex-col items-center gap-3 group">
+                        <div class="paint-btn-body w-full h-24 bg-pink-400 rounded-b-3xl rounded-t-lg shadow-xl border-pink-600">
+                            <div class="paint-shine"></div><div class="paint-shadow"></div>
+                        </div>
+                        <span class="text-xl text-gray-600 group-hover:text-pink-400 transition-colors">분홍</span>
+                    </button>
+                     <!-- 8. 갈색 -->
+                     <button onclick="addDrop('brown')" class="paint-btn flex flex-col items-center gap-3 group">
+                        <div class="paint-btn-body w-full h-24 bg-[#8B4513] rounded-b-3xl rounded-t-lg shadow-xl border-[#5e2f0d]">
+                            <div class="paint-shine"></div><div class="paint-shadow"></div>
+                        </div>
+                        <span class="text-xl text-gray-600 group-hover:text-[#8B4513] transition-colors">갈색</span>
+                    </button>
+                    <!-- 9. 흰색 -->
+                    <button onclick="addDrop('white')" class="paint-btn flex flex-col items-center gap-3 group">
+                        <div class="paint-btn-body w-full h-24 bg-white rounded-b-3xl rounded-t-lg shadow-xl border-gray-300 border-2">
+                            <div class="paint-shine"></div><div class="paint-shadow"></div>
+                        </div>
+                        <span class="text-xl text-gray-600 group-hover:text-gray-400 transition-colors">흰색</span>
+                    </button>
+                    <!-- 10. 검정 -->
+                    <button onclick="addDrop('black')" class="paint-btn flex flex-col items-center gap-3 group">
+                        <div class="paint-btn-body w-full h-24 bg-gray-800 rounded-b-3xl rounded-t-lg shadow-xl border-black">
+                            <div class="paint-shine"></div><div class="paint-shadow"></div>
+                        </div>
+                        <span class="text-xl text-gray-600 group-hover:text-gray-800 transition-colors">검정</span>
+                    </button>
+                </div>
+                
+                <!-- 현재 비율 표시기 -->
+                <div id="recipe-display" class="h-16 bg-white rounded-2xl flex overflow-hidden shadow-inner text-xl text-white items-center justify-center border border-gray-200">
+                    <span class="text-gray-400">아직 물감을 넣지 않았어요</span>
+                </div>
+            </div>
+
+            <!-- 액션 버튼 -->
+            <div class="flex gap-6">
+                <button onclick="resetMix()" class="flex-1 py-5 bg-gray-200 hover:bg-gray-300 text-gray-600 text-2xl rounded-2xl transition-colors font-bold shadow-md">
+                    <i class="fa-solid fa-rotate-left mr-3"></i>다시하기
+                </button>
+                <button onclick="checkResult()" class="flex-[2] py-5 bg-indigo-600 hover:bg-indigo-700 text-white text-2xl rounded-2xl shadow-xl transition-all hover:scale-[1.01] hover:shadow-2xl animate-pulse-slow font-bold">
+                    <i class="fa-solid fa-check mr-3"></i>제출하기!
+                </button>
+            </div>
+
+            <!-- 결과 모달 -->
+            <div id="result-modal" class="hidden absolute inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                <div class="bg-white w-full max-w-lg rounded-[2.5rem] p-10 text-center shadow-2xl modal-content flex flex-col max-h-[90vh] overflow-y-auto">
+                    <div id="result-icon" class="text-8xl mb-6">🎉</div>
+                    <h2 id="result-title" class="text-5xl mb-4">완벽해요!</h2>
+                    <p id="result-desc" class="text-gray-500 text-2xl mb-10">색감이 정말 뛰어나시네요!</p>
+                    
+                    <div class="flex justify-center items-center gap-8 mb-8">
+                        <div class="flex flex-col items-center">
+                            <span class="text-xl text-gray-500 mb-3">목표</span>
+                            <div id="modal-target-color" class="w-24 h-24 rounded-full shadow-lg border-4 border-gray-100"></div>
+                        </div>
+                        <div class="text-5xl text-gray-300">➜</div>
+                        <div class="flex flex-col items-center">
+                            <span class="text-xl text-gray-500 mb-3">결과</span>
+                            <div id="modal-my-color" class="w-24 h-24 rounded-full shadow-lg border-4 border-gray-100"></div>
+                        </div>
+                    </div>
+
+                    <!-- 점수 바 -->
+                    <div class="w-full bg-gray-200 rounded-full h-8 mb-4 overflow-hidden shadow-inner">
+                        <div id="score-bar" class="bg-green-500 h-8 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                    <p id="score-text" class="text-5xl text-indigo-600 mb-8 font-bold">98점</p>
+                    
+                    <!-- 정답 레시피 보기 영역 -->
+                    <div id="answer-section" class="hidden mb-8 bg-indigo-50 rounded-2xl p-6 border-2 border-indigo-100">
+                        <h3 class="text-2xl text-indigo-800 mb-4 font-bold">🤫 정답 비법 레시피</h3>
+                        <!-- 레시피가 여기에 표시됨 -->
+                        <div id="answer-recipe-display" class="flex justify-center gap-2 flex-wrap"></div>
+                    </div>
+
+                    <div class="flex flex-col gap-3">
+                        <button id="show-answer-btn" onclick="revealAnswer()" class="w-full py-4 bg-white border-2 border-indigo-200 text-indigo-600 text-xl rounded-2xl hover:bg-indigo-50 transition-colors font-bold">
+                            🔍 정답 비법 보기
+                        </button>
+                        <button onclick="nextLevel()" class="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white text-2xl rounded-2xl transition-colors font-bold shadow-lg">
+                            다음 문제 풀기
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 스크립트 -->
+    <script>
+        const PAINTS = {
+            red:    { c: 6, m: 73, y: 73, k: 0, hex: '#ef4444', name: '빨강' },
+            orange: { c: 2, m: 55, y: 91, k: 0, hex: '#f97316', name: '주황' },
+            yellow: { c: 2, m: 20, y: 92, k: 0, hex: '#facc15', name: '노랑' },
+            green:  { c: 87, m: 23, y: 63, k: 0, hex: '#22c55e', name: '초록' },
+            blue:   { c: 85, m: 61, y: 8, k: 0, hex: '#2563eb', name: '파랑' },
+            purple: { c: 42, m: 80, y: 8, k: 0, hex: '#9333ea', name: '보라' },
+            pink:   { c: 4, m: 55, y: 29, k: 0, hex: '#f472b6', name: '분홍' },
+            brown:  { c: 45, m: 73, y: 93, k: 0, hex: '#8B4513', name: '갈색' },
+            white:  { c: 0, m: 0, y: 0, k: 0, hex: '#ffffff', name: '흰색' },
+            black:  { c: 88, m: 84, y: 78, k: 0, hex: '#1f2937', name: '검정' }
+        };
+
+        let currentDrops = [];
+        let targetDrops = [];
+        let targetRGB = null;
+
+        // --- [자동 크기 조절] ---
+        function resizeGame() {
+            const wrapper = document.getElementById('game-container-wrapper');
+            const targetWidth = 1024; // 기준 너비
+            const targetHeight = 1100; // 기준 높이
+            
+            // 여백 40px 제외한 가용 공간
+            const scaleX = (window.innerWidth - 40) / targetWidth;
+            const scaleY = (window.innerHeight - 40) / targetHeight;
+            
+            // 비율 유지하며 화면에 맞춤
+            let scale = Math.min(scaleX, scaleY);
+
+            wrapper.style.transform = `scale(${scale})`;
+        }
+
+        window.addEventListener('resize', resizeGame);
+        window.addEventListener('load', () => {
+            resizeGame();
+            initGame();
+        });
+
+        function initGame() {
+            resetMix();
+            generateTargetColor();
+            document.getElementById('result-modal').classList.add('hidden');
+            document.getElementById('target-overlay').style.opacity = '0';
+            document.getElementById('answer-section').classList.add('hidden');
+            document.getElementById('show-answer-btn').style.display = 'block';
+        }
+
+        function generateTargetColor() {
+            targetDrops = [];
+            const keys = Object.keys(PAINTS);
+            const dropCount = Math.floor(Math.random() * 3) + 2;
+
+            if (Math.random() > 0.6) {
+                targetDrops.push('white');
+                targetDrops.push('white');
+            }
+
+            for(let i=0; i<dropCount; i++) {
+                const randomKey = keys[Math.floor(Math.random() * keys.length)];
+                targetDrops.push(randomKey);
+            }
+
+            const mixedCMYK = calculateMix(targetDrops);
+            targetRGB = cmykToRgb(mixedCMYK.c, mixedCMYK.m, mixedCMYK.y, mixedCMYK.k);
+            
+            const targetDiv = document.getElementById('target-color');
+            targetDiv.style.backgroundColor = `rgb(${targetRGB.r}, ${targetRGB.g}, ${targetRGB.b})`;
+        }
+
+        function addDrop(colorKey) {
+            currentDrops.push(colorKey);
+            updateMixDisplay();
+            document.getElementById('empty-msg').style.display = 'none';
+        }
+
+        function updateMixDisplay() {
+            if (currentDrops.length === 0) {
+                document.getElementById('my-color').style.backgroundColor = '#ffffff';
+                document.getElementById('empty-msg').style.display = 'block';
+                document.getElementById('recipe-display').innerHTML = '<span class="text-gray-400">아직 물감을 넣지 않았어요</span>';
+                return;
+            }
+
+            const mixedCMYK = calculateMix(currentDrops);
+            const rgb = cmykToRgb(mixedCMYK.c, mixedCMYK.m, mixedCMYK.y, mixedCMYK.k);
+            
+            const myColorDiv = document.getElementById('my-color');
+            myColorDiv.style.backgroundColor = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+
+            updateRecipeBar();
+        }
+
+        function updateRecipeBar() {
+            const bar = document.getElementById('recipe-display');
+            bar.innerHTML = '';
+            
+            const counts = {};
+            currentDrops.forEach(c => counts[c] = (counts[c] || 0) + 1);
+            const total = currentDrops.length;
+
+            for (const [key, count] of Object.entries(counts)) {
+                if (count === 0) continue;
+                const width = (count / total) * 100;
+                const colorHex = PAINTS[key].hex;
+                const isLight = ['white', 'yellow', 'pink'].includes(key);
+                const textColor = isLight ? 'text-black' : 'text-white';
+                
+                const segment = document.createElement('div');
+                segment.style.width = `${width}%`;
+                segment.style.backgroundColor = colorHex;
+                segment.className = `h-full flex items-center justify-center text-lg font-bold ${textColor}`;
+                segment.innerHTML = count;
+                bar.appendChild(segment);
+            }
+        }
+
+        // --- [핵심 수정] 교과서 이론 기반 혼합 로직 (Textbook Logic) ---
+        function calculateMix(dropsArray) {
+            if (dropsArray.length === 0) return { c:0, m:0, y:0, k:0 };
+
+            let totalC = 0, totalM = 0, totalY = 0, totalK = 0;
+            // 3원색 존재 여부 추적
+            let hasRed = false;
+            let hasYellow = false;
+            let hasBlue = false;
+
+            dropsArray.forEach(key => {
+                const p = PAINTS[key];
+                totalC += p.c;
+                totalM += p.m;
+                totalY += p.y;
+                totalK += p.k;
+
+                if (key === 'red') hasRed = true;
+                if (key === 'yellow') hasYellow = true;
+                if (key === 'blue') hasBlue = true;
+            });
+
+            const count = dropsArray.length;
+            let avgC = totalC / count;
+            let avgM = totalM / count;
+            let avgY = totalY / count;
+            let avgK = totalK / count;
+
+            // [규칙 1] 빨강 + 노랑 + 파랑 = 검정 (The Black Rule)
+            // 3원색이 모두 섞이면 이론상 검정이 되어야 합니다.
+            if (hasRed && hasYellow && hasBlue) {
+                // 강제로 K(검정) 값을 높여서 확실한 검정/짙은 회색을 만듭니다.
+                // 기존의 진흙색(Muddy Brown)을 덮어씌웁니다.
+                avgK = Math.max(avgK, 85); 
+                avgC = Math.max(avgC, 60); // 깊이감 추가
+                avgM = Math.max(avgM, 60);
+                avgY = Math.max(avgY, 60);
+            }
+            // [규칙 2] 노랑 + 파랑 = 초록 (Green Correction)
+            // 단, 빨강이 없을 때만 적용 (빨강이 있으면 검정이 되어야 하므로)
+            else if (hasYellow && hasBlue && !hasRed) {
+                // 파랑의 Magenta 성분을 제거하여 맑은 초록을 만듭니다.
+                avgM = avgM * 0.2;
+                const maxCY = Math.max(avgC, avgY);
+                // Cyan과 Yellow를 강조
+                avgC = (avgC + maxCY) / 1.6;
+                avgY = (avgY + maxCY) / 1.6;
+            }
+            // [규칙 3] 빨강 + 파랑 = 보라 (Purple Correction)
+            // 단, 노랑이 없을 때만 적용
+            else if (hasRed && hasBlue && !hasYellow) {
+                // 빨강의 Yellow 성분을 제거하여 맑은 보라를 만듭니다.
+                avgY = avgY * 0.2;
+                const maxCM = Math.max(avgC, avgM);
+                avgC = (avgC + maxCM) / 1.8;
+                avgM = (avgM + maxCM) / 1.8;
+            }
+            // [규칙 4] 빨강 + 노랑 = 주황 (Orange Correction)
+            else if (hasRed && hasYellow && !hasBlue) {
+                 // 보통 잘 나오지만 확실하게 하기 위해 Cyan 제거
+                 avgC = avgC * 0.1;
+            }
+
+            // 일반적인 '탁함' 처리 (여러 색 섞임)
+            const minCMY = Math.min(avgC, avgM, avgY);
+            if (minCMY > 10) { 
+                // 색이 3개 이상 섞여서 탁해지면 검정 기운을 추가
+                avgK += minCMY * 1.5;
+            }
+            
+            return {
+                c: Math.min(100, avgC),
+                m: Math.min(100, avgM),
+                y: Math.min(100, avgY),
+                k: Math.min(100, avgK)
+            };
+        }
+
+        function cmykToRgb(c, m, y, k) {
+            c = c / 100;
+            m = m / 100;
+            y = y / 100;
+            k = k / 100;
+
+            let r = 255 * (1 - c) * (1 - k);
+            let g = 255 * (1 - m) * (1 - k);
+            let b = 255 * (1 - y) * (1 - k);
+
+            return {
+                r: Math.round(r),
+                g: Math.round(g),
+                b: Math.round(b)
+            };
+        }
+
+        function resetMix() {
+            currentDrops = [];
+            updateMixDisplay();
+        }
+
+        function checkResult() {
+            if (currentDrops.length === 0) {
+                alert("물감을 최소 한 방울은 넣어야 해요!");
+                return;
+            }
+
+            const mixedCMYK = calculateMix(currentDrops);
+            const myRGB = cmykToRgb(mixedCMYK.c, mixedCMYK.m, mixedCMYK.y, mixedCMYK.k);
+
+            const dist = Math.sqrt(
+                Math.pow(targetRGB.r - myRGB.r, 2) +
+                Math.pow(targetRGB.g - myRGB.g, 2) +
+                Math.pow(targetRGB.b - myRGB.b, 2)
+            );
+
+            let score = Math.max(0, 100 - (dist / 2.5)); 
+            score = Math.round(score);
+
+            showResult(score, myRGB);
+        }
+
+        function showResult(score, myRGB) {
+            const modal = document.getElementById('result-modal');
+            const icon = document.getElementById('result-icon');
+            const title = document.getElementById('result-title');
+            const desc = document.getElementById('result-desc');
+            const scoreText = document.getElementById('score-text');
+            const scoreBar = document.getElementById('score-bar');
+            
+            document.getElementById('target-overlay').style.opacity = '1';
+
+            document.getElementById('modal-target-color').style.backgroundColor = 
+                `rgb(${targetRGB.r}, ${targetRGB.g}, ${targetRGB.b})`;
+            document.getElementById('modal-my-color').style.backgroundColor = 
+                `rgb(${myRGB.r}, ${myRGB.g}, ${myRGB.b})`;
+
+            if (score >= 95) {
+                icon.textContent = "🏆";
+                title.textContent = "신의 경지!";
+                desc.textContent = "기계보다 정확한 눈을 가지셨군요!";
+                title.className = "text-5xl mb-4 text-indigo-600 font-bold";
+            } else if (score >= 80) {
+                icon.textContent = "🎨";
+                title.textContent = "아주 훌륭해요!";
+                desc.textContent = "거의 완벽하게 똑같아요.";
+                title.className = "text-5xl mb-4 text-green-600 font-bold";
+            } else if (score >= 50) {
+                icon.textContent = "🤔";
+                title.textContent = "조금 아쉬워요";
+                desc.textContent = "색이 비슷하긴 한데, 톤을 맞춰보세요.";
+                title.className = "text-5xl mb-4 text-yellow-500 font-bold";
+            } else {
+                icon.textContent = "🤪";
+                title.textContent = "완전 다른데요?";
+                desc.textContent = "괜찮아요, 예술은 자유니까요!";
+                title.className = "text-5xl mb-4 text-red-500 font-bold";
+            }
+
+            scoreText.textContent = `${score}점`;
+            
+            modal.classList.remove('hidden');
+            
+            setTimeout(() => {
+                scoreBar.style.width = `${score}%`;
+                if(score < 50) scoreBar.className = "h-8 rounded-full transition-all duration-1000 bg-red-500";
+                else if(score < 80) scoreBar.className = "h-8 rounded-full transition-all duration-1000 bg-yellow-400";
+                else scoreBar.className = "h-8 rounded-full transition-all duration-1000 bg-green-500";
+            }, 100);
+        }
+
+        function revealAnswer() {
+            const answerContainer = document.getElementById('answer-recipe-display');
+            answerContainer.innerHTML = '';
+            
+            const counts = {};
+            targetDrops.forEach(c => counts[c] = (counts[c] || 0) + 1);
+
+            for (const [key, count] of Object.entries(counts)) {
+                const paint = PAINTS[key];
+                
+                const chip = document.createElement('div');
+                chip.className = "flex items-center gap-2 bg-white px-3 py-2 rounded-xl shadow-sm border border-gray-100";
+                
+                const colorDot = document.createElement('div');
+                colorDot.className = "w-6 h-6 rounded-full border border-gray-200";
+                colorDot.style.backgroundColor = paint.hex;
+                
+                const text = document.createElement('span');
+                text.className = "text-lg font-bold text-gray-700";
+                text.textContent = `${paint.name} ${count}`;
+                
+                chip.appendChild(colorDot);
+                chip.appendChild(text);
+                answerContainer.appendChild(chip);
+            }
+
+            document.getElementById('answer-section').classList.remove('hidden');
+            document.getElementById('show-answer-btn').style.display = 'none';
+        }
+
+        function nextLevel() {
+            initGame();
+        }
+
+    </script>
+</body>
+</html>
