@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>도형의 달인: 절대 감각</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #f3f4f6;
+            overflow: hidden;
+            touch-action: none;
+        }
+        canvas {
+            touch-action: none;
+            cursor: crosshair;
+        }
+        .panel {
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border-radius: 1rem;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            80% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+        .score-pop {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #4f46e5;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="flex h-screen">
+
+    <!-- 왼쪽 사이드바: 점수 기록장 -->
+    <aside class="w-72 bg-white shadow-xl z-20 flex flex-col h-full border-r border-gray-200">
+        <div class="p-6 bg-indigo-600 text-white shadow-md">
+            <h2 class="text-2xl font-bold mb-1">🏆 나의 도전 기록</h2>
+            <p class="text-indigo-200 text-sm">기록을 눌러 그림을 확인하세요!</p>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-3" id="score-history-list">
+            <div class="text-center text-gray-400 mt-10">
+                아직 도전한<br>도형이 없어요
+            </div>
+        </div>
+        <div class="p-4 border-t border-gray-100">
+            <button onclick="resetAllScores()" class="w-full py-2 text-gray-400 hover:text-red-500 text-sm transition font-bold">
+                🗑️ 기록 모두 지우기
+            </button>
+        </div>
+    </aside>
+
+    <!-- 메인 컨텐츠 영역 -->
+    <main class="flex-1 flex flex-col items-center justify-center p-4 relative bg-gray-100">
+        
+        <!-- 상단 정보창 -->
+        <div class="panel w-full max-w-2xl p-4 mb-4 flex justify-between items-center z-10 relative">
+            <div>
+                <div class="text-gray-500 text-sm">이번 도전 과제</div>
+                <div id="mission-title" class="text-3xl font-bold text-indigo-600">원</div>
+            </div>
+            
+            <!-- 3D 힌트 메시지 -->
+            <div id="hint-3d" class="hidden absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg text-sm font-bold border border-yellow-300 shadow-sm animate-pulse w-max">
+                💡 팁: 안 보이는 뒷면 선까지 모두 그려주세요!
+            </div>
+
+            <div class="text-right">
+                <div class="text-gray-500 text-sm">정확도</div>
+                <div id="score-display" class="text-4xl font-bold text-gray-300">--점</div>
+            </div>
+        </div>
+
+        <!-- 캔버스 영역 -->
+        <div class="relative panel p-1 mb-4 shadow-xl bg-white">
+            <canvas id="drawing-board" width="600" height="400" class="bg-white rounded-lg"></canvas>
+            
+            <!-- 오버레이 메시지 -->
+            <div id="overlay-msg" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none hidden bg-black/10 rounded-lg z-20">
+                <span id="feedback-text" class="score-pop text-5xl font-bold text-white bg-indigo-500/90 px-8 py-4 rounded-2xl shadow-2xl border-4 border-white transform -rotate-6 mb-2">
+                    훌륭해요!
+                </span>
+                <span id="feedback-sub" class="score-pop text-2xl font-bold text-white bg-black/50 px-4 py-2 rounded-lg" style="animation-delay: 0.2s">
+                    형태가 아주 비슷해요
+                </span>
+            </div>
+
+            <!-- 분석 중 로딩 표시 -->
+            <div id="analyzing-msg" class="absolute inset-0 flex flex-col items-center justify-center bg-white/80 rounded-lg hidden z-10">
+                <div class="spinner mb-2"></div>
+                <span class="text-xl font-bold text-indigo-600 animate-pulse">AI가 모양을 분석 중...</span>
+            </div>
+        </div>
+
+        <!-- 컨트롤 패널 -->
+        <div class="w-full max-w-2xl flex gap-4 z-10">
+            <button onclick="clearCanvasUserAction()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 px-6 rounded-xl transition shadow">
+                🧹 지우기
+            </button>
+            <button onclick="submitDrawing()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl transition shadow text-xl transform active:scale-95">
+                📝 채점하기
+            </button>
+            <button onclick="nextMission()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-xl transition shadow">
+                Next ▶
+            </button>
+        </div>
+
+        <!-- 메뉴 (숨김) -->
+        <div class="mt-4 flex flex-wrap gap-2 justify-center max-w-4xl opacity-50 hover:opacity-100 transition-opacity">
+            <select id="category-select" class="p-2 rounded border" onchange="updateMissionList()">
+                <option value="2d">평면 도형 (2D)</option>
+                <option value="3d">입체 도형 (3D)</option>
+            </select>
+            <select id="shape-select" class="p-2 rounded border" onchange="setMissionFromSelect()">
+            </select>
+        </div>
+    </main>
+
+    <script>
+        const canvas = document.getElementById('drawing-board');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let points = []; 
+        let scoreHistory = {}; 
+
+        function resizeCanvas() {
+            const sidebarWidth = 288; 
+            const availableWidth = window.innerWidth - sidebarWidth - 40; 
+            const maxWidth = Math.min(availableWidth, 800);
+            const maxHeight = window.innerHeight * 0.6;
+            
+            canvas.width = Math.max(300, maxWidth); 
+            canvas.height = maxHeight;
+            
+            if (scoreHistory[currentShapeKey]) {
+                setMission(currentShapeKey); 
+            } else {
+                clearCanvas();
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+        
+        const SHAPES = {
+            '2d': {
+                'circle': '원', 'triangle_right': '직각삼각형', 'triangle_iso': '이등변삼각형',
+                'triangle_equi': '정삼각형', 'triangle_acute': '예각삼각형', 'triangle_obtuse': '둔각삼각형',
+                'rect': '직사각형', 'square': '정사각형', 'rhombus': '마름모',
+                'parallelogram': '평행사변형', 'trapezoid': '사다리꼴',
+                'pentagon': '오각형', 'hexagon': '육각형'
+            },
+            '3d': {
+                'cube': '정육면체', 'cuboid': '직육면체', 'cylinder': '원기둥',
+                'prism_tri': '삼각기둥', 'prism_penta': '오각기둥', 'prism_hexa': '육각기둥',
+                'pyramid_tri': '삼각뿔', 'pyramid_rect': '사각뿔', 'pyramid_penta': '오각뿔',
+                'pyramid_hexa': '육각뿔', 'cone': '원뿔', 'sphere': '구'
+            }
+        };
+
+        let currentCategory = '2d';
+        let currentShapeKey = 'circle';
+
+        window.onload = () => {
+            resizeCanvas();
+            updateMissionList();
+            setMission('circle');
+            renderScoreHistory(); 
+        };
+
+        function updateMissionList() {
+            currentCategory = document.getElementById('category-select').value;
+            const select = document.getElementById('shape-select');
+            select.innerHTML = '';
+            for (const [key, name] of Object.entries(SHAPES[currentCategory])) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.text = name;
+                select.appendChild(option);
+            }
+            setMissionFromSelect();
+        }
+
+        function setMissionFromSelect() {
+            const key = document.getElementById('shape-select').value;
+            setMission(key);
+        }
+
+        function setMission(key) {
+            currentShapeKey = key;
+            
+            let name = "";
+            if(SHAPES['2d'][key]) name = SHAPES['2d'][key];
+            else if(SHAPES['3d'][key]) name = SHAPES['3d'][key];
+
+            document.getElementById('mission-title').innerText = name;
+            
+            if(currentCategory === '3d' && key !== 'sphere' && key !== 'cone' && key !== 'cylinder') {
+                document.getElementById('hint-3d').classList.remove('hidden');
+            } else {
+                document.getElementById('hint-3d').classList.add('hidden');
+            }
+
+            clearCanvas(); 
+            
+            if (scoreHistory[key]) {
+                const savedData = scoreHistory[key];
+                
+                document.getElementById('score-display').innerText = savedData.score + "점";
+                updateScoreColor(savedData.score);
+                
+                points = JSON.parse(JSON.stringify(savedData.points));
+                redrawUserDrawing(points);
+                
+                if (points.length > 0) {
+                    const bestMorph = savedData.bestMorph || 0; 
+                    const bestAngle = savedData.bestAngle || 0;
+                    drawFeedbackOverlay(points, bestMorph, bestAngle);
+                }
+
+            } else {
+                document.getElementById('score-display').innerText = "--점";
+                document.getElementById('score-display').className = "text-4xl font-bold text-gray-300";
+            }
+            
+            renderScoreHistory();
+        }
+
+        function nextMission() {
+            const select = document.getElementById('shape-select');
+            if (select.selectedIndex < select.options.length - 1) {
+                select.selectedIndex++;
+            } else {
+                select.selectedIndex = 0; 
+            }
+            setMissionFromSelect();
+        }
+
+        function startDraw(e) {
+            isDrawing = true;
+            points.push([]); 
+            draw(e);
+        }
+
+        function endDraw() {
+            isDrawing = false;
+            ctx.beginPath(); 
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+
+            points[points.length - 1].push({x, y});
+
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = '#1f2937'; 
+
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('touchstart', startDraw);
+        canvas.addEventListener('touchend', endDraw);
+        canvas.addEventListener('touchmove', draw);
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            points = []; 
+            ctx.beginPath();
+            document.getElementById('overlay-msg').classList.add('hidden');
+        }
+
+        function redrawUserDrawing(savedPoints) {
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = '#1f2937';
+
+            savedPoints.forEach(stroke => {
+                ctx.beginPath();
+                if(stroke.length > 0) {
+                    ctx.moveTo(stroke[0].x, stroke[0].y);
+                    for(let i=1; i<stroke.length; i++) {
+                        ctx.lineTo(stroke[i].x, stroke[i].y);
+                    }
+                    ctx.stroke();
+                }
+            });
+        }
+
+        function clearCanvasUserAction() {
+            clearCanvas();
+            document.getElementById('score-display').innerText = "--점";
+            document.getElementById('score-display').className = "text-4xl font-bold text-gray-300";
+        }
+
+        function drawFeedbackOverlay(currentPoints, morph, angle) {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            currentPoints.forEach(stroke => {
+                stroke.forEach(p => {
+                    if (p.x < minX) minX = p.x;
+                    if (p.x > maxX) maxX = p.x;
+                    if (p.y < minY) minY = p.y;
+                    if (p.y > maxY) maxY = p.y;
+                });
+            });
+
+            const userWidth = maxX - minX;
+            const userHeight = maxY - minY;
+            const centerX = minX + userWidth / 2;
+            const centerY = minY + userHeight / 2;
+
+            if (userWidth < 30 || userHeight < 30) return;
+
+            let targetW = userWidth;
+            let targetH = userHeight;
+
+            const fixedRatioShapes = ['square', 'triangle_equi', 'circle', 'pentagon', 'hexagon', 'cube', 'sphere'];
+            if (fixedRatioShapes.includes(currentShapeKey)) {
+                const size = Math.max(userWidth, userHeight);
+                targetW = size;
+                targetH = size;
+            }
+
+            ctx.save();
+            ctx.globalAlpha = 0.4;
+            ctx.strokeStyle = '#ef4444'; 
+            ctx.lineWidth = 8;
+            drawPerfectShape(ctx, currentShapeKey, centerX, centerY, targetW, targetH, morph, angle);
+            ctx.restore();
+        }
+
+        async function submitDrawing() {
+            if (points.length === 0 || points[0].length === 0) {
+                alert("먼저 그림을 그려주세요!");
+                return;
+            }
+
+            document.getElementById('analyzing-msg').classList.remove('hidden');
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            points.forEach(stroke => {
+                stroke.forEach(p => {
+                    if (p.x < minX) minX = p.x;
+                    if (p.x > maxX) maxX = p.x;
+                    if (p.y < minY) minY = p.y;
+                    if (p.y > maxY) maxY = p.y;
+                });
+            });
+
+            const userWidth = maxX - minX;
+            const userHeight = maxY - minY;
+            const centerX = minX + userWidth / 2;
+            const centerY = minY + userHeight / 2;
+
+            if (userWidth < 30 || userHeight < 30) {
+                document.getElementById('analyzing-msg').classList.add('hidden');
+                alert("조금 더 크게 그려주세요!");
+                return;
+            }
+
+            let targetW = userWidth;
+            let targetH = userHeight;
+
+            const fixedRatioShapes = ['square', 'triangle_equi', 'circle', 'pentagon', 'hexagon', 'cube', 'sphere'];
+            if (fixedRatioShapes.includes(currentShapeKey)) {
+                const size = Math.max(userWidth, userHeight);
+                targetW = size;
+                targetH = size;
+            }
+
+            const simSize = 200;
+            const simCanvas = document.createElement('canvas');
+            simCanvas.width = simSize;
+            simCanvas.height = simSize;
+            const simCtx = simCanvas.getContext('2d');
+            
+            const scaleX = (simSize * 0.8) / userWidth;
+            const scaleY = (simSize * 0.8) / userHeight;
+            const scale = Math.min(scaleX, scaleY); 
+            
+            simCtx.translate(simSize/2, simSize/2);
+            simCtx.scale(scale, scale);
+            simCtx.translate(-centerX, -centerY);
+            
+            simCtx.lineWidth = 20 / scale; 
+            simCtx.lineCap = 'round';
+            simCtx.strokeStyle = '#000';
+            points.forEach(stroke => {
+                simCtx.beginPath();
+                if(stroke.length > 0) {
+                    simCtx.moveTo(stroke[0].x, stroke[0].y);
+                    for(let i=1; i<stroke.length; i++) simCtx.lineTo(stroke[i].x, stroke[i].y);
+                    simCtx.stroke();
+                }
+            });
+            
+            const userData = simCtx.getImageData(0, 0, simSize, simSize).data;
+            
+            const targetCanvas = document.createElement('canvas');
+            targetCanvas.width = simSize;
+            targetCanvas.height = simSize;
+            const targetCtx = targetCanvas.getContext('2d');
+
+            const morphs = getShapeMorphs(currentShapeKey);
+            let bestScore = -1;
+            let bestMorph = 0;
+            let bestAngle = 0;
+            
+            const scaledTargetW = targetW * scale;
+            const scaledTargetH = targetH * scale;
+
+            const angleStep = 10; 
+            
+            for (let m of morphs) {
+                targetCtx.setTransform(1, 0, 0, 1, 0, 0); 
+                targetCtx.clearRect(0, 0, simSize, simSize);
+                targetCtx.lineWidth = 15; 
+                drawPerfectShape(targetCtx, currentShapeKey, simSize/2, simSize/2, scaledTargetW, scaledTargetH, m, 0);
+                const idealCount = countPixelsFast(targetCtx.getImageData(0,0,simSize,simSize).data);
+
+                for (let angle = 0; angle < 360; angle += angleStep) {
+                    targetCtx.setTransform(1, 0, 0, 1, 0, 0);
+                    targetCtx.clearRect(0, 0, simSize, simSize);
+                    
+                    targetCtx.lineWidth = 30; 
+                    drawPerfectShape(targetCtx, currentShapeKey, simSize/2, simSize/2, scaledTargetW, scaledTargetH, m, angle);
+                    
+                    const targetData = targetCtx.getImageData(0, 0, simSize, simSize).data;
+                    const score = calculateScoreFast(userData, targetData, idealCount);
+                    
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMorph = m;
+                        bestAngle = angle;
+                        if (bestScore >= 98) break; 
+                    }
+                }
+                if (bestScore >= 98) break;
+            }
+            
+            document.getElementById('analyzing-msg').classList.add('hidden');
+
+            scoreHistory[currentShapeKey] = {
+                score: bestScore,
+                points: JSON.parse(JSON.stringify(points)),
+                bestMorph: bestMorph,
+                bestAngle: bestAngle
+            };
+            renderScoreHistory();
+
+            ctx.save();
+            ctx.globalAlpha = 0.4;
+            ctx.strokeStyle = '#ef4444'; 
+            ctx.lineWidth = 8;
+            drawPerfectShape(ctx, currentShapeKey, centerX, centerY, targetW, targetH, bestMorph, bestAngle);
+            ctx.restore();
+
+            showFeedback(bestScore);
+        }
+
+        function countPixelsFast(data) {
+            let count = 0;
+            for (let i = 3; i < data.length; i += 16) { 
+                if (data[i] > 50) count++;
+            }
+            return count;
+        }
+
+        function calculateScoreFast(userData, targetData, idealCount) {
+            let userTotal = 0; 
+            let matched = 0;   
+
+            for (let i = 0; i < userData.length; i += 16) {
+                if (userData[i + 3] > 50) {
+                    userTotal++;
+                    if (targetData[i + 3] > 50) {
+                        matched++; 
+                    }
+                }
+            }
+
+            if (userTotal === 0) return 0;
+
+            let accuracy = matched / userTotal;
+            let completion = Math.min(1, matched / (idealCount * 0.9)); 
+
+            let penaltyMultiplier = 1;
+            if (accuracy < 0.6) penaltyMultiplier = accuracy; 
+
+            let rawScore = (accuracy * 0.7 + completion * 0.3) * 100;
+            return Math.round(Math.min(100, Math.max(0, rawScore * penaltyMultiplier)));
+        }
+
+        function getShapeMorphs(type) {
+            switch (type) {
+                // [수정] 마름모는 두 가지 형태(다이아, 정사각형) 모두 허용
+                // 0: Diamond, 1: Square
+                case 'rhombus':
+                    return [0, 1];
+
+                case 'cube': case 'cuboid':
+                case 'prism_tri': case 'prism_penta': case 'prism_hexa':
+                case 'pyramid_rect': case 'pyramid_tri': case 'pyramid_penta': case 'pyramid_hexa':
+                case 'cylinder': case 'cone':
+                    return [0, 1, 2, 3, 4, 5, 6, 7]; 
+
+                case 'triangle_acute': 
+                case 'triangle_obtuse':
+                case 'triangle_iso': 
+                    return [-0.4, -0.2, 0, 0.2, 0.4];
+                case 'triangle_right':
+                    return [0]; 
+                
+                case 'parallelogram': 
+                    return [-0.3, -0.15, 0, 0.15, 0.3];
+                
+                case 'trapezoid':
+                    return [0.4, 0.6, 0.8];
+                
+                default:
+                    return [0]; 
+            }
+        }
+
+        function renderScoreHistory() {
+            const listContainer = document.getElementById('score-history-list');
+            listContainer.innerHTML = '';
+            const historyKeys = Object.keys(scoreHistory);
+            
+            if (historyKeys.length === 0) {
+                listContainer.innerHTML = '<div class="text-center text-gray-400 mt-10">아직 도전한<br>도형이 없어요</div>';
+                return;
+            }
+            
+            historyKeys.forEach(key => {
+                let name = SHAPES['2d'][key] || SHAPES['3d'][key] || key;
+                const savedData = scoreHistory[key];
+                const score = savedData.score;
+                
+                let scoreClass = "text-gray-500";
+                let bgClass = "bg-gray-50";
+                if (score >= 90) { scoreClass = "text-purple-600"; bgClass = "bg-purple-50 border-purple-200"; }
+                else if (score >= 80) { scoreClass = "text-emerald-600"; bgClass = "bg-emerald-50 border-emerald-200"; }
+                else if (score >= 60) { scoreClass = "text-blue-600"; bgClass = "bg-blue-50 border-blue-200"; }
+                else { scoreClass = "text-red-500"; bgClass = "bg-red-50 border-red-200"; }
+
+                const isSelected = (key === currentShapeKey);
+                const borderClass = isSelected ? "border-l-4 border-indigo-500" : "border border-gray-200";
+
+                const item = document.createElement('div');
+                item.className = `flex justify-between items-center p-3 rounded-lg cursor-pointer hover:shadow-md transition ${bgClass} ${borderClass}`;
+                item.onclick = () => {
+                    if(SHAPES['3d'][key] && currentCategory !== '3d') {
+                        document.getElementById('category-select').value = '3d';
+                        updateMissionList();
+                    } else if(SHAPES['2d'][key] && currentCategory !== '2d') {
+                        document.getElementById('category-select').value = '2d';
+                        updateMissionList();
+                    }
+                    document.getElementById('shape-select').value = key;
+                    setMission(key);
+                };
+
+                item.innerHTML = `
+                    <span class="font-bold text-gray-700 truncate mr-2">${name}</span>
+                    <span class="font-black text-lg ${scoreClass}">${score}점</span>
+                `;
+                listContainer.prepend(item); 
+            });
+        }
+
+        function resetAllScores() {
+            if(confirm("모든 점수 기록을 지우시겠습니까?")) {
+                scoreHistory = {};
+                renderScoreHistory();
+                clearCanvasUserAction();
+            }
+        }
+
+        function showFeedback(score) {
+            animateScore(score);
+            const msgBox = document.getElementById('overlay-msg');
+            const mainText = document.getElementById('feedback-text');
+            const subText = document.getElementById('feedback-sub');
+            
+            msgBox.classList.remove('hidden');
+            
+            if (score >= 95) {
+                mainText.innerText = "신이 내린 손가락!";
+                mainText.className = "score-pop text-5xl font-bold text-white bg-purple-600 px-8 py-4 rounded-2xl shadow-xl mb-2";
+                subText.innerText = "완벽 그 자체입니다!";
+            } else if (score >= 80) {
+                mainText.innerText = "와우! 훌륭해요!";
+                mainText.className = "score-pop text-5xl font-bold text-white bg-emerald-500 px-8 py-4 rounded-2xl shadow-xl mb-2";
+                subText.innerText = "도형 감각이 뛰어나시네요";
+            } else if (score >= 60) {
+                mainText.innerText = "오! 모양이 보여요!";
+                mainText.className = "score-pop text-5xl font-bold text-white bg-blue-500 px-8 py-4 rounded-2xl shadow-xl mb-2";
+                subText.innerText = "특징을 잘 잡으셨어요";
+            } else if (score >= 40) {
+                mainText.innerText = "괜찮아요!";
+                mainText.className = "score-pop text-5xl font-bold text-white bg-yellow-500 px-8 py-4 rounded-2xl shadow-xl mb-2";
+                subText.innerText = "조금만 더 다듬어 볼까요?";
+            } else {
+                mainText.innerText = "다시 한번 해볼까요?";
+                mainText.className = "score-pop text-4xl font-bold text-white bg-gray-500 px-8 py-4 rounded-2xl shadow-xl mb-2";
+                subText.innerText = "천천히 다시 그려보세요";
+            }
+
+            setTimeout(() => {
+                msgBox.classList.add('hidden');
+            }, 2500);
+        }
+
+        function updateScoreColor(score) {
+            const display = document.getElementById('score-display');
+            if (score >= 80) display.className = "text-4xl font-bold text-emerald-500";
+            else if (score >= 50) display.className = "text-4xl font-bold text-blue-500";
+            else display.className = "text-4xl font-bold text-gray-400";
+        }
+
+        function animateScore(score) {
+            const display = document.getElementById('score-display');
+            let current = 0;
+            const interval = setInterval(() => {
+                current += 2;
+                if (current >= score) {
+                    current = score;
+                    clearInterval(interval);
+                    updateScoreColor(score);
+                }
+                display.innerText = current + "점";
+            }, 10);
+        }
+
+        function drawPerfectShape(c, type, cx, cy, w, h, morph = 0, angle = 0) {
+            c.beginPath();
+            const hw = w / 2;
+            const hh = h / 2;
+
+            c.save();
+            c.translate(cx, cy);
+            c.rotate(angle * Math.PI / 180);
+            
+            switch (type) {
+                case 'circle': case 'sphere': c.arc(0, 0, hw, 0, Math.PI * 2); break;
+                case 'rect': case 'square': c.rect(-hw, -hh, w, h); break;
+                
+                case 'triangle_right':
+                    c.moveTo(-hw, -hh); c.lineTo(-hw, hh); c.lineTo(hw, hh); c.closePath(); break;
+                case 'triangle_iso':
+                    c.moveTo(w * morph, -hh); c.lineTo(-hw, hh); c.lineTo(hw, hh); c.closePath(); break;
+                case 'triangle_equi':
+                    const equiH = w * (Math.sqrt(3) / 2);
+                    c.moveTo(0, -equiH/2); c.lineTo(-hw, equiH/2); c.lineTo(hw, equiH/2); c.closePath(); break;
+                case 'triangle_acute':
+                    c.moveTo(w * morph, -hh); c.lineTo(-hw, hh); c.lineTo(hw, hh); c.closePath(); break;
+                case 'triangle_obtuse':
+                    c.moveTo(-hw * 1.5, -hh); c.lineTo(-hw, hh); c.lineTo(hw, hh); c.closePath(); break;
+                
+                case 'rhombus':
+                    // [수정] morph=1이면 정사각형(박스형) 모드, 0이면 다이아몬드
+                    if (Math.abs(morph) > 0.5) { 
+                        // 정사각형 형태 (반듯한 사각형)
+                        // 단, 네 변의 길이가 같아야 하므로 최대 치수로 강제
+                        const size = Math.max(w, h);
+                        const hs = size / 2;
+                        c.rect(-hs, -hs, size, size);
+                    } else {
+                        // 다이아몬드 형태
+                        c.moveTo(0, -hh); c.lineTo(hw, 0); c.lineTo(0, hh); c.lineTo(-hw, 0);
+                    }
+                    c.closePath(); break;
+
+                case 'parallelogram':
+                    const skew = w * (0.2 + morph); 
+                    c.moveTo(-hw + skew, -hh); c.lineTo(hw, -hh); c.lineTo(hw - skew, hh); c.lineTo(-hw, hh); c.closePath(); break;
+                case 'trapezoid':
+                    const topScale = morph; 
+                    c.moveTo(-hw * topScale, -hh); c.lineTo(hw * topScale, -hh); c.lineTo(hw, hh); c.lineTo(-hw, hh); c.closePath(); break;
+                case 'pentagon': drawPolygon(c, 0, 0, hw, 5); break;
+                case 'hexagon': drawPolygon(c, 0, 0, hw, 6); break;
+                
+                case 'cube': case 'cuboid':
+                    let dx = w * 0.35; 
+                    let dy = -h * 0.25; 
+                    const vMode = morph % 4;
+                    if (vMode === 1 || vMode === 3) depthX = -dx;
+                    if (vMode === 2 || vMode === 3) depthY = -dy;
+                    
+                    const cfw = w * 0.7; 
+                    const cfh = h * 0.75;
+                    const cfx = -cfw/2 - dx/2; 
+                    const cfy = -cfh/2 - dy/2;
+                    c.rect(cfx, cfy, cfw, cfh); 
+                    const cbx = cfx + dx;
+                    const cby = cfy + dy;
+                    c.rect(cbx, cby, cfw, cfh); 
+                    c.moveTo(cfx, cfy); c.lineTo(cbx, cby);
+                    c.moveTo(cfx+cfw, cfy); c.lineTo(cbx+cfw, cby);
+                    c.moveTo(cfx, cfy+cfh); c.lineTo(cbx, cby+cfh);
+                    c.moveTo(cfx+cfw, cfy+cfh); c.lineTo(cbx+cfw, cby+cfh);
+                    break;
+                
+                case 'cylinder':
+                    if (morph >= 4) { 
+                        c.ellipse(-hw + w*0.1, 0, w*0.1, hh, 0, 0, Math.PI*2); 
+                        c.moveTo(-hw + w*0.1, -hh); c.lineTo(hw - w*0.1, -hh);
+                        c.ellipse(hw - w*0.1, 0, w*0.1, hh, 0, 0, Math.PI*2); 
+                        c.moveTo(hw - w*0.1, hh); c.lineTo(-hw + w*0.1, hh);
+                    } else { 
+                        c.ellipse(0, -hh + h*0.1, hw, h*0.1, 0, 0, Math.PI * 2);
+                        c.moveTo(hw, -hh + h*0.1); c.lineTo(hw, hh - h*0.1);
+                        c.ellipse(0, hh - h*0.1, hw, h*0.1, 0, 0, Math.PI * 2);
+                        c.moveTo(-hw, hh - h*0.1); c.lineTo(-hw, -hh + h*0.1);
+                    }
+                    break;
+
+                case 'cone':
+                    if (morph >= 4) { 
+                        c.moveTo(hw, 0); c.lineTo(-hw + w*0.1, -hh);
+                        c.moveTo(hw, 0); c.lineTo(-hw + w*0.1, hh);
+                        c.ellipse(-hw + w*0.1, 0, w*0.1, hh, 0, 0, Math.PI*2);
+                    } else {
+                        c.moveTo(0, -hh); c.lineTo(-hw, hh - h*0.1);
+                        c.moveTo(0, -hh); c.lineTo(hw, hh - h*0.1);
+                        c.ellipse(0, hh - h*0.1, hw, h*0.1, 0, 0, Math.PI * 2);
+                    }
+                    break;
+                
+                case 'prism_tri':
+                    drawPrismGeneral(c, w, h, 3, morph);
+                    break;
+                case 'prism_penta':
+                    drawPrismGeneral(c, w, h, 5, morph);
+                    break;
+                case 'prism_hexa':
+                    drawPrismGeneral(c, w, h, 6, morph);
+                    break;
+
+                case 'pyramid_rect':
+                    drawPyramidRect(c, w, h, morph);
+                    break;
+                case 'pyramid_tri':
+                    drawPyramidGeneral(c, w, h, 3, morph); break;
+                case 'pyramid_penta':
+                    drawPyramidGeneral(c, w, h, 5, morph); break;
+                case 'pyramid_hexa':
+                    drawPyramidGeneral(c, w, h, 6, morph); break;
+
+                default: c.rect(-hw, -hh, w, h);
+            }
+            
+            c.stroke();
+            c.restore(); 
+        }
+
+        function drawPolygon(c, cx, cy, radius, sides) {
+            c.moveTo(cx + radius * Math.cos(0), cy + radius * Math.sin(0));
+            for (let i = 1; i <= sides; i += 1) {
+                c.lineTo(cx + radius * Math.cos(i * 2 * Math.PI / sides), cy + radius * Math.sin(i * 2 * Math.PI / sides));
+            }
+            c.closePath();
+        }
+
+        function drawPrismGeneral(c, w, h, sides, variant) {
+            const hw = w/2; 
+            const hh = h/2;
+            
+            if (variant < 4) {
+                const topY = -hh + h*0.1;
+                const botY = hh - h*0.1;
+                const radius = hw; 
+                const angleOffset = -Math.PI/2 + (variant * Math.PI/sides);
+
+                const angle0 = 0 * 2 * Math.PI / sides + angleOffset;
+                c.moveTo(radius * Math.cos(angle0), topY + (radius*0.3) * Math.sin(angle0));
+                for (let i = 1; i <= sides; i++) {
+                    const angle = i * 2 * Math.PI / sides + angleOffset;
+                    c.lineTo(radius * Math.cos(angle), topY + (radius*0.3) * Math.sin(angle));
+                }
+                c.closePath(); 
+
+                c.moveTo(radius * Math.cos(angle0), botY + (radius*0.3) * Math.sin(angle0));
+                for (let i = 1; i <= sides; i++) {
+                    const angle = i * 2 * Math.PI / sides + angleOffset;
+                    c.lineTo(radius * Math.cos(angle), botY + (radius*0.3) * Math.sin(angle));
+                }
+                c.closePath(); 
+
+                for(let i=0; i<sides; i++){
+                    const ang = i * 2 * Math.PI / sides + angleOffset;
+                    const px = radius * Math.cos(ang);
+                    const py_t = topY + (radius*0.3) * Math.sin(ang);
+                    const py_b = botY + (radius*0.3) * Math.sin(ang);
+                    c.moveTo(px, py_t); c.lineTo(px, py_b);
+                }
+
+            } else {
+                const depthX = w * 0.3; 
+                const depthY = -h * 0.2; 
+                const fx = -depthX/2; 
+                const fy = -depthY/2;
+                const polyR = Math.min(w, h) * 0.5;
+                const angleOffset = -Math.PI/2; 
+
+                const ang0 = 0 * 2 * Math.PI / sides + angleOffset;
+                c.moveTo(fx + polyR * Math.cos(ang0), fy + polyR * Math.sin(ang0));
+                for(let i=1; i<=sides; i++){
+                    const ang = i * 2 * Math.PI / sides + angleOffset;
+                    c.lineTo(fx + polyR * Math.cos(ang), fy + polyR * Math.sin(ang));
+                }
+                c.closePath();
+
+                const bx = fx + depthX;
+                const by = fy + depthY;
+                c.moveTo(bx + polyR * Math.cos(ang0), by + polyR * Math.sin(ang0));
+                for(let i=1; i<=sides; i++){
+                    const ang = i * 2 * Math.PI / sides + angleOffset;
+                    c.lineTo(bx + polyR * Math.cos(ang), by + polyR * Math.sin(ang));
+                }
+                c.closePath();
+                
+                for(let i=0; i<sides; i++){
+                    const ang = i * 2 * Math.PI / sides + angleOffset;
+                    const px_f = fx + polyR * Math.cos(ang);
+                    const py_f = fy + polyR * Math.sin(ang);
+                    const px_b = bx + polyR * Math.cos(ang);
+                    const py_b = by + polyR * Math.sin(ang);
+                    c.moveTo(px_f, py_f); c.lineTo(px_b, py_b);
+                }
+            }
+        }
+
+        function drawPyramidGeneral(c, w, h, sides, variant) {
+            const hw = w/2;
+            const hh = h/2;
+            
+            const topY = -hh;
+            const botY = hh - h*0.2;
+            const radius = hw;
+            const angleOffset = -Math.PI/2 + (variant * Math.PI/6);
+
+            const ang0 = 0 * 2 * Math.PI / sides + angleOffset;
+            c.moveTo(radius * Math.cos(ang0), botY + (radius*0.3) * Math.sin(ang0));
+            for(let i=1; i<=sides; i++){
+                const ang = i * 2 * Math.PI / sides + angleOffset;
+                c.lineTo(radius * Math.cos(ang), botY + (radius*0.3) * Math.sin(ang));
+            }
+            c.closePath();
+            
+            for(let i=0; i<sides; i++){
+                const ang = i * 2 * Math.PI / sides + angleOffset;
+                const px = radius * Math.cos(ang);
+                const py = botY + (radius*0.3) * Math.sin(ang);
+                c.moveTo(px, py); c.lineTo(0, topY);
+            }
+        }
+
+        function drawPyramidRect(c, w, h, variant) {
+            const hw = w/2; const hh = h/2;
+            let dx = w * 0.2; 
+            if (variant === 1 || variant === 3) dx = -dx;
+            
+            const by = hh - h*0.2;
+            const apexY = -hh;
+            
+            c.moveTo(-hw+dx, by - h*0.1); 
+            c.lineTo(hw+dx, by - h*0.1);
+            c.lineTo(hw-dx, by + h*0.1);
+            c.lineTo(-hw-dx, by + h*0.1);
+            c.closePath();
+            
+            c.moveTo(-hw+dx, by - h*0.1); c.lineTo(0, apexY);
+            c.moveTo(hw+dx, by - h*0.1); c.lineTo(0, apexY);
+            c.moveTo(hw-dx, by + h*0.1); c.lineTo(0, apexY);
+            c.moveTo(-hw-dx, by + h*0.1); c.lineTo(0, apexY);
+        }
+
+    </script>
+</body>
+</html>
