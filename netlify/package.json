@@ -1,9 +1,0 @@
-{
-  "name": "dictionary-function",
-  "version": "1.0.0",
-  "description": "Netlify function for Naver dictionary search",
-  "main": "dictionary.js",
-  "dependencies": {
-    "node-fetch": "^2.6.1"
-  }
-}
