@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>거·속·시 마스터하기</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #FFB84C;
+            --secondary-color: #2CD3E1;
+            --accent-color: #FF6969;
+            --text-color: #555555;
+            --bg-color: #FDF7E4;
+            --base-font-size: 16px;
+        }
+
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            line-height: 1.6;
+            font-size: var(--base-font-size);
+        }
+
+        .container {
+            /* 가로 너비를 기존 800px의 1.5배인 1200px로 변경 */
+            max-width: 1200px; 
+            width: 100%;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 40px;
+            border: 3px solid var(--primary-color);
+            position: relative;
+        }
+
+        /* 폰트 사이즈 조절 버튼 스타일 */
+        .font-control {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .font-btn {
+            font-family: 'Jua', sans-serif;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            font-size: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #22a0ac;
+            transition: active 0.1s;
+        }
+
+        .font-btn:active {
+            box-shadow: 0 1px 0 #22a0ac;
+            transform: translateY(2px);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--accent-color);
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 0px #eee;
+        }
+
+        h2 {
+            color: var(--secondary-color);
+            border-bottom: 2px dashed var(--secondary-color);
+            padding-bottom: 10px;
+            margin-top: 40px;
+            font-size: 1.8em;
+        }
+
+        .intro {
+            background-color: #FFF2CC;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+
+        .formula-visual {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .circle {
+            width: 12.5em;
+            height: 12.5em;
+            border: 0.3em solid var(--text-color);
+            border-radius: 50%;
+            position: relative;
+            background-color: #fff;
+            overflow: hidden;
+            box-shadow: 0.3em 0.3em 0px rgba(0,0,0,0.1);
+        }
+
+        .line-h {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 0.25em;
+            background-color: var(--text-color);
+        }
+
+        .line-v {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0.25em;
+            height: 50%;
+            background-color: var(--text-color);
+        }
+
+        .label {
+            position: absolute;
+            font-size: 1.5em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .label-dist { top: 15%; height: 35%; color: var(--accent-color); }
+        .label-speed { bottom: 5%; left: 0; width: 50%; height: 45%; color: var(--secondary-color); }
+        .label-time { bottom: 5%; right: 0; width: 50%; height: 45%; color: var(--primary-color); }
+
+        .formula-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* 카드 최소 너비 약간 증가 */
+            gap: 25px; /* 간격 약간 증가 */
+        }
+
+        .card {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: var(--secondary-color);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            font-size: 1.5em;
+        }
+
+        .math-exp {
+            font-size: 1.4em;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .explanation {
+            font-size: 1em;
+            color: #666;
+            text-align: left;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background-color: white;
+        }
+
+        th, td {
+            border: 2px solid #eee;
+            padding: 0.75em;
+            text-align: center;
+        }
+
+        th {
+            background-color: var(--secondary-color);
+            color: white;
+            font-size: 1.1em;
+        }
+
+        td {
+            font-size: 1.1em;
+        }
+
+        .quiz-box {
+            background-color: #E8F6F3;
+            border: 2px solid var(--secondary-color);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .quiz-question {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+        }
+
+        input[type="number"] {
+            font-family: 'Jua', sans-serif;
+            padding: 0.6em;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            font-size: 1.2em;
+            width: 4em;
+            text-align: center;
+        }
+
+        .quiz-btn {
+            font-family: 'Jua', sans-serif;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.6em 1.2em;
+            font-size: 1.2em;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-left: 10px;
+            box-shadow: 0 0.25em 0 #DB9B3B;
+            transition: active 0.1s;
+        }
+
+        .quiz-btn:active {
+            box-shadow: 0 0.125em 0 #DB9B3B;
+            transform: translateY(0.125em);
+        }
+
+        .result-msg {
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 1.2em;
+            min-height: 1.5em;
+        }
+        
+        .correct { color: #2ecc71; }
+        .wrong { color: #e74c3c; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="font-control">
+        <button class="font-btn" onclick="changeFontSize(-2)">가-</button>
+        <button class="font-btn" onclick="changeFontSize(2)">가+</button>
+    </div>
+
+    <h1>🚀 속력, 거리, 시간의 비밀</h1>
+    
+    <div class="intro">
+        <p>안녕, 친구들! 속력은 얼마나 빠른지를 나타내는 말이야.<br>
+        <strong>"일정한 시간 동안 얼마나 멀리 갔는지"</strong>를 계산하면 알 수 있어.</p>
+    </div>
+
+    <h2>1. 거·속·시 관계 (무당벌레 공식)</h2>
+    <div style="text-align: center; font-size: 1.1em;">이 그림을 머릿속에 꼭 기억해!</div>
+    <div class="formula-visual">
+        <div class="circle">
+            <div class="label label-dist">거리</div>
+            <div class="line-h"></div>
+            <div class="line-v"></div>
+            <div class="label label-speed">속력</div>
+            <div class="label label-time">시간</div>
+        </div>
+    </div>
+
+    <h2>2. 공식을 구하는 방법 (항 옮기기)</h2>
+    <div class="formula-cards">
+        <div class="card">
+            <h3 style="color:var(--secondary-color);">속력 구하기</h3>
+            <div class="math-exp">속력 = 거리 ÷ 시간</div>
+            <div class="explanation">
+                <p>💡 <strong>왜?</strong><br>
+                거리를 간 시간으로 나누면 1시간(또는 1초)당 얼마나 갔는지 알 수 있어.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="color:var(--accent-color);">거리 구하기</h3>
+            <div class="math-exp">거리 = 속력 × 시간</div>
+            <div class="explanation">
+                <p>💡 <strong>어떻게 옮겨?</strong><br>
+                나누기였던 <strong>'시간'</strong>을 반대쪽 항으로 옮기면 <strong>'곱하기'</strong>가 돼!</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="color:var(--primary-color);">시간 구하기</h3>
+            <div class="math-exp">시간 = 거리 ÷ 속력</div>
+            <div class="explanation">
+                <p>💡 <strong>어떻게 옮겨?</strong><br>
+                속력과 시간의 자리를 쏘옥~ 바꾸면 돼.</p>
+            </div>
+        </div>
+    </div>
+
+    <h2>3. 단위와 읽는 법 (중요!)</h2>
+    <p style="font-size: 1.1em;">가장 많이 쓰는 <strong>km/h</strong>를 읽는 3가지 방법이야.</p>
+    <table>
+        <thead>
+            <tr>
+                <th width="30%">표기 (단위)</th>
+                <th>읽는 법</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td rowspan="3" style="font-size: 1.5em; font-weight:bold; color:var(--text-color);">1 km/h</td>
+                <td>🇰🇷 <strong>시속 1 킬로미터</strong><br><span style="font-size:0.8em">(우리가 가장 많이 쓰는 말)</span></td>
+            </tr>
+            <tr>
+                <td>🇺🇸 <strong>1 킬로미터 퍼 아워</strong><br><span style="font-size:0.8em">(1 kilometer per hour)</span></td>
+            </tr>
+            <tr>
+                <td>🇨🇳 <strong>1 킬로미터 매 시</strong><br><span style="font-size:0.8em">('매'는 '마다'라는 뜻이야)</span></td>
+            </tr>
+        </tbody>
+    </table>
+    <br>
+    <div class="intro" style="background-color: #E3F2FD;">
+        <strong>📌 참고 단위:</strong><br>
+        * 거리 단위: km(킬로미터), m(미터)<br>
+        * 시간 단위: h(시간), min(분), s(초)
+    </div>
+
+    <h2>4. 도전! 연습 문제</h2>
+    
+    <div class="quiz-box">
+        <div class="quiz-question">
+            Q1. 자동차가 <strong>2시간</strong> 동안 <strong>100km</strong>를 달렸어. <br>
+            이 자동차의 <strong>속력</strong>은 시속 몇 km일까?
+        </div>
+        <div style="font-size: 1.2em;">
+            정답: 시속 <input type="number" id="q1-input"> km
+            <button class="quiz-btn" onclick="checkAnswer(1, 50)">채점하기</button>
+        </div>
+        <div id="q1-result" class="result-msg"></div>
+    </div>
+
+    <div class="quiz-box">
+        <div class="quiz-question">
+            Q2. <strong>시속 4km</strong>로 걷는 사람이 <strong>3시간</strong> 동안 걸었어.<br>
+            이 사람이 이동한 <strong>거리</strong>는 몇 km일까?
+        </div>
+        <div style="font-size: 1.2em;">
+            정답: <input type="number" id="q2-input"> km
+            <button class="quiz-btn" onclick="checkAnswer(2, 12)">채점하기</button>
+        </div>
+        <div id="q2-result" class="result-msg"></div>
+    </div>
+
+    <div class="quiz-box">
+        <div class="quiz-question">
+            Q3. 기차가 <strong>300km</strong>의 거리를 <strong>시속 100km</strong>로 달렸어.<br>
+            도착하는 데 걸린 <strong>시간</strong>은 몇 시간일까?
+        </div>
+        <div style="font-size: 1.2em;">
+            정답: <input type="number" id="q3-input"> 시간
+            <button class="quiz-btn" onclick="checkAnswer(3, 3)">채점하기</button>
+        </div>
+        <div id="q3-result" class="result-msg"></div>
+    </div>
+
+</div>
+
+<script>
+    let currentFontSize = 16;
+    const minFontSize = 12;
+    const maxFontSize = 16 * 10;
+
+    function changeFontSize(change) {
+        currentFontSize += change;
+        if (currentFontSize < minFontSize) currentFontSize = minFontSize;
+        if (currentFontSize > maxFontSize) currentFontSize = maxFontSize;
+        document.documentElement.style.setProperty('--base-font-size', currentFontSize + 'px');
+    }
+
+    function checkAnswer(qNum, correctVal) {
+        const input = document.getElementById(`q${qNum}-input`).value;
+        const msgDiv = document.getElementById(`q${qNum}-result`);
+        
+        if (input == correctVal) {
+            msgDiv.innerHTML = "🎉 정답이야! 참 잘했어!";
+            msgDiv.className = "result-msg correct";
+        } else {
+            msgDiv.innerHTML = "😅 다시 한번 생각해볼까? (힌트: 위 공식을 봐봐!)";
+            msgDiv.className = "result-msg wrong";
+        }
+    }
+</script>
+
+</body>
+</html>
