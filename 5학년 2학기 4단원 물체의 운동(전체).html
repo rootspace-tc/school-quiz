@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5학년 2학기 과학 - 4. 물체의 운동</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Gowun Dodum', sans-serif;
+        }
+        h1, h2, h3, h4, h5, h6, .btn, .toc-link {
+            font-family: 'Jua', sans-serif;
+        }
+        /* 기본 글자 크기 설정 - JS로 제어됨 */
+        .page-content {
+            font-size: 2.2rem; 
+            line-height: 1.6;
+        }
+        /* 리스트 내부 여백 */
+        .page-content ul li {
+            margin-bottom: 1rem;
+        }
+        .page, .btn {
+            transition: all 0.3s ease-in-out;
+        }
+        
+        /* --- 애니메이션 효과 --- */
+        .anim-item {
+            opacity: 0; /* 기본적으로 숨김 */
+        }
+        .anim-item.visible {
+            opacity: 1;
+            animation-duration: 0.7s;
+            animation-fill-mode: both;
+            animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translate3d(0, 30px, 0); }
+            to { opacity: 1; transform: translate3d(0, 0, 0); }
+        }
+        .fadeInUp { animation-name: fadeInUp; }
+        
+        @keyframes fadeInLeft {
+            from { opacity: 0; transform: translate3d(-30px, 0, 0); }
+            to { opacity: 1; transform: translate3d(0, 0, 0); }
+        }
+        .fadeInLeft { animation-name: fadeInLeft; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .fadeIn { animation-name: fadeIn; }
+
+        @keyframes zoomIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .zoomIn { animation-name: zoomIn; }
+
+    </style>
+</head>
+<body class="bg-emerald-50 flex items-center justify-center min-h-screen py-10">
+
+    <div class="container w-full max-w-7xl mx-auto p-4 md:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-emerald-800">5학년 2학기 과학</h1>
+            <h2 class="text-3xl md:text-4xl text-emerald-600">4. 물체의 운동</h2>
+        </header>
+
+        <div class="flex justify-center items-center gap-4 my-6">
+            <span class="text-lg text-gray-700" style="font-family: 'Jua', sans-serif;">글자 크기</span>
+            <button id="font-decrease" class="btn bg-white border-2 border-emerald-300 text-emerald-700 w-10 h-10 rounded-full text-2xl font-bold hover:bg-emerald-100 active:scale-95">-</button>
+            <button id="font-increase" class="btn bg-white border-2 border-emerald-300 text-emerald-700 w-10 h-10 rounded-full text-2xl font-bold hover:bg-emerald-100 active:scale-95">+</button>
+        </div>
+
+        <main id="main-content" class="bg-white rounded-2xl shadow-lg p-6 md:p-10 relative cursor-pointer min-h-[500px]">
+            
+            <div id="page-0" class="page">
+                <h3 class="text-5xl font-bold text-center text-emerald-700 mb-8">목차</h3>
+                <ul class="text-2xl grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <li><a href="#" class="toc-link block p-4 bg-emerald-100 rounded-lg hover:bg-emerald-200" data-page="1">1. 물체의 운동이란?</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-emerald-100 rounded-lg hover:bg-emerald-200" data-page="2">2. 빠르기 비교 (같은 거리)</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-emerald-100 rounded-lg hover:bg-emerald-200" data-page="3">3. 빠르기 비교 (같은 시간)</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-emerald-100 rounded-lg hover:bg-emerald-200" data-page="4">4. 속력이란?</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-emerald-100 rounded-lg hover:bg-emerald-200" data-page="5">5. 여러 가지 물체의 운동</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-emerald-100 rounded-lg hover:bg-emerald-200" data-page="6">6. 속력과 안전</a></li>
+                    <li><a href="#" class="toc-link block p-4 bg-emerald-100 rounded-lg hover:bg-emerald-200" data-page="7">7. 단원 정리</a></li>
+                </ul>
+            </div>
+
+            <div id="page-1" class="page hidden page-content">
+                <h3 class="text-emerald-700 font-bold mb-6 anim-item fadeInUp" style="font-size: 1.5em;">1. 물체의 운동이란?</h3>
+                <div class="anim-item fadeIn mb-4 p-4 bg-gray-100 rounded-xl border-l-8 border-emerald-500">
+                    <strong>운동:</strong> 시간이 지남에 따라 물체의 <span class="text-red-600">위치</span>가 변하는 것
+                </div>
+                <ul class="mt-6">
+                    <li class="anim-item fadeInLeft">
+                        <span class="mr-2">🏃</span>운동을 나타낼 때는 <strong>'걸린 시간'</strong>과 <strong>'이동 거리'</strong>를 함께 말해야 합니다.
+                    </li>
+                    <li class="anim-item fadeInLeft">
+                        <span class="mr-2">🗣️</span>예시: "자전거는 <strong>2초</strong> 동안 <strong>2m</strong>를 이동했습니다."
+                    </li>
+                </ul>
+            </div>
+
+            <div id="page-2" class="page hidden page-content">
+                <h3 class="text-emerald-700 font-bold mb-6 anim-item fadeInUp" style="font-size: 1.5em;">2. 빠르기 비교 (같은 거리)</h3>
+                <p class="anim-item fadeIn mb-4"><strong>같은 거리</strong>를 이동할 때 누가 더 빠를까요?</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div class="anim-item zoomIn bg-emerald-100 p-6 rounded-xl text-center">
+                        <strong class="block text-emerald-800 mb-2" style="font-size: 1.2em;">시간이 짧게 걸린 물체</strong>
+                        <span class="text-red-600 font-bold" style="font-size: 1.3em;">더 빠르다! 🚀</span>
+                    </div>
+                    <div class="anim-item zoomIn bg-gray-100 p-6 rounded-xl text-center">
+                        <strong class="block text-gray-600 mb-2" style="font-size: 1.2em;">시간이 길게 걸린 물체</strong>
+                        <span class="text-gray-500 font-bold" style="font-size: 1.3em;">더 느리다 🐢</span>
+                    </div>
+                </div>
+                <p class="anim-item fadeIn mt-6">
+                    <span class="mr-2">🏊‍♂️</span>예: 수영, 100m 달리기 (빨리 도착하는 사람이 우승!)
+                </p>
+            </div>
+
+            <div id="page-3" class="page hidden page-content">
+                <h3 class="text-emerald-700 font-bold mb-6 anim-item fadeInUp" style="font-size: 1.5em;">3. 빠르기 비교 (같은 시간)</h3>
+                <p class="anim-item fadeIn mb-4"><strong>같은 시간</strong> 동안 이동할 때 누가 더 빠를까요?</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div class="anim-item zoomIn bg-emerald-100 p-6 rounded-xl text-center">
+                        <strong class="block text-emerald-800 mb-2" style="font-size: 1.2em;">이동 거리가 긴 물체</strong>
+                        <span class="text-red-600 font-bold" style="font-size: 1.3em;">더 빠르다! 🐆</span>
+                    </div>
+                    <div class="anim-item zoomIn bg-gray-100 p-6 rounded-xl text-center">
+                        <strong class="block text-gray-600 mb-2" style="font-size: 1.2em;">이동 거리가 짧은 물체</strong>
+                        <span class="text-gray-500 font-bold" style="font-size: 1.3em;">더 느리다 🐌</span>
+                    </div>
+                </div>
+                <p class="anim-item fadeIn mt-6">
+                    <span class="mr-2">⏱️</span>예: 10초 동안 누가 더 멀리 갔는지 시합하기
+                </p>
+            </div>
+
+            <div id="page-4" class="page hidden page-content">
+                <h3 class="text-emerald-700 font-bold mb-6 anim-item fadeInUp" style="font-size: 1.5em;">4. 속력이란?</h3>
+                <p class="anim-item fadeIn">이동 거리와 걸린 시간이 <strong>모두 다를 때</strong>는 어떻게 비교할까요?</p>
+                <div class="anim-item zoomIn bg-yellow-50 p-6 my-6 rounded-xl border-2 border-yellow-300 text-center">
+                    <strong class="text-emerald-800 block mb-4" style="font-size: 1.1em;">⭐ 속력 구하는 공식 ⭐</strong>
+                    <span class="font-bold text-red-600" style="font-size: 1.4em;">속력 = 이동 거리 ÷ 걸린 시간</span>
+                </div>
+                <ul class="space-y-4">
+                    <li class="anim-item fadeInLeft">
+                        <strong>단위:</strong> m/s (초속 ~미터), km/h (시속 ~킬로미터)
+                    </li>
+                    <li class="anim-item fadeInLeft">
+                        <strong>예시:</strong> 2초 동안 10m를 간 자전거<br>
+                        👉 10 ÷ 2 = <strong>5 m/s</strong>
+                    </li>
+                </ul>
+            </div>
+
+            <div id="page-5" class="page hidden page-content">
+                <h3 class="text-emerald-700 font-bold mb-6 anim-item fadeInUp" style="font-size: 1.5em;">5. 여러 가지 물체의 운동</h3>
+                <p class="anim-item fadeIn mb-4">우리 주변의 물체는 크게 두 가지로 나뉩니다.</p>
+                <div class="grid grid-cols-1 gap-4 mt-4">
+                    <div class="anim-item fadeInLeft bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400">
+                        <strong class="text-blue-700">1. 빠르기가 일정한 운동</strong>
+                        <p class="mt-2">자동계단(에스컬레이터), 케이블카, 컨베이어 벨트</p>
+                    </div>
+                    <div class="anim-item fadeInLeft bg-orange-50 p-4 rounded-lg border-l-4 border-orange-400">
+                        <strong class="text-orange-700">2. 빠르기가 변하는 운동</strong>
+                        <p class="mt-2">자동차(멈췄다 달렸다 함), 롤러코스터, 바이킹, 치타</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-6" class="page hidden page-content">
+                <h3 class="text-emerald-700 font-bold mb-6 anim-item fadeInUp" style="font-size: 1.5em;">6. 속력과 안전</h3>
+                <p class="anim-item fadeIn">속력이 빠르면 충돌할 때 큰 충격을 주므로 <strong>안전장치</strong>가 필요해요.</p>
+                <ul class="mt-6 space-y-4">
+                    <li class="anim-item zoomIn">
+                        <span class="mr-2">🚗</span><strong>자동차 안전장치:</strong> 안전띠, 에어백, 브레이크
+                    </li>
+                    <li class="anim-item zoomIn">
+                        <span class="mr-2">🛣️</span><strong>도로 안전장치:</strong> 과속 방지턱, 과속 단속 카메라, 어린이 보호 구역 표지판
+                    </li>
+                    <li class="anim-item zoomIn">
+                        <span class="mr-2">🛑</span><strong>교통안전 수칙:</strong> 횡단보도 건널 때 좌우 살피기, 차가 멈춘 뒤 건너기
+                    </li>
+                </ul>
+            </div>
+
+            <div id="page-7" class="page hidden page-content">
+                <h3 class="text-emerald-700 font-bold mb-6 anim-item fadeInUp" style="font-size: 1.5em;">7. 단원 정리</h3>
+                <div class="bg-emerald-50 p-6 rounded-xl border border-emerald-200 anim-item zoomIn">
+                    <ul class="space-y-4">
+                        <li>1. <strong>운동</strong>: 시간이 지남에 따라 위치가 변하는 것</li>
+                        <li>2. <strong>속력</strong> = 이동 거리 ÷ 걸린 시간</li>
+                        <li>3. 같은 거리면 <strong>시간이 짧을수록</strong> 빠르다.</li>
+                        <li>4. 같은 시간이면 <strong>멀리 갈수록</strong> 빠르다.</li>
+                        <li>5. 우리 생활에는 빠르기가 일정한 것과 변하는 것이 모두 있다.</li>
+                    </ul>
+                </div>
+                <p class="text-center mt-8 font-bold text-emerald-600 anim-item fadeIn" style="font-size: 1.2em;">참 잘했어요! 👏👏👏</p>
+            </div>
+
+        </main>
+
+        <footer id="navigation" class="mt-8 flex justify-between items-center hidden">
+            <button id="prev-btn" class="btn bg-emerald-500 text-white py-2 px-6 rounded-lg text-xl hover:bg-emerald-600 active:scale-95">이전</button>
+            <button id="toc-btn" class="btn bg-gray-400 text-white py-2 px-6 rounded-lg text-xl hover:bg-gray-500 active:scale-95">목차로</button>
+            <button id="next-btn" class="btn bg-emerald-500 text-white py-2 px-6 rounded-lg text-xl hover:bg-emerald-600 active:scale-95">다음</button>
+        </footer>
+    </div>
+
+    <script>
+        const mainContent = document.getElementById('main-content');
+        const pages = document.querySelectorAll('.page');
+        const tocLinks = document.querySelectorAll('.toc-link');
+        const navigation = document.getElementById('navigation');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const tocBtn = document.getElementById('toc-btn');
+        const fontIncreaseBtn = document.getElementById('font-increase');
+        const fontDecreaseBtn = document.getElementById('font-decrease');
+        const pageContents = document.querySelectorAll('.page-content');
+
+        let currentPage = 0;
+        const totalPages = pages.length;
+        
+        let currentAnimatables = [];
+        let animationIndex = 0;
+
+        function showPage(pageNumber) {
+            pages.forEach(page => {
+                page.classList.add('hidden');
+                page.querySelectorAll('.anim-item').forEach(item => item.classList.remove('visible'));
+            });
+            
+            const pageToShow = document.getElementById(`page-${pageNumber}`);
+            if (pageToShow) {
+                pageToShow.classList.remove('hidden');
+                mainContent.classList.toggle('cursor-pointer', pageNumber !== 0);
+            }
+
+            if (pageNumber === 0) {
+                navigation.classList.add('hidden');
+            } else {
+                navigation.classList.remove('hidden');
+                prevBtn.disabled = pageNumber === 1;
+                nextBtn.disabled = pageNumber === totalPages - 1;
+                prevBtn.classList.toggle('opacity-50', prevBtn.disabled);
+                nextBtn.classList.toggle('opacity-50', nextBtn.disabled);
+                
+                currentAnimatables = Array.from(pageToShow.querySelectorAll('.anim-item'));
+                animationIndex = 0;
+            }
+            
+            currentPage = pageNumber;
+        }
+
+        mainContent.addEventListener('click', (e) => {
+            if (currentPage === 0) return; 
+            if (e.target.closest('button, a')) return; 
+
+            if (animationIndex < currentAnimatables.length) {
+                currentAnimatables[animationIndex].classList.add('visible');
+                animationIndex++;
+            }
+        });
+
+        tocLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const pageNum = parseInt(link.dataset.page, 10);
+                showPage(pageNum);
+            });
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 1) showPage(currentPage - 1);
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentPage < totalPages - 1) showPage(currentPage + 1);
+        });
+
+        tocBtn.addEventListener('click', () => showPage(0));
+
+        // 글자 크기 조절 로직 개선
+        let currentFontSize = 2.2; // 기본 크기
+        const FONT_STEP = 0.2;
+        
+        function updateFontSize() {
+            pageContents.forEach(content => {
+                // 본문 폰트 사이즈 조절
+                content.style.fontSize = `${currentFontSize}rem`;
+            });
+        }
+        
+        fontIncreaseBtn.addEventListener('click', () => {
+            currentFontSize += FONT_STEP;
+            updateFontSize();
+        });
+        
+        fontDecreaseBtn.addEventListener('click', () => {
+            if (currentFontSize > 1.0) {
+                currentFontSize -= FONT_STEP;
+                updateFontSize();
+            }
+        });
+
+        showPage(0);
+        updateFontSize();
+    </script>
+
+</body>
+</html>
