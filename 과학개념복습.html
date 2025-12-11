@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>초등 과학 융합 퀴즈 (최종 완성)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6C5CE7;
+            --secondary: #A29BFE;
+            --accent: #00CEC9;
+            --bg: #DFE6E9;
+            --text: #2D3436;
+            --wrong: #D63031;
+            --correct: #00b894;
+            --card-bg: #ffffff;
+        }
+
+        * { box-sizing: border-box; user-select: none; }
+
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        .container {
+            width: 98%;
+            height: 98%;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            justify-content: center;
+            align-items: center;
+        }
+        .screen.active { display: flex; }
+
+        h1 {
+            font-size: 4rem;
+            color: var(--primary);
+            margin: 0 0 2rem 0;
+            text-shadow: 2px 2px 0px var(--secondary);
+        }
+
+        /* 설정 화면 스타일 */
+        .setting-group {
+            background: #f1f2f6;
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin-bottom: 1.5rem;
+            width: 80%;
+            max-width: 900px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .setting-label {
+            font-size: 1.8rem;
+            color: #636e72;
+            margin-bottom: 1rem;
+            display: block;
+            font-weight: bold;
+        }
+
+        .btn-grid {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .toggle-btn {
+            background-color: #fff;
+            border: 3px solid var(--secondary);
+            color: var(--text);
+            padding: 1rem 2rem;
+            font-size: 1.5rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-family: 'Jua', sans-serif;
+            transition: all 0.2s;
+            min-width: 120px;
+        }
+
+        .toggle-btn.selected {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4);
+        }
+
+        .input-box {
+            font-size: 1.5rem;
+            padding: 0.5rem;
+            border: 3px solid var(--secondary);
+            border-radius: 10px;
+            width: 100px;
+            text-align: center;
+            font-family: 'Jua', sans-serif;
+            outline: none;
+        }
+
+        .start-btn {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 1.5rem 4rem;
+            font-size: 2.5rem;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-top: 2rem;
+            box-shadow: 0 10px 0 #00b894;
+            transition: transform 0.1s;
+            font-family: 'Jua', sans-serif;
+        }
+        .start-btn:active { transform: translateY(5px); box-shadow: 0 5px 0 #00b894; }
+
+        /* 게임 화면 스타일 */
+        .header-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            padding: 0 2rem;
+        }
+
+        .timer-display { color: var(--wrong); font-weight: bold; }
+        .score-display { color: var(--primary); font-weight: bold; }
+
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            position: relative;
+        }
+
+        .q-badge {
+            background-color: var(--primary);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+        }
+
+        .problem-text {
+            font-size: 3rem;
+            color: var(--text);
+            margin-bottom: 1rem;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        /* 문제 속 빈칸 스타일 (NEW) */
+        .question-blank {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--primary);
+            border-radius: 10px;
+            margin: 0 4px;
+            vertical-align: middle;
+            background-color: white;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.1);
+            position: relative;
+            top: -4px;
+        }
+
+        .desc-box {
+            background-color: #f5f6fa;
+            border: 2px solid #dcdde1;
+            padding: 1.5rem 2rem;
+            border-radius: 20px;
+            font-size: 2rem;
+            line-height: 1.5;
+            margin-bottom: 2rem;
+            width: 90%;
+            text-align: center;
+            word-break: keep-all;
+            color: #2f3640;
+        }
+
+        .slots-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 3rem;
+        }
+
+        .slot {
+            width: 80px;
+            height: 80px;
+            border-bottom: 6px solid #b2bec3;
+            font-size: 3.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 0 2px;
+        }
+        .slot.filled { border-bottom-color: var(--primary); }
+        .slot.space { width: 40px; border-bottom: none; }
+
+        .letters-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            width: 90%;
+        }
+
+        .letter-btn {
+            width: 70px;
+            height: 70px;
+            font-size: 2.5rem;
+            background-color: white;
+            border: 3px solid var(--secondary);
+            border-radius: 15px;
+            color: var(--text);
+            cursor: pointer;
+            font-family: 'Jua', sans-serif;
+            box-shadow: 0 5px 0 #b2bec3;
+            transition: all 0.1s;
+        }
+        .letter-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #b2bec3; }
+        .letter-btn:disabled { opacity: 0.2; cursor: default; transform: translateY(3px); box-shadow: none; background-color: #dfe6e9; }
+
+        .footer-controls {
+            margin-top: auto;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .pass-btn {
+            background-color: var(--wrong);
+            color: white;
+            border: none;
+            padding: 1rem 3rem;
+            font-size: 1.8rem;
+            border-radius: 15px;
+            cursor: pointer;
+            font-family: 'Jua', sans-serif;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 8px 0 #d63031;
+        }
+        .pass-btn:active { transform: translateY(4px); box-shadow: 0 4px 0 #d63031; }
+        .pass-btn:disabled { background-color: #b2bec3; box-shadow: none; cursor: not-allowed; }
+
+        /* 애니메이션 */
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            20% { transform: translateX(-10px); }
+            40% { transform: translateX(10px); }
+            60% { transform: translateX(-10px); }
+            80% { transform: translateX(10px); }
+            100% { transform: translateX(0); }
+        }
+        .shake { animation: shake 0.4s; }
+
+        @keyframes popUpFade {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -100%) scale(1); }
+        }
+
+        .floating-feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 10rem;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 100;
+            text-shadow: 4px 4px 10px rgba(0,0,0,0.2);
+            white-space: nowrap;
+        }
+
+        .feedback-correct { color: var(--correct); animation: popUpFade 1.5s forwards; }
+        .feedback-wrong { color: var(--wrong); animation: popUpFade 1.0s forwards; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="start-screen" class="screen active">
+        <h1>과학 융합 퀴즈</h1>
+        
+        <div class="setting-group">
+            <span class="setting-label">1. 학년 선택 (여러 개 선택 가능)</span>
+            <div class="btn-grid" id="grade-options">
+                <button class="toggle-btn" onclick="toggleGrade(3, this)">3학년</button>
+                <button class="toggle-btn" onclick="toggleGrade(4, this)">4학년</button>
+                <button class="toggle-btn" onclick="toggleGrade(5, this)">5학년</button>
+                <button class="toggle-btn" onclick="toggleGrade(6, this)">6학년</button>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <span class="setting-label">2. 게임 설정</span>
+            <div class="btn-grid" style="align-items: center;">
+                <span style="font-size: 1.5rem;">제한 시간 : </span>
+                <input type="number" id="time-input" class="input-box" value="5" min="1">
+                <span style="font-size: 1.5rem;">분</span>
+                
+                <div style="width: 30px;"></div>
+                <span style="font-size: 1.5rem;">방해 글자 : </span>
+                <input type="number" id="distractor-input" class="input-box" value="4" min="0">
+                <span style="font-size: 1.5rem;">개 추가</span>
+            </div>
+        </div>
+
+        <button class="start-btn" onclick="startGame()">게임 시작하기</button>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <div class="header-bar">
+            <div class="timer-display">남은 시간: <span id="timer">00:00</span></div>
+            <div class="score-display">점수: <span id="score">0</span></div>
+        </div>
+
+        <div class="content-area" id="quiz-area">
+            <div class="q-badge" id="q-number">Q. 1</div>
+            <div class="problem-text" id="problem-text">문제 제목</div>
+            <div class="desc-box" id="desc-text">설명</div>
+
+            <div class="slots-container" id="slots-area"></div>
+            <div class="letters-container" id="letters-area"></div>
+        </div>
+
+        <div class="footer-controls">
+            <button class="pass-btn" id="pass-btn" onclick="passQuestion()">모르겠어요 (설명 듣기)</button>
+        </div>
+    </div>
+
+    <div id="end-screen" class="screen">
+        <h1>게임 종료!</h1>
+        <div style="font-size: 3rem; margin-bottom: 2rem;">최종 점수: <span id="final-score" style="color: var(--primary);">0</span>점</div>
+        <button class="start-btn" onclick="location.reload()">다시 하기</button>
+    </div>
+</div>
+
+<script>
+    // --- 효과음 (AudioContext) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playSound(type) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        if (type === 'click') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        } else if (type === 'correct') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.1);
+            osc.frequency.setValueAtTime(1200, audioCtx.currentTime + 0.2);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.4);
+        } else if (type === 'wrong') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        }
+    }
+
+    // --- 데이터 (3~6학년) ---
+    const database = {
+        3: [
+            {q:"OO", a:"물체", d:"모양이 있고 공간을 차지하는 것"},
+            {q:"OO", a:"물질", d:"물체를 이루는 재료 (예: 나무, 철, 유리, 플라스틱 등)"},
+            {q:"OO의 성질", a:"나무", d:"고유한 향과 무늬가 있고 물에 젖는 성질 (숲)"},
+            {q:"O의 성질", a:"철", d:"단단하고 무거우며 표면이 반짝거리는 성질"},
+            {q:"OO의 성질", a:"유리", d:"투명하고 잘 깨지는 성질"},
+            {q:"OOOO의 성질", a:"플라스틱", d:"가볍고, 모양이나 색깔이 다양한 물체를 만들기 쉬운 성질"},
+            {q:"OOOO", a:"강화유리", d:"큰 충격에 견딜 수 있도록 일반 유리보다 단단하게 만든 유리"},
+            {q:"OO", a:"고체", d:"눈으로 볼 수 있고 손으로 잡을 수 있으며, 담는 용기에 따라 모양과 부피가 변하지 않는 물질의 상태"},
+            {q:"OO", a:"액체", d:"눈으로 볼 수 있지만 손으로 잡을 수 없고 흐르며, 담는 용기에 따라 모양은 변하지만 부피는 변하지 않는 물질의 상태"},
+            {q:"OO", a:"기체", d:"대부분 눈으로 볼 수 없고 손으로 잡을 수 없으며, 담는 용기에 따라 모양이 변하고 용기 안의 공간을 가득 채우는 물질의 상태"},
+            {q:"OO", a:"부피", d:"물체나 물질이 차지하는 공간의 크기"},
+            {q:"O", a:"힘", d:"물체를 움직이려면 필요한 것"},
+            {q:"O과 관련된 현상", a:"힘", d:"힘을 주어 물체를 밀거나 당기면 물체를 움직일 수 있는 현상"},
+            {q:"OOO 물체를 밀 때의 특징", a:"무거운", d:"물체를 밀거나 당겨 움직일 때 무거운 물체일수록 큰 힘이 듦"},
+            {q:"OO", a:"수평", d:"어느 한쪽으로 기울지 않은 상태"},
+            {q:"OO", a:"무게", d:"물체의 무거운 정도"},
+            {q:"OOO", a:"받침점", d:"받침대에 나무판을 올려놓았을 때 나무판과 받침대가 서로 닿는 부분"},
+            {q:"OO OO (무게가 같을 때)", a:"수평 잡기", d:"무게가 같은 두 물체를 받침점에서 양쪽으로 같은 거리에 놓으면 수평을 잡을 수 있는 현상"},
+            {q:"OO OO (수평 잡기)", a:"무게 비교", d:"나무판의 받침점에서 같은 거리에 물체를 올려놓았을 때, 한쪽으로 기울어지면 기울어진 쪽이 더 무거움"},
+            {q:"OO", a:"저울", d:"물체의 무게를 정확하게 잴 수 있는 도구"},
+            {q:"무게 OO", a:"단위", d:"저울을 사용해 물체의 무게를 잴 때 확인할 수 있는 단위로 g(그램)과 kg(킬로그램) 등이 있음"},
+            {q:"OO", a:"영점", d:"저울로 무게를 잴 때 무게를 재기 전 맞추어야 하는 것"},
+            {q:"OO", a:"지레", d:"막대의 한 곳을 받치고 작은 힘으로 무거운 물체를 움직일 때 이용하는 도구"},
+            {q:"OO", a:"빗면", d:"비스듬히 기울어진 면을 이용해 작은 힘으로 무거운 물체를 움직일 때 이용하는 도구"},
+            {q:"도구 OO의 편리성", a:"이용", d:"지레나 빗면과 같은 도구를 이용하면 도구를 이용하지 않을 때보다 작은 힘으로 물체를 들어 올릴 수 있음"},
+            {q:"OO이 나는 물체의 특징", a:"소리", d:"반드시 떨림이 있음"},
+            {q:"소리의 OO", a:"세기", d:"소리의 크고 작은 정도"},
+            {q:"O 소리의 발생 원리", a:"큰", d:"물체가 크게 떨리면 나는 소리"},
+            {q:"OO 소리의 발생 원리", a:"작은", d:"물체가 작게 떨리면 나는 소리"},
+            {q:"소리의 OOO", a:"높낮이", d:"소리의 높고 낮은 정도"},
+            {q:"OO 소리의 발생 원리", a:"높은", d:"물체가 빠르게 떨리면 나는 소리"},
+            {q:"OO 소리의 발생 원리", a:"낮은", d:"물체가 느리게 떨리면 나는 소리"},
+            {q:"소리 OO 물질", a:"전달", d:"소리가 고체, 액체, 기체 상태의 여러 가지 물질을 통해 전달되는 현상"},
+            {q:"OO", a:"소음", d:"사람의 기분을 좋지 않게 하거나 시끄러운 소리"},
+            {q:"OO 줄이는 방법", a:"소음", d:"소리의 세기를 줄이거나 소리가 잘 전달되지 않게 하는 것"},
+            {q:"OOO", a:"방음벽", d:"음악실이나 도로에 설치하여 소음이 잘 전달되지 않게 하는 시설"},
+            {q:"OO OO", a:"층간 소음", d:"공동 주택에서 사람이 뛰는 소리와 같이 발생하는 다양한 소음"},
+            {q:"OO한 소리", a:"유용", d:"횡단보도의 음성 안내 장치나 구급차의 사이렌처럼 우리에게 도움을 주는 소리"},
+            {q:"OO", a:"대기", d:"우리 주변과 지구를 둘러싸고 있는 기체"},
+            {q:"OO", a:"육지", d:"지구 표면을 구성하는 부분으로 산, 들, 강, 호수, 사막, 빙하 등을 볼 수 있음"},
+            {q:"OO", a:"바다", d:"지구 표면을 구성하는 부분으로 물로 덮인 모습과 파도를 볼 수 있음"},
+            {q:"OO", a:"지형", d:"땅의 생긴 모양"},
+            {q:"지구 OO 넓이 비교", a:"표면", d:"바다가 육지보다 더 넓음"},
+            {q:"OOO의 특징", a:"바닷물", d:"육지의 물과 비교했을 때 소금이 많이 녹아 있어 짠맛이 남"},
+            {q:"OO의 물", a:"육지", d:"몸을 씻거나 물을 마실 때 주로 사용하는 지구의 물"},
+            {q:"OOO 지형", a:"바닷가", d:"바닷가에서 볼 수 있는 가파른 절벽, 동굴, 구멍 뚫린 바위, 갯벌, 모래사장 등 다양한 지형"},
+            {q:"OO", a:"밀물", d:"하루 동안 바닷물의 높이가 높아지는 현상"},
+            {q:"OO", a:"썰물", d:"하루 동안 바닷물의 높이가 낮아지는 현상"},
+            {q:"OO", a:"갯벌", d:"밀물일 때 바닷속에 잠기고 썰물일 때 드러나는 지형"},
+            {q:"갯벌의 생태적 OO", a:"가치", d:"다양한 생물이 살고 오염 물질을 정화해주며 자연재해로 생기는 피해를 줄여주는 역할"},
+            {q:"OO OO (Blue carbon)", a:"푸른 탄소", d:"바다 생물과 바다가 흡수하고 저장하는 탄소"},
+            {q:"동물 OO 기준", a:"분류", d:"다리, 날개, 털 유무 등 생김새에 따라 정하며, 누가 분류해도 같은 결과가 나와야 함"},
+            {q:"O에 사는 동물", a:"숲", d:"풀과 나무가 많은 곳에 살며 먹이와 숨을 곳이 많은 벌, 다람쥐, 딱따구리, 뱀, 두더지 등"},
+            {q:"OOO의 특징 (숲)", a:"다람쥐", d:"날카롭고 강한 발톱이 있어 나무를 잘 타고 나무 열매 등을 먹고 사는 동물"},
+            {q:"OOO의 특징 (숲)", a:"두더지", d:"큰 앞발로 땅속에 굴을 파고 사는 동물"},
+            {q:"OOO의 특징 (숲)", a:"부엉이", d:"몸 색깔이 나뭇가지 색깔과 비슷하고, 주로 밤에 활동하는 동물"},
+            {q:"OO의 특징 (물)", a:"붕어", d:"몸이 부드러운 곡선 모양이며 지느러미로 물속에서 빠르게 헤엄치는 동물"},
+            {q:"OOO의 특징 (물/땅)", a:"개구리", d:"물과 땅을 오가며 살고, 뒷다리의 물갈퀴를 이용해 물속에서 헤엄치는 동물"},
+            {q:"OO의 특징 (물/땅)", a:"수달", d:"물과 땅을 오가며, 발가락 사이에 물갈퀴가 있어 물속에서 헤엄칠 수 있는 동물"},
+            {q:"OOO의 특징 (물가)", a:"왜가리", d:"긴 다리로 물가를 걸어 다니며, 긴 부리로 물고기를 잡아먹는 동물"},
+            {q:"OO의 특징 (바닷가)", a:"조개", d:"몸이 딱딱한 껍데기로 싸여 있고, 발로 갯벌에 구멍을 파서 몸을 숨기는 동물"},
+            {q:"OO의 특징 (사막)", a:"낙타", d:"혹에 지방을 저장해 오랜 기간 물과 먹이 없이 살 수 있고, 넓은 발바닥으로 모래 위를 잘 걷는 동물"},
+            {q:"OOOO의 특징 (사막)", a:"사막여우", d:"몸집이 작고 귀가 커서 열을 내보내 더위를 견디는 동물"},
+            {q:"OOO의 특징 (극지방)", a:"북극곰", d:"몸이 털로 빽빽하게 덮여 있고 피부 밑에 두꺼운 지방층이 있어 추위를 잘 견디는 동물"},
+            {q:"OOOO의 특징 (극지방)", a:"황제펭귄", d:"몸이 깃털로 빽빽하게 덮여 있으며 추울 때 모여서 서로 몸을 맞대고 생활하기도 함"},
+            {q:"OO OO 기술", a:"생체 모방", d:"생물체의 특성을 연구하고 모방하여 사람의 생활에 이용하는 기술"},
+            {q:"OOO", a:"오리발", d:"물에서 빠르게 헤엄치는 오리나 개구리의 물갈퀴 특징을 이용한 생활용품"},
+            {q:"동물의 OOO", a:"한살이", d:"동물이 태어나고 자라 자손을 남기는 과정"},
+            {q:"OO", a:"곤충", d:"몸이 머리, 가슴, 배의 세 부분으로 구분되며, 다리가 세 쌍(여섯 개)인 동물 무리"},
+            {q:"OOOOO의 한살이", a:"배추흰나비", d:"알 → 애벌레 → 번데기 → 어른벌레의 한살이를 거침 (완전탈바꿈)"},
+            {q:"OO 동물", a:"난생", d:"알을 낳아 번식하는 동물 (예: 닭, 바다거북)"},
+            {q:"OO 동물", a:"태생", d:"새끼를 낳아 번식하는 동물 (예: 개, 코끼리, 대부분의 포유류)"},
+            {q:"씨의 OO", a:"발아", d:"성숙한 씨가 물을 흡수하고 양분을 이용해 뿌리가 생장하고 싹이 나오는 과정"},
+            {q:"식물 OOO", a:"광합성", d:"빛에너지를 이용하여 물과 이산화 탄소로 포도당을 합성하여 양분을 만드는 과정"},
+            {q:"OOOOO식물", a:"한해살이", d:"한 해 안에 씨가 싹 터서 자라 꽃을 피우고 열매를 맺어 씨를 만든 뒤 죽는 식물"},
+            {q:"OOOOOO식물", a:"여러해살이", d:"여러 해를 살면서 해마다 꽃을 피우고 열매를 맺어 씨를 만드는 과정을 되풀이하는 식물"},
+            {q:"식물의 OOO 공통점", a:"한살이", d:"씨가 싹 터서 자라 꽃이 피고 열매를 맺어 씨를 만드는 과정"},
+            {q:"OO 알리미 생물", a:"계절", d:"복수초와 큰산개구리처럼 계절의 변화를 알 수 있게 하는 생물"},
+            {q:"OOO의 한살이", a:"복수초", d:"여러해살이식물로 겨울에 땅속 뿌리가 살아남았다가 봄에 꽃이 먼저 핀 다음 잎이 나옴"},
+            {q:"OOO", a:"감염병", d:"세균이나 바이러스가 우리 몸에 들어와 걸리는 질병"},
+            {q:"감염병 OO OO (손 씻기)", a:"예방 방법", d:"흐르는 물에 비누로 30초 이상 손을 깨끗하게 씻는 것"},
+            {q:"감염병 OO OO (기침 예절)", a:"예방 방법", d:"기침이나 재채기를 할 때 옷소매로 입과 코를 가리는 것"},
+            {q:"OO 조사", a:"역학", d:"감염병이 어디에서 시작되었고 어떻게 퍼져 나갔는지 자세히 알아내는 활동"},
+            {q:"OO OO", a:"변인 통제", d:"실험 결과에 영향을 미칠 수 있는 독립변인 이외의 다른 변인을 통제하는 과정"}
+        ],
+        4: [
+            {q:"달의 OO", a:"바다", d:"달 표면에서 어둡게 보이는 곳"},
+            {q:"OO OOO", a:"충돌 구덩이", d:"달 표면의 움푹 파인 곳"},
+            {q:"달의 OO", a:"모양", d:"달은 둥근 공 모양임"},
+            {q:"달의 OO", a:"위상", d:"밤하늘에 보이는 달의 여러 가지 모양"},
+            {q:"달의 모양 변화 OO", a:"주기", d:"여러 날 동안 보이는 달의 모양 변화는 약 30일을 주기로 반복됨"},
+            {q:"OOO", a:"초승달", d:"음력 2일~3일 무렵에 보이는 달의 모양"},
+            {q:"OOO", a:"상현달", d:"음력 7일~8일 무렵에 보이는 달의 모양"},
+            {q:"OOO", a:"보름달", d:"음력 15일 무렵에 보이는 달의 모양"},
+            {q:"OOO", a:"하현달", d:"음력 22일~23일 무렵에 보이는 달의 모양"},
+            {q:"OOO", a:"그믐달", d:"음력 27일~28일 무렵에 보이는 달의 모양"},
+            {q:"OOO", a:"태양계", d:"태양과 태양의 영향을 받는 천체들, 그리고 그 공간"},
+            {q:"OO", a:"천체", d:"우주에 있는 물체"},
+            {q:"OOO 구성원", a:"태양계", d:"태양, 행성, 위성 등"},
+            {q:"OO", a:"태양", d:"스스로 빛을 내는 천체이며, 태양계의 중심에 있음"},
+            {q:"OO의 특징", a:"수성", d:"회색을 띠며, 표면이 암석으로 이루어져 있고, 충돌 구덩이가 많음"},
+            {q:"OO의 특징", a:"금성", d:"노란색을 띠며, 표면이 암석으로 이루어져 있고, 고리가 없음"},
+            {q:"OO의 특징", a:"지구", d:"푸른색을 띠며, 표면이 암석으로 이루어져 있고, 육지와 바다로 구분됨"},
+            {q:"OO의 특징", a:"화성", d:"붉은색을 띠며, 표면이 암석으로 이루어져 있고, 고리가 없음"},
+            {q:"OO의 특징", a:"목성", d:"표면에 줄무늬와 크고 붉은 점이 보이며, 표면이 기체로 이루어져 있음"},
+            {q:"OO의 특징", a:"토성", d:"표면에 줄무늬가 보이며, 표면이 기체로 이루어져 있고, 크고 선명한 고리가 있음"},
+            {q:"OOO의 특징", a:"천왕성", d:"청록색을 띠며, 표면이 기체로 이루어져 있고, 희미한 고리가 있음"},
+            {q:"OOO의 특징", a:"해왕성", d:"파란색을 띠며, 표면이 기체로 이루어져 있고, 희미한 고리가 있음"},
+            {q:"O", a:"별", d:"행성과 달리 스스로 빛을 내는 천체"},
+            {q:"OOO", a:"별자리", d:"밤하늘의 별을 무리 지어 연결해 이름을 붙인 것"},
+            {q:"OOO", a:"북극성", d:"북쪽 하늘에서 일 년 내내 거의 같은 위치에 있는 별"},
+            {q:"OOO", a:"북두칠성", d:"큰곰자리의 꼬리 부분에 국자 모양으로 보이는 일곱 개의 별"},
+            {q:"OOO 자료 활용", a:"디지털", d:"실제로는 지구에서 멀리 떨어져 있는 밤하늘의 천체들을 가까이에 있는 것처럼 관찰할 수 있음"},
+            {q:"O", a:"힘", d:"물체를 움직이려면 필요함"},
+            {q:"물체 OOO", a:"움직임", d:"힘을 주어 물체를 밀거나 당기면 물체를 움직일 수 있음"},
+            {q:"힘의 OO 비교", a:"크기", d:"무거운 물체일수록 물체를 밀거나 당겨 움직일 때 큰 힘이 듦"},
+            {q:"OO", a:"무게", d:"물체의 무거운 정도"},
+            {q:"OO", a:"수평", d:"어느 한쪽으로 기울지 않은 상태"},
+            {q:"OOO", a:"받침점", d:"받침대에 나무판을 올려놓았을 때 나무판과 받침대가 서로 닿는 부분"},
+            {q:"OO OO 원리 (같은 무게)", a:"수평 잡기", d:"무게가 같은 두 물체를 받침점에서 양쪽으로 같은 거리에 놓으면 수평을 잡을 수 있음"},
+            {q:"OO OO 원리 (다른 무게)", a:"수평 잡기", d:"나무판이 한쪽으로 기울어지면 기울어진 쪽에 놓인 물체의 무게가 더 무거움"},
+            {q:"OO", a:"저울", d:"물체의 무게를 정확하게 잴 수 있는 도구"},
+            {q:"OO 단위", a:"무게", d:"g(그램)과 kg(킬로그램) 등"},
+            {q:"저울 사용 전 OO", a:"준비", d:"저울로 무게를 잴 때는 무게 범위를 확인하고, 영점을 맞춤"},
+            {q:"도구 이용의 OO", a:"장점", d:"도구를 이용하면 물체를 들어 올릴 때 드는 힘의 크기가 달라져 작은 힘으로 쉽게 물체를 들어 올릴 수 있음"},
+            {q:"OO", a:"지레", d:"막대의 한 곳을 받치고 작은 힘으로 무거운 물체를 움직일 때 이용하는 도구"},
+            {q:"OO", a:"빗면", d:"비스듬히 기울어진 면을 이용해 작은 힘으로 무거운 물체를 움직일 때 이용하는 도구"},
+            {q:"OO의 예", a:"지레", d:"장도리, 가위, 병따개, 펜치 등"},
+            {q:"OO의 예", a:"빗면", d:"경사면, 경사로, 사다리차 등"},
+            {q:"OOO 제작 도구", a:"고인돌", d:"지레와 빗면과 같은 도구를 이용하여 거대하고 무거운 돌을 옮기고 세움"},
+            {q:"동물 OO 특징", a:"관찰", d:"동물을 관찰하면 동물의 생김새나 움직이는 모습과 같은 특징을 알 수 있음"},
+            {q:"동물 OO 기준", a:"분류", d:"다리, 날개, 털 유무 등 누가 분류해도 같은 결과가 나오는 것"},
+            {q:"동물 분류 OO", a:"기준", d:"귀여움, 몸집 크기 등 분류하는 사람에 따라 결과가 달라질 수 있는 것 (알맞지 않음)"},
+            {q:"O에 사는 동물", a:"숲", d:"동물의 먹이와 숨을 곳이 많아 벌, 다람쥐, 딱따구리, 뱀, 두더지 등 여러 가지 동물이 삶"},
+            {q:"OOO의 특징 (숲)", a:"다람쥐", d:"날카롭고 강한 발톱이 있어 나무를 잘 탐"},
+            {q:"OOO의 특징 (숲)", a:"두더지", d:"큰 앞발로 땅속에 굴을 파고 삼"},
+            {q:"OOO의 특징 (숲)", a:"딱따구리", d:"단단한 부리로 나무에 구멍을 내어 곤충을 잡아먹음"},
+            {q:"OOO의 특징 (숲)", a:"부엉이", d:"몸 색깔이 나뭇가지 색깔과 비슷하며, 주로 밤에 활동함"},
+            {q:"OO의 특징 (숲)", a:"토끼", d:"큰 귀로 작은 소리도 잘 듣고, 긴 뒷다리로 수풀 사이를 뛰어다님"},
+            {q:"OO의 특징 (물)", a:"붕어", d:"몸이 부드러운 곡선 모양이며, 지느러미로 빠르게 헤엄침"},
+            {q:"OOO의 특징 (물)", a:"개구리", d:"뒷다리에 물갈퀴가 있어 물속에서 빠르게 헤엄칠 수 있음"},
+            {q:"OOO의 특징 (바다)", a:"오징어", d:"길쭉한 주머니 모양의 몸통에 물을 빨아들였다가 내뿜어 빠르게 헤엄침"},
+            {q:"OOO의 특징 (물가)", a:"왜가리", d:"긴 다리로 물가를 걸어 다니며, 긴 부리로 물고기를 잡아먹는 동물"},
+            {q:"OO의 특징 (사막)", a:"낙타", d:"혹에 지방을 저장해 오랜 기간 물과 먹이 없이 살 수 있음"},
+            {q:"OOOO의 특징 (사막)", a:"사막여우", d:"큰 귀로 열을 내보내 더위를 견딤"},
+            {q:"OOO의 특징 (극지방)", a:"북극곰", d:"몸이 털로 빽빽하게 덮여 있고, 피부 밑에 두꺼운 지방층이 있어 추위를 잘 막음"},
+            {q:"OOOO의 특징 (극지방)", a:"황제펭귄", d:"깃털이 빽빽하고 지방층이 두꺼워 추위를 잘 막으며, 몸을 서로 맞대어 생활하기도 함"},
+            {q:"동물의 생김새와 OO의 관련성", a:"환경", d:"동물의 생김새와 생활 방식은 사는 곳의 환경과 관련되어 있음"},
+            {q:"OOO", a:"오리발", d:"헤엄칠 때 물을 많이 찰 수 있는 오리나 개구리의 물갈퀴 특징을 이용한 생활용품"},
+            {q:"미끄러지지 않는 OOO", a:"등산화", d:"절벽을 잘 오르는 산양 발굽의 특징을 이용한 생활용품"},
+            {q:"OO테이프 (붙였다 떼었다)", a:"접착", d:"벽에 붙어 떨어지지 않고 걸어 다니는 도마뱀붙이 발바닥의 특징을 이용한 생활용품"},
+            {q:"OO 고무", a:"흡착", d:"미끄러운 유리 벽에 붙어 있을 수 있게 해 주는 문어 다리의 빨판을 본떠 만듦"},
+            {q:"전신 OOO", a:"수영복", d:"피부에 작은 돌기가 있어 물이 흐르면서 생기는 소용돌이를 줄이는 상어 피부의 특징을 이용함"},
+            {q:"생체 OO 기술", a:"모방", d:"생물체의 특성을 연구하고 모방하여 사람의 생활에 이용하는 기술"},
+            {q:"기체의 OO", a:"무게", d:"용기에 기체를 더 넣거나 빼면 용기의 무게가 변하는 것을 통해 알 수 있음"},
+            {q:"OO와 기체 부피 (높아질 때)", a:"온도", d:"온도가 높아지면 기체의 부피는 늘어남"},
+            {q:"OO와 기체 부피 (낮아질 때)", a:"온도", d:"온도가 낮아지면 기체의 부피는 줄어듦"},
+            {q:"OO", a:"압력", d:"일정한 넓이에 작용하는 힘의 크기"},
+            {q:"OO과 기체 부피 (높아질 때)", a:"압력", d:"압력이 높아지면 기체의 부피는 줄어듦"},
+            {q:"OO과 기체 부피 (낮아질 때)", a:"압력", d:"압력이 낮아지면 기체의 부피는 늘어남"},
+            {q:"공기 OO 매트 작동 원리", a:"안전", d:"압력이 높아져 매트 안 공기의 부피가 줄어들면서 떨어질 때 충격을 덜 받게 하는 성질을 이용함"},
+            {q:"OOO 작동 원리", a:"열기구", d:"공기 주머니의 온도가 높아져 기체의 부피가 달라지는 성질을 이용함"},
+            {q:"운동화 OO 주머니 작동 원리", a:"공기", d:"압력에 따라 기체의 부피가 달라지는 성질을 이용함"},
+            {q:"공기 OOO 작동 원리", a:"포장재", d:"압력에 따라 기체의 부피가 달라지는 성질을 이용하여 외부 충격으로부터 물건을 보호함"},
+            {q:"OO의 이용", a:"질소", d:"식품의 내용물이 쉽게 변하지 않게 하여 식품을 포장할 때 이용됨"},
+            {q:"OO의 이용", a:"산소", d:"숨을 쉴 때 필요해 호흡을 돕는 장치에 이용됨"},
+            {q:"OOO OO의 이용", a:"이산화 탄소", d:"물질이 타는 것을 막아 소화기 재료로 이용됨"},
+            {q:"OO의 이용", a:"헬륨", d:"공기보다 위로 떠서 풍선이나 광고기구를 공중에 띄우는 데 이용됨"},
+            {q:"OO의 이용", a:"네온", d:"특유의 빛을 내어 조명 기구나 광고판에 이용됨"},
+            {q:"OOO (소방관)", a:"공기통", d:"많은 양의 공기가 압축되어 들어 있으며, 압력에 따라 기체의 부피가 달라지는 성질을 이용함"},
+            {q:"OO", a:"균류", d:"버섯이나 곰팡이와 같이 몸이 균사로 이루어져 있고 포자로 번식함"},
+            {q:"OO", a:"균사", d:"균류를 이루고 있는 가늘고 긴 실 모양의 것"},
+            {q:"OO", a:"포자", d:"균류 등이 번식을 위해 만드는 씨 같은 것"},
+            {q:"OOOO", a:"원생생물", d:"해캄이나 짚신벌레 같은 생물로, 습지나 연못, 강, 바다 등에 삶"},
+            {q:"OO", a:"세균", d:"대부분 균류나 원생생물보다 작고 생김새가 단순하며, 우리 주변 어느 곳에나 사는 생물"},
+            {q:"OOO", a:"생태계", d:"어떤 장소에서 서로 영향을 주고받는 생물과 생물을 둘러싸고 있는 환경을 통틀어 이르는 말"},
+            {q:"생태계의 OO 요소", a:"생물", d:"토끼, 부들, 미역 등 생태계의 구성 요소 중 살아 있는 것"},
+            {q:"생태계의 OOO 요소", a:"비생물", d:"물, 흙, 공기, 온도, 햇빛 등 생태계의 구성 요소 중 살아 있지 않은 것"},
+            {q:"OOO", a:"생산자", d:"햇빛을 이용해서 스스로 양분을 만드는 생물 요소"},
+            {q:"OOO", a:"소비자", d:"다른 생물을 먹어서 양분을 얻는 생물 요소"},
+            {q:"OOO", a:"분해자", d:"죽은 생물이나 다른 생물의 배출물을 분해해서 양분을 얻는 생물 요소"},
+            {q:"OOOO", a:"먹이사슬", d:"생물들의 먹이 관계가 사슬처럼 연결되어 있는 것"},
+            {q:"OOOO", a:"먹이그물", d:"생물들의 먹이 관계가 그물처럼 복잡하게 연결되어 있는 것"},
+            {q:"생태계 OOO", a:"안정성", d:"생태계를 이루는 생물들의 먹이 관계가 복잡할수록 생태계는 안정적으로 유지됨"},
+            {q:"OOOO 원인", a:"기후변화", d:"화석연료를 사용하는 인간 활동으로 많은 양의 이산화 탄소가 대기 중으로 배출되어 심해짐"}
+        ],
+        5: [
+            {q:"OO OO", a:"문제 인식", d:"주변의 자연 현상을 관찰하고, 탐구할 문제를 찾아 명확하게 나타내는 것"},
+            {q:"OO OO", a:"탐구 문제", d:"'만일', '어떻게' 등을 넣어 물음으로 만들 수 있는, 가장 알고 싶은 궁금한 점"},
+            {q:"OO OO", a:"변인 통제", d:"실험에 영향을 주는 조건들을 찾아, 다르게 할 조건과 같게 할 조건을 확인하고 통제하는 것"},
+            {q:"OO OO OO", a:"실험 결과 기록", d:"관찰하거나 측정한 것을 기록하며, 예상과 다르더라도 고치거나 빼지 않아야 함"},
+            {q:"OO OO", a:"자료 변환", d:"실험 결과를 표나 그래프 등의 형태로 바꾸어 나타내는 것"},
+            {q:"OO OO", a:"자료 해석", d:"실험 결과 사이에서 관계나 규칙을 찾아내는 것"},
+            {q:"OO OO", a:"결론 도출", d:"실험 결과의 해석을 통해 탐구 문제의 답을 찾아 간단하고 명확하게 표현하는 것"},
+            {q:"OO", a:"변색", d:"물건의 색깔이 변하여 달라지는 현상"},
+            {q:"OO", a:"온도", d:"물체의 차갑거나 따뜻한 정도"},
+            {q:"OOO", a:"섭씨도", d:"온도를 숫자에 붙여 나타내는 단위 ($^\\circ C$)"},
+            {q:"OO", a:"기온", d:"공기의 온도"},
+            {q:"OO", a:"수온", d:"물의 온도"},
+            {q:"OO", a:"체온", d:"몸의 온도"},
+            {q:"OOO OOO", a:"알코올 온도계", d:"주로 액체나 기체의 온도를 측정할 때 사용하는 온도계"},
+            {q:"OOO OOO", a:"적외선 온도계", d:"주로 고체의 온도를 측정할 때 사용하며, 물체에 겨누어 온도를 측정하는 온도계"},
+            {q:"OO OO", a:"열의 이동", d:"온도가 다른 두 물체가 접촉할 때 온도가 높은 곳에서 낮은 곳으로 이동하는 현상"},
+            {q:"OO", a:"전도", d:"고체에서 온도가 높은 곳에서 낮은 곳으로 고체 물체를 따라 열이 이동하는 현상"},
+            {q:"OO", a:"단열", d:"두 물체 사이에서 열의 이동을 줄이는 것"},
+            {q:"OO", a:"대류", d:"액체나 기체에서 온도가 높아진 물질은 올라가고, 낮은 물질은 내려오면서 열이 전달되는 과정"},
+            {q:"OO", a:"금속", d:"구리, 철과 같이 열이 잘 전달되는 고체 물질"},
+            {q:"OOOO", a:"플라스틱", d:"열이 잘 전달되지 않는 고체 물질 (냄비 손잡이 등에 사용)"},
+            {q:"패시브 OOO", a:"하우스", d:"단열재를 사용하여 적은 양의 열로 집 안의 온도를 적절하게 유지하도록 만든 집"},
+            {q:"OO", a:"습도", d:"공기 중에 수증기가 포함된 정도"},
+            {q:"OO OOO", a:"건구 온도계", d:"젖은 헝겊으로 감싸지 않은 온도계"},
+            {q:"OO OOO", a:"습구 온도계", d:"젖은 헝겊으로 감싼 온도계"},
+            {q:"OO", a:"응결", d:"공기 중의 수증기가 물방울로 변하는 현상"},
+            {q:"OO", a:"이슬", d:"밤에 기온이 낮아져 수증기가 응결하여 풀잎 등에 물방울로 맺히는 것"},
+            {q:"OO", a:"안개", d:"수증기가 지표면 가까이에서 응결하여 작은 물방울로 떠 있는 것"},
+            {q:"OO", a:"구름", d:"수증기가 하늘 높이 올라가 응결하여 물방울이나 얼음 알갱이가 되어 떠 있는 것"},
+            {q:"O", a:"비", d:"구름 속 물방울이 합쳐져 떨어지거나, 얼음 알갱이가 녹아서 떨어지는 것"},
+            {q:"O", a:"눈", d:"구름 속의 커진 얼음 알갱이가 녹지 않은 채 떨어진 것"},
+            {q:"OO", a:"기압", d:"공기의 무게 때문에 생기는 힘"},
+            {q:"OOO", a:"고기압", d:"주위보다 상대적으로 기압이 높은 곳"},
+            {q:"OOO", a:"저기압", d:"주위보다 상대적으로 기압이 낮은 곳"},
+            {q:"OO", a:"바람", d:"기압 차가 생겨 공기가 고기압에서 저기압으로 이동하는 것"},
+            {q:"O 바람 방향", a:"낮", d:"육지 위가 저기압, 바다 위가 고기압이 되어 바다에서 육지로 부는 바람"},
+            {q:"O 바람 방향", a:"밤", d:"바다 위가 저기압, 육지 위가 고기압이 되어 육지에서 바다로 부는 바람"},
+            {q:"OO OOO", a:"공기 덩어리", d:"한 지역에 오래 머물며 그 지역의 온도나 습도와 비슷한 성질을 가지게 된 공기"},
+            {q:"GPS (지피에스)", a:"GPS", d:"인공위성을 이용하여 자신의 위치를 정확히 알아내는 시스템"},
+            {q:"OO", a:"천체", d:"우주에 존재하는 모든 물체"},
+            {q:"OOO", a:"태양계", d:"태양과 태양의 영향을 받고 있는 천체들, 그리고 그 공간"},
+            {q:"OO", a:"태양", d:"태양계에서 유일하게 스스로 빛을 내는 천체로 태양계의 중심에 있음"},
+            {q:"OO", a:"행성", d:"지구처럼 태양 주위를 도는 둥근 천체"},
+            {q:"OO형 행성", a:"암석", d:"수성, 금성, 지구, 화성으로 표면이 딱딱한 땅으로 되어 있음"},
+            {q:"OO형 행성", a:"가스", d:"목성, 토성, 천왕성, 해왕성으로 표면이 기체로 되어 있음"},
+            {q:"O", a:"별", d:"태양처럼 스스로 빛을 내는 천체"},
+            {q:"OOO", a:"별자리", d:"밤하늘에 무리 지어 있는 별을 연결해 이름을 붙인 것"},
+            {q:"OOOO", a:"북두칠성", d:"북쪽 밤하늘의 별들을 연결해 이름을 붙인 별자리 (국자 모양)"},
+            {q:"OOOOOOO", a:"카시오페이아자리", d:"북쪽 밤하늘의 별들을 연결해 이름을 붙인 별자리 (W 또는 M 모양)"},
+            {q:"OOO", a:"북극성", d:"거의 움직이지 않고 항상 북쪽에서 보여 길잡이 역할을 하는 별"},
+            {q:"OO의 위치 변화", a:"행성", d:"별보다 지구에 가까이 있어 여러 날 관측하면 별들 사이에서 위치가 변함"},
+            {q:"O의 위치 변화", a:"별", d:"지구에서 매우 멀리 있어 여러 날 관측해도 움직이지 않는 것처럼 보임"},
+            {q:"OO", a:"농도", d:"용액의 진함과 묽음의 정도"},
+            {q:"OO", a:"궤도", d:"천체가 다른 천체를 돌면서 그리는 곡선의 길"},
+            {q:"OO", a:"용해", d:"어떤 물질이 다른 물질에 녹아 고르게 섞이는 현상"},
+            {q:"OO", a:"용질", d:"다른 물질에 녹는 물질 (예: 설탕, 소금)"},
+            {q:"OO", a:"용매", d:"다른 물질을 녹이는 물질 (예: 물)"},
+            {q:"OO", a:"용액", d:"두 가지 이상의 물질이 고르게 섞여 있으며, 가라앉는 것이 없는 상태"},
+            {q:"용해 전후 OO", a:"무게", d:"용질이 물에 용해되기 전의 무게와 용해된 후의 무게는 같다"},
+            {q:"용해되는 양 (OO)", a:"종류", d:"물의 온도와 양이 같을 때 용해되는 양은 용질의 종류에 따라 다름"},
+            {q:"용해되는 양 (OO)", a:"온도", d:"일반적으로 물의 온도가 높을수록 용질이 많이 용해됨"},
+            {q:"용액의 OOO", a:"진하기", d:"용액에서 용질이 녹아 있는 정도"},
+            {q:"OOO 비교 (색깔)", a:"진하기", d:"색깔이 있는 용액은 색깔이 진할수록 더 진한 용액"},
+            {q:"진하기 OO (맛)", a:"비교", d:"맛을 볼 수 있는 용액은 맛이 강할수록 더 진한 용액"},
+            {q:"OOO 비교 (뜨는 정도)", a:"진하기", d:"용액에 물체를 넣었을 때 용액이 진할수록 물체가 높이 떠오름"},
+            {q:"물OO", a:"재배", d:"흙 대신 양분이 들어 있는 용액으로 식물을 기르는 방법"},
+            {q:"OO", a:"운동", d:"시간이 지남에 따라 물체의 위치가 변하는 것"},
+            {q:"OO을 나타내는 방법", a:"운동", d:"물체의 이동하는 데 걸린 시간과 이동 거리로 나타냄"},
+            {q:"같은 OO 빠르기 비교", a:"거리", d:"이동하는 데 짧은 시간이 걸린 물체가 더 빠름"},
+            {q:"같은 OO 빠르기 비교", a:"시간", d:"긴 거리를 이동한 물체가 더 빠름"},
+            {q:"OO", a:"속력", d:"단위 시간 동안 물체가 이동한 거리 (이동 거리 ÷ 걸린 시간)"},
+            {q:"속력 OO", a:"공식", d:"(속력) = (이동 거리) ÷ (걸린 시간)"},
+            {q:"OOOO OO", a:"교통안전 수칙", d:"도로 주변에서 안전을 위해 지켜야 하는 규칙"},
+            {q:"OO OO", a:"제동 장치", d:"기계의 속력을 줄이거나 정지시키는 장치 (예: 브레이크)"},
+            {q:"OO", a:"드론", d:"사람이 타지 않고 원거리에서 무선 조종으로 움직이는 비행체"},
+            {q:"드론 OOO", a:"개발자", d:"드론의 비행을 제어하는 소프트웨어를 개발하는 전문가"},
+            {q:"드론 OOO", a:"조종사", d:"지상에서 원격 조종을 통해 드론을 조종하는 전문가"},
+            {q:"OOO", a:"지시약", d:"용액의 성질에 따라 색깔 변화가 나타나는 물질"},
+            {q:"OO 용액 (리트머스)", a:"산성", d:"푸른색 리트머스 종이를 붉은색으로 변하게 함"},
+            {q:"OO 용액 (페놀프탈레인)", a:"산성", d:"페놀프탈레인 용액을 떨어뜨려도 색깔이 변하지 않음"},
+            {q:"OOO 용액 (리트머스)", a:"염기성", d:"붉은색 리트머스 종이를 푸른색으로 변하게 함"},
+            {q:"OOO 용액 (페놀프탈레인)", a:"염기성", d:"페놀프탈레인 용액을 떨어뜨리면 붉은색으로 변함"},
+            {q:"OO 용액 성질 (반응)", a:"산성", d:"메추리알 껍데기와 대리암 조각을 넣으면 기포가 발생하면서 녹음"},
+            {q:"OOO 용액 성질 (반응)", a:"염기성", d:"삶은 메추리알 흰자를 넣으면 흐물흐물해지고 용액이 뿌옇게 흐려짐"},
+            {q:"산-염기 OO", a:"혼합", d:"산성 용액과 염기성 용액을 섞으면 용액의 성질이 변함"},
+            {q:"OO", a:"한지", d:"산성을 띠지 않아 오래 보존될 수 있는 우리나라 전통 종이"},
+            {q:"OO", a:"잿물", d:"짚이나 나무를 태운 재를 우려낸 물 (염기성), 한지의 산성화를 막아줌"},
+            {q:"OO", a:"균사", d:"버섯과 곰팡이의 몸 전체를 이루는 가는 실 모양"},
+            {q:"OO", a:"균류", d:"버섯과 곰팡이가 속하며 포자를 이용하여 번식하는 생물군"},
+            {q:"OO 서식 환경", a:"균류", d:"따뜻하고 축축한 환경에서 잘 자라며, 다른 생물에서 양분을 얻음"},
+            {q:"OO", a:"배율", d:"현미경으로 물체의 모습을 확대하는 정도"},
+            {q:"OO", a:"표본", d:"현미경 관찰 대상을 받침 유리와 덮개 유리 사이에 넣어 만든 것"},
+            {q:"OOOO", a:"원생생물", d:"식물, 동물, 균류가 아닌 생물 (예: 짚신벌레, 해캄)"},
+            {q:"OO", a:"세균", d:"균류나 원생생물보다 작고 생김새가 단순한 생물"},
+            {q:"OO", a:"적조", d:"바다에 사는 일부 원생생물의 수가 급증하여 물이 붉게 변하는 현상"},
+            {q:"OO", a:"백신", d:"미리 주사하여 병을 이겨 낼 수 있게 하는 약 (약해진 병균)"},
+            {q:"OO", a:"환경", d:"생물이 살아가는 데 영향을 주는 모든 것"},
+            {q:"OOO", a:"생태계", d:"생물과 환경이 서로 영향을 주고받는 시스템"},
+            {q:"OO OO", a:"생물 요소", d:"생태계를 이루는 요소 중 살아 있는 것 (동물, 식물 등)"}
+        ],
+        6: [
+            {q:"OO OO 정하기", a:"탐구 문제", d:"궁금한 점 중에서 가장 알고 싶은 것을 정하는 활동"},
+            {q:"OO OO", a:"가설 설정", d:"탐구 문제의 답을 예상하는 것"},
+            {q:"OO OO의 조건", a:"가설 설정", d:"알아보려는 내용이 분명하고, 탐구를 하여 맞는지 확인할 수 있어야 함"},
+            {q:"OO OO", a:"실험 계획", d:"실험 조건, 관찰/측정, 과정, 준비물, 안전 수칙 등을 결정하는 과정"},
+            {q:"OO OO", a:"변인 통제", d:"실험에서 다르게 해야 할 조건과 같게 해야 할 조건을 잘 지키는 것"},
+            {q:"OO OO", a:"자료 변환", d:"관찰하거나 측정한 내용을 표, 그림, 그래프 등으로 바꾸는 과정"},
+            {q:"OO그래프", a:"막대", d:"종류별 차이를 비교할 때 주로 사용함"},
+            {q:"OOO그래프", a:"꺾은선", d:"시간이나 양에 따른 변화를 나타낼 때 주로 사용함"},
+            {q:"OO OO", a:"자료 해석", d:"실험에서 다르게 한 조건과 실험 결과 사이의 관계를 찾아내는 과정"},
+            {q:"OO OO", a:"결론 도출", d:"실험 결과를 보고 가설이 맞는지 판단하고 탐구 문제의 결론을 이끌어 내는 과정"},
+            {q:"OO OO (결과 불일치)", a:"가설 수정", d:"실험 결과가 가설과 맞지 않을 때 다시 탐구를 시작하기 위해 해야 할 일"},
+            {q:"OOOOO", a:"조이트로프", d:"일정한 간격으로 틈이 나 있는 원기둥의 안쪽에 그림 띠를 붙여 회전하게 만든 놀이 기구"},
+            {q:"OOO", a:"지평선", d:"땅끝과 하늘이 만나는 선"},
+            {q:"천체의 OOO OO 방향", a:"겉보기 운동", d:"하루 동안 동쪽 지평선에서 떠올라 서쪽 하늘로 움직이는 것처럼 보이는 현상"},
+            {q:"지구의 OO", a:"자전", d:"지구가 자전축을 중심으로 서쪽에서 동쪽으로 하루에 한 바퀴씩 회전하는 것"},
+            {q:"지구의 OO OO", a:"자전 방향", d:"서쪽에서 동쪽 (시계 반대 방향)"},
+            {q:"지구의 OOO", a:"자전축", d:"지구의 북극과 남극을 이은 가상의 축"},
+            {q:"낮과 밤이 생기는 OO", a:"까닭", d:"지구가 하루에 한 바퀴씩 자전하기 때문"},
+            {q:"O", a:"낮", d:"태양이 지평선 위로 떠오를 때부터 지평선 아래로 질 때까지의 시간"},
+            {q:"O", a:"밤", d:"태양이 지평선 아래로 져서 어두워진 때부터 이튿날 태양이 뜨기 전까지의 시간"},
+            {q:"지구의 OO", a:"공전", d:"지구가 태양을 중심으로 일 년에 한 바퀴씩 서쪽에서 동쪽 방향으로 회전하는 것"},
+            {q:"OO OO", a:"공전 궤도", d:"어떤 천체가 다른 천체 주위를 도는 길"},
+            {q:"계절별 별자리 변화 OO", a:"까닭", d:"지구가 태양 주위를 공전하기 때문에 지구의 위치가 달라져 밤에 보이는 별자리가 달라짐"},
+            {q:"달의 OO OO 주기", a:"모양 변화", d:"초승달, 상현달, 보름달, 하현달, 그믐달 순서로 약 30일을 주기로 되풀이됨"},
+            {q:"OO", a:"음력", d:"달의 모양 변화를 주기로 정한 달력"},
+            {q:"OOO 위치 (해 진 직후)", a:"초승달", d:"태양이 진 직후 서쪽 하늘에서 보임"},
+            {q:"OOO 위치 (해 진 직후)", a:"보름달", d:"태양이 진 직후 동쪽 하늘에서 보임"},
+            {q:"OO", a:"백야", d:"북극이나 남극 지방에서 여름철 내내 하루 종일 낮만 지속되는 현상"},
+            {q:"OO", a:"극야", d:"북극이나 남극 지방에서 겨울철 내내 해가 뜨지 않고 밤만 지속되는 현상"},
+            {q:"OO", a:"세포", d:"생물을 이루고 있는 작은 단위"},
+            {q:"세포의 OO OO", a:"기본 구조", d:"세포막으로 둘러싸여 있고, 안에 둥근 모양의 핵이 있음"},
+            {q:"OO OO의 특징", a:"식물 세포", d:"세포벽이 세포막의 바깥쪽을 둘러싸고 있음"},
+            {q:"OO의 주요 기능", a:"뿌리", d:"식물이 쓰러지지 않게 지지하고, 흙 속의 물을 흡수함"},
+            {q:"OOO", a:"뿌리털", d:"뿌리의 표면에 나 있어서 물을 많이 흡수할 수 있도록 하는 작은 솜털"},
+            {q:"OO에 저장하는 식물", a:"뿌리", d:"무, 당근, 고구마처럼 만든 양분을 이곳에 저장함"},
+            {q:"OO의 기능", a:"줄기", d:"잎이나 꽃 등을 받쳐 지지하며, 뿌리에서 흡수한 물이 이동하는 통로가 있음"},
+            {q:"OOO", a:"광합성", d:"식물이 빛을 이용하여 이산화 탄소와 물로 양분을 만드는 과정 (주로 잎에서 일어남)"},
+            {q:"OO", a:"잎몸", d:"잎에서 초록색을 띠는 납작한 부분"},
+            {q:"OO 확인 용액", a:"녹말", d:"아이오딘-아이오딘화 칼륨 용액 (반응하면 청람색으로 변함)"},
+            {q:"OO", a:"기공", d:"잎의 뒷면에 있는 작은 구멍"},
+            {q:"OO OO", a:"증산 작용", d:"잎에 도달한 물의 일부가 수증기가 되어 기공을 통해 식물 밖으로 빠져나가는 현상"},
+            {q:"OO OO의 중요 역할", a:"증산 작용", d:"뿌리에서 흡수한 물을 식물의 꼭대기까지 끌어 올리는 것을 도움"},
+            {q:"O의 기능", a:"꽃", d:"꽃가루받이를 통해 암술 속에서 씨를 만드는 일"},
+            {q:"OOOOO (수분)", a:"꽃가루받이", d:"수술에서 만든 꽃가루가 암술에 옮겨 붙는 것"},
+            {q:"OO의 기능", a:"열매", d:"어린 씨를 보호하고, 씨가 익으면 씨가 퍼지는 것을 도움"},
+            {q:"OO에 날려 퍼지는 씨", a:"바람", d:"민들레, 단풍나무 등"},
+            {q:"OO에 붙어 퍼지는 씨", a:"동물", d:"도꼬마리, 도깨비바늘 등 (털이나 옷에 붙음)"},
+            {q:"품종 OO", a:"개량", d:"농작물이나 가축을 목적에 따라 더 좋게 만드는 과학 기술"},
+            {q:"OO의 성질 (색/냄새)", a:"산소", d:"색깔이 없고 냄새가 나지 않음"},
+            {q:"OO의 성질 (연소)", a:"산소", d:"스스로 타지 않지만 다른 물질이 타는 것을 돕는다"},
+            {q:"OO 발생 실험 준비물", a:"산소", d:"이산화 망가니즈(촉매)와 묽은 과산화 수소수"},
+            {q:"OOO OO의 성질 (연소)", a:"이산화 탄소", d:"다른 물질이 타는 것을 막는다"},
+            {q:"OOO OO 확인 방법", a:"이산화 탄소", d:"석회수를 뿌옇게 흐리게 함"},
+            {q:"OOOOO", a:"드라이아이스", d:"고체 상태의 이산화 탄소"},
+            {q:"OO", a:"압력", d:"일정한 넓이에 수직으로 가해진 힘"},
+            {q:"OO에 따른 기체 부피", a:"압력", d:"압력을 세게 가하면 부피가 많이 줄어듦"},
+            {q:"OO와 기체 부피 (높아질 때)", a:"온도", d:"온도가 높아지면 기체의 부피는 늘어난다"},
+            {q:"OO와 기체 부피 (낮아질 때)", a:"온도", d:"온도가 낮아지면 기체의 부피는 줄어든다"},
+            {q:"OO의 구성", a:"공기", d:"질소, 산소, 이산화 탄소, 수소, 헬륨, 네온, 아르곤 등이 섞인 혼합물"},
+            {q:"공기의 OO", a:"대부분", d:"질소와 산소"},
+            {q:"OO의 이용", a:"질소", d:"과자가 부서지거나 맛이 변하는 것을 막음"},
+            {q:"OO의 이용", a:"수소", d:"환경을 오염하지 않고 전기를 만들 수 있음 (연료 자동차)"},
+            {q:"OO OOO", a:"지구 온난화", d:"지구의 평균 기온이 올라가는 현상"},
+            {q:"OOO", a:"프리즘", d:"유리나 플라스틱 등으로 만든 투명한 삼각기둥 모양의 기구"},
+            {q:"OO의 특징 (프리즘)", a:"햇빛", d:"프리즘을 통과하면 여러 가지 색의 빛으로 나타남"},
+            {q:"OOO", a:"무지개", d:"햇빛이 물방울(프리즘 구실)을 통과할 때 나타나는 여러 가지 색의 빛"},
+            {q:"빛의 OO", a:"굴절", d:"서로 다른 물질의 경계에서 빛이 꺾여 나아가는 현상"},
+            {q:"OO의 다리가 짧아 보임", a:"물속", d:"빛이 물속에서 공기 중으로 나올 때 경계에서 꺾여 나아가기 때문"},
+            {q:"OO OO의 모양", a:"볼록 렌즈", d:"가운데 부분이 가장자리보다 두꺼운 렌즈"},
+            {q:"볼록 렌즈의 빛을 OOO 성질", a:"모으는", d:"볼록 렌즈를 통과한 햇빛은 굴절하여 한곳에 모일 수 있음"},
+            {q:"OOO", a:"확대경", d:"볼록 렌즈를 이용해 물체를 확대하여 볼 수 있게 만든 도구"},
+            {q:"OO OO 구실을 하는 물체", a:"볼록 렌즈", d:"물이 담긴 둥근 유리컵, 유리구슬, 물방울"},
+            {q:"O의 역할", a:"뼈", d:"몸의 형태를 만들고 지탱하며, 몸속 기관(심장, 폐, 뇌 등)을 보호함"},
+            {q:"OO의 역할", a:"근육", d:"뼈에 연결되어 길이가 줄어들거나 늘어나면서 뼈를 움직이게 함"},
+            {q:"OO", a:"소화", d:"음식물을 잘게 쪼개고 분해하여 영양소를 흡수할 수 있도록 하는 과정"},
+            {q:"OOOO의 기능", a:"작은창자", d:"음식물을 잘게 분해하고, 영양소를 흡수함"},
+            {q:"OOOO의 기능", a:"큰창자", d:"음식물 찌꺼기에서 수분을 흡수함"},
+            {q:"OO를 돕는 기관", a:"소화", d:"간, 쓸개, 이자"},
+            {q:"OO", a:"호흡", d:"숨을 들이마시고 내쉬는 활동"},
+            {q:"O의 기능", a:"폐", d:"공기 중의 산소를 흡수하고, 몸에서 생긴 이산화 탄소를 내보냄"},
+            {q:"OO OO", a:"혈액 순환", d:"혈액이 영양소와 산소 등을 싣고 온몸을 도는 것"},
+            {q:"OO", a:"심장", d:"펌프 작용을 하여 혈액을 온몸으로 순환시킴"},
+            {q:"OO", a:"혈관", d:"몸 전체에 퍼져 있으며, 혈액이 이동하는 통로"},
+            {q:"OO", a:"배설", d:"혈액 속의 노폐물을 오줌으로 만들어 몸 밖으로 내보내는 과정"},
+            {q:"OO의 기능", a:"콩팥", d:"등허리 쪽에 있으며, 혈액에 있는 노폐물을 걸러 냄"},
+            {q:"OO의 기능", a:"방광", d:"콩팥에서 걸러 낸 노폐물(오줌)을 모아 두었다가 몸 밖으로 내보냄"},
+            {q:"OO OO", a:"감각 기관", d:"주변의 다양한 자극(시각, 청각, 촉감 등)을 받아들이는 기관"},
+            {q:"O의 기능", a:"뇌", d:"감각 기관에서 전달받은 자극을 해석하여 반응 결정 및 명령을 내림"},
+            {q:"OO의 기능", a:"신경", d:"자극과 명령을 전달함"},
+            {q:"OO OO", a:"운동 기관", d:"뇌의 명령에 따라 반응을 하는 뼈와 근육"},
+            {q:"OO 장기 (전기 기계식)", a:"인공", d:"금속, 실리콘 등의 물질로 사람의 기관과 비슷하게 만든 기계 장치"},
+            {q:"인공 OO (세포 이용)", a:"장기", d:"환자의 세포를 이용해 이식했을 때 부작용을 줄일 수 있는 장기"},
+            {q:"OOO의 필요성", a:"에너지", d:"생물이 살아가거나 기계가 움직이는 데 필요함"},
+            {q:"에너지 OO", a:"전환", d:"한 에너지가 다른 에너지로 형태가 바뀌는 현상"},
+            {q:"OO OO", a:"태양 전지", d:"태양의 빛에너지를 전기 에너지로 바꾸는 장치"},
+            {q:"OO", a:"효율", d:"들인 힘에 대하여 얻어진 결과의 정도"},
+            {q:"에너지 OO을 높이는 요소", a:"효율", d:"태양 에너지 이용 장치, 이중창, 단열재"},
+            {q:"OO", a:"단열", d:"두 물질 사이에서 열의 이동을 줄이는 것"},
+            {q:"전구의 OOOO", a:"직렬연결", d:"전구 두 개 이상을 한 줄로 연결하는 방법"},
+            {q:"OOO", a:"전자석", d:"전기가 흐르는 전선 주위에 자석의 성질이 나타나는 것을 이용해 만든 자석"}
+        ]
+    };
+
+    // --- State Variables ---
+    let selectedGrades = [];
+    let timeLimit = 60;
+    let numDistractors = 4;
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let timeLeft = 0;
+    let timerInterval = null;
+    let currentAnswer = "";
+    let currentInputs = [];
+    let isSpeaking = false;
+    let synth = window.speechSynthesis;
+
+    function speak(text, callback) {
+        if (synth.speaking) { return; }
+        const utterThis = new SpeechSynthesisUtterance(text);
+        utterThis.lang = 'ko-KR';
+        utterThis.rate = 1.0;
+        utterThis.onend = function (event) { if (callback) callback(); };
+        utterThis.onerror = function (event) { if (callback) callback(); };
+        synth.speak(utterThis);
+    }
+
+    function toggleGrade(grade, btn) {
+        const index = selectedGrades.indexOf(grade);
+        if (index > -1) {
+            selectedGrades.splice(index, 1);
+            btn.classList.remove('selected');
+        } else {
+            selectedGrades.push(grade);
+            btn.classList.add('selected');
+        }
+    }
+
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function showFloatingText(text, type) {
+        const el = document.createElement('div');
+        el.className = `floating-feedback feedback-${type}`;
+        el.innerText = text;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 2000);
+    }
+
+    function startGame() {
+        if (selectedGrades.length === 0) {
+            alert("학년을 하나 이상 선택해주세요!");
+            return;
+        }
+
+        const timeVal = parseInt(document.getElementById('time-input').value);
+        if (isNaN(timeVal) || timeVal < 1) {
+            alert("올바른 제한 시간을 입력하세요.");
+            return;
+        }
+        timeLimit = timeVal * 60;
+        timeLeft = timeLimit;
+
+        const distVal = parseInt(document.getElementById('distractor-input').value);
+        numDistractors = isNaN(distVal) ? 4 : distVal;
+
+        questions = [];
+        selectedGrades.forEach(g => {
+            questions = questions.concat(database[g]);
+        });
+        questions = shuffle(questions);
+
+        currentQuestionIndex = 0;
+        score = 0;
+        
+        document.getElementById('start-screen').classList.remove('active');
+        document.getElementById('game-screen').classList.add('active');
+        updateScore();
+        updateTimer();
+
+        // Start Audio Context on user gesture
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            // isSpeaking 확인 로직 삭제 -> 항상 시간 흐름
+            timeLeft--;
+            updateTimer();
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+
+        loadQuestion();
+    }
+
+    function updateTimer() {
+        if (timeLeft < 0) timeLeft = 0;
+        const min = Math.floor(timeLeft / 60);
+        const sec = timeLeft % 60;
+        document.getElementById('timer').innerText = 
+            `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    }
+
+    function updateScore() {
+        document.getElementById('score').innerText = score;
+    }
+
+    function loadQuestion() {
+        if (currentQuestionIndex >= questions.length) {
+            endGame();
+            return;
+        }
+
+        isSpeaking = false;
+        const qData = questions[currentQuestionIndex];
+        currentAnswer = qData.a;
+        currentInputs = new Array(currentAnswer.length).fill(null);
+
+        document.getElementById('q-number').innerText = `Q. ${currentQuestionIndex + 1}`;
+        
+        // --- 빈칸 시각화 로직 (NEW) ---
+        // 'O' 문자를 <span class="question-blank"></span> 태그로 치환
+        const visualQuestion = qData.q.replace(/O/g, '<span class="question-blank"></span>');
+        document.getElementById('problem-text').innerHTML = visualQuestion;
+
+        document.getElementById('desc-text').innerText = qData.d;
+
+        const slotsContainer = document.getElementById('slots-area');
+        slotsContainer.innerHTML = '';
+        
+        for (let i = 0; i < currentAnswer.length; i++) {
+            const char = currentAnswer[i];
+            const slot = document.createElement('div');
+            
+            if (char === ' ') {
+                slot.className = 'slot space';
+                currentInputs[i] = ' '; 
+            } else {
+                slot.className = 'slot';
+                slot.dataset.index = i;
+                slot.onclick = () => undoInput(i);
+            }
+            slotsContainer.appendChild(slot);
+        }
+
+        const lettersContainer = document.getElementById('letters-area');
+        lettersContainer.innerHTML = '';
+
+        let pool = currentAnswer.replace(/ /g, '').split('');
+        const distractors = "가나다라마바사아자차카타파하물불흙공기빛소리힘일너구리산강바다별달해체질성원소";
+        for(let k=0; k<numDistractors; k++) {
+            pool.push(distractors[Math.floor(Math.random() * distractors.length)]);
+        }
+        pool = shuffle(pool);
+
+        pool.forEach((char) => {
+            const btn = document.createElement('button');
+            btn.className = 'letter-btn';
+            btn.innerText = char;
+            btn.onclick = () => handleLetterClick(char, btn);
+            lettersContainer.appendChild(btn);
+        });
+
+        const passBtn = document.getElementById('pass-btn');
+        passBtn.disabled = false;
+        passBtn.innerText = "모르겠어요 (설명 듣기)";
+    }
+
+    function handleLetterClick(char, btn) {
+        if (isSpeaking) return;
+        
+        playSound('click');
+
+        let emptyIndex = -1;
+        for (let i = 0; i < currentInputs.length; i++) {
+            if (currentInputs[i] === null) {
+                emptyIndex = i;
+                break;
+            }
+        }
+
+        if (emptyIndex === -1) return; 
+
+        currentInputs[emptyIndex] = char;
+        const slots = document.getElementsByClassName('slot');
+        slots[emptyIndex].innerText = char;
+        slots[emptyIndex].classList.add('filled');
+        
+        btn.disabled = true;
+        btn.dataset.usedByIndex = emptyIndex; 
+
+        if (!currentInputs.includes(null)) {
+            checkAnswer();
+        }
+    }
+
+    function undoInput(index) {
+        if (isSpeaking) return;
+        const char = currentInputs[index];
+        if (!char || char === ' ') return; 
+
+        currentInputs[index] = null;
+        const slots = document.getElementsByClassName('slot');
+        slots[index].innerText = '';
+        slots[index].classList.remove('filled');
+
+        const buttons = document.getElementsByClassName('letter-btn');
+        for (let btn of buttons) {
+            if (btn.disabled && btn.dataset.usedByIndex == index) {
+                btn.disabled = false;
+                break; 
+            }
+        }
+    }
+
+    function checkAnswer() {
+        const inputString = currentInputs.join('');
+        
+        if (inputString === currentAnswer) {
+            // 정답
+            playSound('correct');
+            showFloatingText("정답!", "correct");
+            score += 10;
+            updateScore();
+            setTimeout(() => {
+                currentQuestionIndex++;
+                loadQuestion();
+            }, 1500);
+        } else {
+            // 오답
+            playSound('wrong');
+            const penalty = currentAnswer.replace(/ /g, '').length;
+            timeLeft -= penalty;
+            updateTimer();
+
+            showFloatingText(`-${penalty}초`, "wrong");
+
+            const container = document.getElementById('game-screen');
+            container.classList.add('shake');
+            setTimeout(() => container.classList.remove('shake'), 400);
+
+            // 자동 리셋 로직 (0.5초 뒤)
+            setTimeout(() => {
+                // 모든 슬롯 비우기 (띄어쓰기 제외)
+                for(let i=0; i<currentInputs.length; i++) {
+                    if(currentInputs[i] !== ' ') {
+                        undoInput(i);
+                    }
+                }
+            }, 500);
+        }
+    }
+
+    function passQuestion() {
+        if (isSpeaking) return;
+        isSpeaking = true;
+
+        const slots = document.getElementsByClassName('slot');
+        for (let i = 0; i < currentAnswer.length; i++) {
+            if (currentAnswer[i] !== ' ') {
+                slots[i].innerText = currentAnswer[i];
+                slots[i].classList.add('filled');
+            }
+        }
+
+        const qData = questions[currentQuestionIndex];
+        const textToRead = `정답은 ${qData.a}입니다. ${qData.d}`;
+        
+        document.getElementById('pass-btn').disabled = true;
+        document.getElementById('pass-btn').innerText = "설명 듣는 중...";
+
+        speak(textToRead, () => {
+            currentQuestionIndex++;
+            loadQuestion();
+        });
+    }
+
+    function endGame() {
+        clearInterval(timerInterval);
+        document.getElementById('game-screen').classList.remove('active');
+        document.getElementById('end-screen').classList.add('active');
+        document.getElementById('final-score').innerText = score;
+    }
+
+    document.addEventListener('dblclick', function(event) {
+        event.preventDefault();
+    }, { passive: false });
+
+</script>
+
+</body>
+</html>
