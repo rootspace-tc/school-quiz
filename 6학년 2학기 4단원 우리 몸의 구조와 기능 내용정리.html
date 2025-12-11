@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>6학년 2학기 과학 - 4. 우리 몸의 구조와 기능</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Gowun Dodum', sans-serif;
+            overflow: hidden; /* 전체 페이지 스크롤 방지 */
+        }
+        h1, h2, h3, h4, h5, h6, .btn, .toc-link {
+            font-family: 'Jua', sans-serif;
+        }
+        
+        /* --- 글자 크기 제어 --- */
+        .page-content {
+            font-size: 2.2rem;
+            line-height: 1.5;
+        }
+        .page-content h3 {
+            font-size: 1.6em;
+            margin-bottom: 0.8em;
+            line-height: 1.2;
+        }
+        .page-content ul, .page-content p, .page-content div {
+            font-size: 1em;
+        }
+        .page-content li {
+            margin-bottom: 0.5em;
+        }
+        .page-content strong {
+            font-size: 1em; 
+        }
+        .page-content .emoji {
+            font-size: 1.2em;
+            margin-right: 0.3em;
+        }
+
+        .page, .btn {
+            transition: all 0.3s ease-in-out;
+        }
+        
+        /* --- 스크롤바 디자인 (진한 분홍색) --- */
+        #main-content {
+            overflow-y: auto;
+            scrollbar-width: auto;
+            scrollbar-color: #be185d #fce7f3;
+        }
+        #main-content::-webkit-scrollbar {
+            width: 16px;
+        }
+        #main-content::-webkit-scrollbar-track {
+            background: #fce7f3; /* 연한 분홍 */
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        #main-content::-webkit-scrollbar-thumb {
+            background-color: #be185d; /* 진한 분홍 */
+            border-radius: 10px;
+            border: 4px solid #fce7f3;
+        }
+        #main-content::-webkit-scrollbar-thumb:hover {
+            background-color: #9d174d;
+        }
+
+        /* --- 애니메이션 --- */
+        .anim-item { opacity: 0; }
+        .anim-item.visible {
+            opacity: 1;
+            animation-duration: 0.5s;
+            animation-fill-mode: both;
+            animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        @keyframes fadeInUp { from { opacity: 0; transform: translate3d(0, 30px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+        .fadeInUp { animation-name: fadeInUp; }
+        @keyframes fadeInLeft { from { opacity: 0; transform: translate3d(-30px, 0, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+        .fadeInLeft { animation-name: fadeInLeft; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .fadeIn { animation-name: fadeIn; }
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .zoomIn { animation-name: zoomIn; }
+
+    </style>
+</head>
+<body class="bg-pink-50 flex flex-col items-center justify-center h-screen py-2 overflow-hidden">
+
+    <div class="w-full max-w-[96%] flex justify-between items-center mb-2 px-2 shrink-0">
+        <div class="text-left">
+            <h1 class="text-3xl md:text-4xl font-bold text-pink-800">6-2 과학: 우리 몸의 구조와 기능</h1>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <span class="text-xl text-gray-700 font-bold" style="font-family: 'Jua', sans-serif;">글자 크기</span>
+            <button id="font-decrease" class="btn bg-white border-2 border-pink-300 text-pink-700 w-10 h-10 rounded-full text-2xl font-bold hover:bg-pink-100 active:scale-95 shadow-md">-</button>
+            <button id="font-increase" class="btn bg-white border-2 border-pink-300 text-pink-700 w-10 h-10 rounded-full text-2xl font-bold hover:bg-pink-100 active:scale-95 shadow-md">+</button>
+        </div>
+    </div>
+
+    <div class="w-full max-w-[96%] flex-1 mb-2 min-h-0">
+        <main id="main-content" class="bg-white rounded-2xl shadow-xl w-full h-full p-4 md:p-8 relative cursor-pointer border-4 border-pink-200 box-border">
+            
+            <div id="page-0" class="page page-content h-full flex flex-col justify-center">
+                <h3 class="text-center text-pink-700 font-bold">목차</h3>
+                <ul class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                    <li><a href="#" class="toc-link block p-6 bg-pink-100 rounded-xl hover:bg-pink-200 transition shadow-sm text-pink-900 font-bold text-center" data-page="1">1. 뼈와 근육</a></li>
+                    <li><a href="#" class="toc-link block p-6 bg-pink-100 rounded-xl hover:bg-pink-200 transition shadow-sm text-pink-900 font-bold text-center" data-page="2">2. 소화 기관</a></li>
+                    <li><a href="#" class="toc-link block p-6 bg-pink-100 rounded-xl hover:bg-pink-200 transition shadow-sm text-pink-900 font-bold text-center" data-page="3">3. 호흡 기관</a></li>
+                    <li><a href="#" class="toc-link block p-6 bg-pink-100 rounded-xl hover:bg-pink-200 transition shadow-sm text-pink-900 font-bold text-center" data-page="4">4. 순환 기관</a></li>
+                    <li><a href="#" class="toc-link block p-6 bg-pink-100 rounded-xl hover:bg-pink-200 transition shadow-sm text-pink-900 font-bold text-center" data-page="5">5. 배설 기관</a></li>
+                    <li><a href="#" class="toc-link block p-6 bg-pink-100 rounded-xl hover:bg-pink-200 transition shadow-sm text-pink-900 font-bold text-center" data-page="6">6. 감각 기관과 신경계</a></li>
+                    <li><a href="#" class="toc-link block p-6 bg-pink-100 rounded-xl hover:bg-pink-200 transition shadow-sm text-pink-900 font-bold text-center" data-page="7">7. 운동할 때 몸의 변화</a></li>
+                    <li><a href="#" class="toc-link block p-6 bg-pink-100 rounded-xl hover:bg-pink-200 transition shadow-sm text-pink-900 font-bold text-center" data-page="8">8. 단원 정리</a></li>
+                </ul>
+            </div>
+
+            <div id="page-1" class="page hidden page-content flex flex-col justify-center min-h-full">
+                <h3 class="text-pink-700 font-bold anim-item fadeInUp text-center mt-4">1. 뼈와 근육</h3>
+                <p class="anim-item fadeIn text-center mb-6 text-gray-600">우리 몸을 지탱하고 움직이게 해요.</p>
+                
+                <div class="grid grid-cols-2 gap-6 w-full mb-4">
+                    <div class="anim-item zoomIn bg-gray-100 p-6 rounded-2xl border-4 border-gray-300">
+                        <strong class="block text-gray-800 mb-2 text-xl">🦴 뼈</strong>
+                        <ul class="list-disc pl-6 text-gray-700 space-y-2">
+                            <li>몸의 형태를 만들고 지탱함</li>
+                            <li>심장, 폐, 뇌 등 중요 기관 보호</li>
+                        </ul>
+                    </div>
+                    <div class="anim-item zoomIn bg-pink-100 p-6 rounded-2xl border-4 border-pink-400">
+                        <strong class="block text-pink-900 mb-2 text-xl">💪 근육</strong>
+                        <ul class="list-disc pl-6 text-pink-900 space-y-2">
+                            <li>뼈에 연결되어 있음</li>
+                            <li>길이가 줄거나 늘어나며 뼈를 움직임</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-2" class="page hidden page-content flex flex-col justify-center min-h-full">
+                <h3 class="text-pink-700 font-bold anim-item fadeInUp text-center mt-4">2. 소화 기관</h3>
+                <p class="anim-item fadeIn text-center mb-6">음식물을 분해하여 영양소를 흡수해요. </p>
+                
+                <ul class="space-y-4 w-full bg-orange-50 p-6 rounded-2xl border-2 border-orange-200 mb-4">
+                    <li class="anim-item fadeInLeft"><span class="emoji">👄</span><strong>입:</strong> 잘게 부수고 침과 섞음</li>
+                    <li class="anim-item fadeInLeft"><span class="emoji">🌭</span><strong>식도:</strong> 음식물이 위로 이동하는 통로</li>
+                    <li class="anim-item fadeInLeft"><span class="emoji">🥣</span><strong>위:</strong> 음식물을 섞고 죽처럼 만듦</li>
+                    <li class="anim-item fadeInLeft"><span class="emoji">〰️</span><strong>작은창자:</strong> 영양소를 흡수함 (소화의 중심)</li>
+                    <li class="anim-item fadeInLeft"><span class="emoji">💩</span><strong>큰창자:</strong> 수분을 흡수하고 찌꺼기 배출</li>
+                    <li class="anim-item fadeInLeft text-sm text-gray-500">*간, 쓸개, 이자는 소화를 도와줍니다.</li>
+                </ul>
+            </div>
+
+            <div id="page-3" class="page hidden page-content flex flex-col justify-center min-h-full">
+                <h3 class="text-pink-700 font-bold anim-item fadeInUp text-center mt-4">3. 호흡 기관</h3>
+                <p class="anim-item fadeIn text-center mb-6">숨을 들이마시고 내쉬는 기관이에요.</p>
+                
+                <div class="anim-item zoomIn bg-blue-50 p-8 rounded-2xl border-4 border-blue-200 w-full text-center">
+                    <div class="flex justify-center items-center gap-4 mb-6">
+                        <span class="bg-white px-4 py-2 rounded-lg border border-blue-300">👃 코</span>
+                        <span>➡</span>
+                        <span class="bg-white px-4 py-2 rounded-lg border border-blue-300">기관</span>
+                        <span>➡</span>
+                        <span class="bg-white px-4 py-2 rounded-lg border border-blue-300">기관지</span>
+                        <span>➡</span>
+                        <span class="bg-white px-4 py-2 rounded-lg border border-blue-300">🫁 폐</span>
+                    </div>
+                    <ul class="text-left inline-block space-y-4">
+                        <li><strong>들숨 (들이마실 때):</strong> <span class="text-red-600 font-bold">산소</span>를 흡수</li>
+                        <li><strong>날숨 (내쉴 때):</strong> <span class="text-blue-600 font-bold">이산화 탄소</span>를 배출</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="page-4" class="page hidden page-content flex flex-col justify-center min-h-full">
+                <h3 class="text-pink-700 font-bold anim-item fadeInUp text-center mt-4">4. 순환 기관</h3>
+                <p class="anim-item fadeIn text-center mb-6">영양소와 산소를 온몸으로 날라요.</p>
+                
+                <div class="grid grid-cols-2 gap-6 w-full mb-4">
+                    <div class="anim-item fadeInLeft bg-red-50 p-6 rounded-xl border-l-8 border-red-400">
+                        <strong class="text-red-700 block mb-4 text-center text-xl">❤️ 심장</strong>
+                        <ul class="list-disc pl-6 space-y-2">
+                            <li>펌프 작용을 함</li>
+                            <li>혈액을 온몸으로 보냄</li>
+                        </ul>
+                    </div>
+                    <div class="anim-item fadeInLeft bg-red-50 p-6 rounded-xl border-l-8 border-red-400">
+                        <strong class="text-red-700 block mb-4 text-center text-xl">🩸 혈관</strong>
+                        <ul class="list-disc pl-6 space-y-2">
+                            <li>온몸에 퍼져 있음</li>
+                            <li>혈액이 이동하는 통로</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-5" class="page hidden page-content flex flex-col justify-center min-h-full">
+                <h3 class="text-pink-700 font-bold anim-item fadeInUp text-center mt-4">5. 배설 기관</h3>
+                <p class="anim-item fadeIn text-center mb-6">혈액 속 노폐물을 걸러 오줌으로 내보내요.</p>
+                
+                <div class="space-y-6 w-full mb-4">
+                    <div class="anim-item zoomIn bg-yellow-50 p-6 rounded-2xl border-2 border-yellow-300 flex items-center">
+                        <span class="emoji text-4xl mr-4">🥜</span>
+                        <div>
+                            <strong class="text-yellow-800 text-xl">콩팥 (신장)</strong>
+                            <p class="mt-2">등허리에 2개 있음. 혈액 속 노폐물을 걸러냄.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="anim-item zoomIn bg-yellow-50 p-6 rounded-2xl border-2 border-yellow-300 flex items-center">
+                        <span class="emoji text-4xl mr-4">🎈</span>
+                        <div>
+                            <strong class="text-yellow-800 text-xl">방광</strong>
+                            <p class="mt-2">오줌을 모아 두었다가 몸 밖으로 내보냄.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-6" class="page hidden page-content flex flex-col justify-center min-h-full">
+                <h3 class="text-pink-700 font-bold anim-item fadeInUp text-center mt-4">6. 자극과 반응</h3>
+                
+                <div class="anim-item fadeIn bg-purple-50 p-6 rounded-xl mb-6">
+                    <strong class="text-purple-900 block mb-2">감각 기관:</strong>
+                    <span class="emoji">👀</span>눈, <span class="emoji">👂</span>귀, <span class="emoji">👃</span>코, <span class="emoji">👅</span>혀, <span class="emoji">✋</span>피부
+                </div>
+
+                <div class="anim-item zoomIn bg-white p-6 rounded-2xl border-4 border-purple-300 w-full">
+                    <h4 class="text-center text-purple-800 font-bold mb-4">⚡ 반응 전달 과정</h4>
+                    <ol class="list-decimal pl-6 space-y-2 text-gray-800 font-bold">
+                        <li>자극 (공이 날아옴)</li>
+                        <li>감각 기관 (눈으로 봄)</li>
+                        <li>신경계 (뇌로 전달)</li>
+                        <li>뇌 (판단 및 명령 "피해!")</li>
+                        <li>운동 기관 (몸을 움직임)</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div id="page-7" class="page hidden page-content flex flex-col justify-center min-h-full">
+                <h3 class="text-pink-700 font-bold anim-item fadeInUp text-center mt-4">7. 운동할 때 몸의 변화</h3>
+                <p class="anim-item fadeIn text-center mb-6">운동을 하면 우리 몸은 어떻게 될까요?</p>
+                
+                <ul class="grid grid-cols-1 gap-4 w-full mb-4">
+                    <li class="anim-item fadeInLeft bg-red-100 p-4 rounded-xl text-center">
+                        <span class="emoji">💓</span><strong>맥박</strong>이 빨라진다.
+                    </li>
+                    <li class="anim-item fadeInLeft bg-blue-100 p-4 rounded-xl text-center">
+                        <span class="emoji">💨</span><strong>호흡</strong>이 가빠진다.
+                    </li>
+                    <li class="anim-item fadeInLeft bg-orange-100 p-4 rounded-xl text-center">
+                        <span class="emoji">🌡️</span><strong>체온</strong>이 높아진다.
+                    </li>
+                    <li class="anim-item fadeInLeft bg-green-100 p-4 rounded-xl text-center">
+                        <span class="emoji">💦</span><strong>땀</strong>이 난다.
+                    </li>
+                </ul>
+                <p class="anim-item fadeInUp text-center text-gray-600 mt-4 bg-gray-50 p-4 rounded-lg">
+                    이유: 우리 몸의 여러 기관이 서로 영향을 주고받으며 함께 일하기 때문!
+                </p>
+            </div>
+
+            <div id="page-8" class="page hidden page-content flex flex-col justify-center min-h-full">
+                <h3 class="text-pink-700 font-bold anim-item fadeInUp text-center mt-4">8. 단원 정리</h3>
+                <div class="bg-pink-50 p-8 rounded-2xl border-4 border-pink-200 anim-item zoomIn w-full">
+                    <ul class="space-y-4">
+                        <li><strong>소화:</strong> 영양소 흡수 (입→식도→위→작은창자→큰창자)</li>
+                        <li><strong>호흡:</strong> 산소 흡수, 이산화탄소 배출 (코→기관→기관지→폐)</li>
+                        <li><strong>순환:</strong> 영양소와 산소 운반 (심장, 혈관)</li>
+                        <li><strong>배설:</strong> 노폐물 제거 (콩팥, 방광)</li>
+                        <li><strong>신경계:</strong> 자극 전달 및 명령 (뇌, 신경)</li>
+                    </ul>
+                </div>
+                <p class="text-center mt-8 font-bold text-pink-600 anim-item fadeIn text-3xl mb-4">참 잘했어요! 👏👏👏</p>
+            </div>
+
+        </main>
+    </div>
+
+    <footer id="navigation" class="w-full max-w-[96%] flex justify-between items-center hidden h-[70px] shrink-0">
+        <button id="prev-btn" class="btn bg-pink-500 text-white py-3 px-8 rounded-xl text-2xl font-bold hover:bg-pink-600 active:scale-95 shadow-lg">이전</button>
+        <button id="toc-btn" class="btn bg-gray-400 text-white py-3 px-8 rounded-xl text-2xl font-bold hover:bg-gray-500 active:scale-95 shadow-lg">목차로</button>
+        <button id="next-btn" class="btn bg-pink-500 text-white py-3 px-8 rounded-xl text-2xl font-bold hover:bg-pink-600 active:scale-95 shadow-lg">다음</button>
+    </footer>
+
+    <script>
+        const mainContent = document.getElementById('main-content');
+        const pages = document.querySelectorAll('.page');
+        const tocLinks = document.querySelectorAll('.toc-link');
+        const navigation = document.getElementById('navigation');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const tocBtn = document.getElementById('toc-btn');
+        const fontIncreaseBtn = document.getElementById('font-increase');
+        const fontDecreaseBtn = document.getElementById('font-decrease');
+        const pageContents = document.querySelectorAll('.page-content');
+
+        let currentPage = 0;
+        const totalPages = pages.length;
+        
+        let currentAnimatables = [];
+        let animationIndex = 0;
+
+        function showPage(pageNumber) {
+            pages.forEach(page => {
+                page.classList.add('hidden');
+                page.querySelectorAll('.anim-item').forEach(item => item.classList.remove('visible'));
+            });
+            
+            const pageToShow = document.getElementById(`page-${pageNumber}`);
+            if (pageToShow) {
+                pageToShow.classList.remove('hidden');
+                if (pageNumber !== 0) {
+                    mainContent.classList.add('cursor-pointer');
+                } else {
+                    mainContent.classList.remove('cursor-pointer');
+                }
+                mainContent.scrollTop = 0;
+            }
+
+            if (pageNumber === 0) {
+                navigation.classList.add('hidden');
+            } else {
+                navigation.classList.remove('hidden');
+                prevBtn.disabled = pageNumber === 1;
+                nextBtn.disabled = pageNumber === totalPages - 1;
+                prevBtn.classList.toggle('opacity-50', prevBtn.disabled);
+                nextBtn.classList.toggle('opacity-50', nextBtn.disabled);
+                
+                currentAnimatables = Array.from(pageToShow.querySelectorAll('.anim-item'));
+                animationIndex = 0;
+            }
+            
+            currentPage = pageNumber;
+        }
+
+        mainContent.addEventListener('click', (e) => {
+            if (currentPage === 0) return; 
+            if (e.target.closest('button, a')) return; 
+
+            if (animationIndex < currentAnimatables.length) {
+                currentAnimatables[animationIndex].classList.add('visible');
+                currentAnimatables[animationIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                animationIndex++;
+            }
+        });
+
+        tocLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const pageNum = parseInt(link.dataset.page, 10);
+                showPage(pageNum);
+            });
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 1) showPage(currentPage - 1);
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentPage < totalPages - 1) showPage(currentPage + 1);
+        });
+
+        tocBtn.addEventListener('click', () => showPage(0));
+
+        let currentFontSize = 2.2;
+        const FONT_STEP = 0.2;
+        
+        function updateFontSize() {
+            pageContents.forEach(content => {
+                content.style.fontSize = `${currentFontSize}rem`;
+            });
+        }
+        
+        fontIncreaseBtn.addEventListener('click', () => {
+            if (currentFontSize < 5.0) { 
+                currentFontSize += FONT_STEP;
+                updateFontSize();
+            }
+        });
+        
+        fontDecreaseBtn.addEventListener('click', () => {
+            if (currentFontSize > 1.0) { 
+                currentFontSize -= FONT_STEP;
+                updateFontSize();
+            }
+        });
+
+        showPage(0);
+        updateFontSize();
+    </script>
+
+</body>
+</html>
