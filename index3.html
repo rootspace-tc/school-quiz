@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>오늘의 메뉴 주문</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Jua', sans-serif; background-color: #f0f2f5; padding: 20px; max-width: 600px; margin: 0 auto; color: #333; }
+        h1 { text-align: center; margin-bottom: 30px; }
+        
+        .input-group { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .input-group label { display: block; margin-bottom: 10px; font-size: 1.2rem; }
+        .input-group input { width: 95%; padding: 12px; border: 2px solid #eee; border-radius: 10px; font-family: 'Jua'; font-size: 1.1rem; outline: none; }
+        .input-group input:focus { border-color: #2196F3; }
+
+        .menu-item { background: white; padding: 15px 20px; margin-bottom: 15px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: transform 0.1s; }
+        .menu-item:active { transform: scale(0.98); }
+        
+        .menu-info { flex-grow: 1; cursor: pointer; }
+        .menu-name { font-size: 1.3rem; display: block; margin-bottom: 4px; }
+        .menu-price { color: #666; font-size: 1rem; }
+        
+        .tag { font-size: 0.8rem; padding: 3px 8px; border-radius: 6px; margin-left: 8px; color: white; vertical-align: middle; }
+        .tag-side { background-color: #FF9800; }
+        .tag-main { background-color: #4CAF50; }
+        
+        /* 체크박스 디자인 */
+        input[type="checkbox"] { width: 24px; height: 24px; margin-left: 15px; cursor: pointer; accent-color: #2196F3; }
+
+        #order-btn { width: 100%; padding: 18px; background-color: #2196F3; color: white; border: none; border-radius: 15px; font-size: 1.4rem; cursor: pointer; font-family: 'Jua'; margin-top: 10px; box-shadow: 0 4px 6px rgba(33, 150, 243, 0.3); transition: background 0.2s; }
+        #order-btn:hover { background-color: #1976D2; }
+        #order-btn:disabled { background-color: #ccc; cursor: not-allowed; box-shadow: none; }
+        
+        .loading { text-align: center; color: #666; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>📋 메뉴 주문하기</h1>
+    
+    <div class="input-group">
+        <label for="username">이름을 입력해주세요</label>
+        <input type="text" id="username" placeholder="예: 홍길동">
+    </div>
+
+    <div id="menu-list">
+        <div class="loading">메뉴 정보를 불러오는 중...<br>(링크를 다시 확인해주세요)</div>
+    </div>
+
+    <button id="order-btn" onclick="submitOrder()">주문 전송하기</button>
+
+    <script>
+        // ★ 선생님이 주신 웹 앱 URL이 여기에 들어갔습니다 ★
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwW6EyWRPeHdJ0GLD5Twwxo-2OHcTwPjL_1mGgG4ijnRpP4vrjMSSTARqImgNPuPyMy8g/exec"; 
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const rawData = urlParams.get('data');
+        const menuListDiv = document.getElementById('menu-list');
+
+        // URL 데이터 파싱해서 메뉴 뿌리기
+        if (rawData) {
+            menuListDiv.innerHTML = ""; // 로딩 문구 삭제
+            const items = rawData.split('|');
+            
+            items.forEach((item, index) => {
+                // 빈 항목 방지
+                if (!item.trim()) return;
+
+                const parts = item.split(':');
+                const name = parts[0];
+                const price = parts[1] || "0";
+                const type = parts[2] || "메인";
+
+                const div = document.createElement('div');
+                div.className = 'menu-item';
+                
+                let tagHtml = '';
+                if (type === '사이드') tagHtml = '<span class="tag tag-side">사이드</span>';
+                else if (type === '추가') tagHtml = '<span class="tag tag-side" style="background:#9C27B0">추가</span>';
+                
+                // 클릭하면 체크박스 체크되도록 라벨 연결
+                div.innerHTML = `
+                    <label class="menu-info" for="item-${index}">
+                        <span class="menu-name">${name}${tagHtml}</span>
+                        <span class="menu-price">${parseInt(price).toLocaleString()}원</span>
+                    </label>
+                    <input type="checkbox" id="item-${index}" value="${name}" data-price="${price}">
+                `;
+                menuListDiv.appendChild(div);
+            });
+        } else {
+            menuListDiv.innerHTML = "<h3 style='text-align:center; color:#e74c3c;'>⚠️ 메뉴 정보가 없습니다.<br>젬이 만들어준 링크로 접속해주세요!</h3>";
+        }
+
+        function submitOrder() {
+            const name = document.getElementById('username').value.trim();
+            if (!name) { 
+                alert('이름을 꼭 입력해주세요!'); 
+                document.getElementById('username').focus();
+                return; 
+            }
+
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+            if (checkboxes.length === 0) { alert('메뉴를 하나 이상 선택해주세요!'); return; }
+
+            // 버튼 비활성화 (따닥 방지)
+            const btn = document.getElementById('order-btn');
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = "전송 중입니다...";
+
+            let selectedMenus = [];
+            let totalPrice = 0;
+
+            checkboxes.forEach(cb => {
+                selectedMenus.push(cb.value);
+                totalPrice += parseInt(cb.getAttribute('data-price') || 0);
+            });
+
+            // 데이터 전송 양식 만들기
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('menu', selectedMenus.join(', '));
+            formData.append('price', totalPrice);
+
+            // 구글 스프레드시트로 전송 (no-cors 모드 사용)
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors', // 중요: 구글 보안 오류 무시하고 전송
+                body: formData
+            })
+            .then(() => {
+                // no-cors 모드는 성공 여부를 알려주지 않지만, 에러가 안 나면 전송된 것으로 간주
+                alert(`✅ 주문 완료!\n\n${name}님, 주문이 접수되었습니다.`);
+                
+                // 폼 초기화
+                document.getElementById('username').value = '';
+                checkboxes.forEach(cb => cb.checked = false);
+                btn.innerText = "주문 전송하기";
+                btn.disabled = false;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('❌ 전송 실패! 다시 시도해주세요.');
+                btn.innerText = originalText;
+                btn.disabled = false;
+            });
+        }
+    </script>
+</body>
+</html>
