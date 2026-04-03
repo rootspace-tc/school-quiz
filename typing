@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>글리피카 에듀: 서바이벌</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0f172a;
+            color: white;
+            overflow: hidden;
+            user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .title-font { font-family: 'Jua', sans-serif; }
+
+        #game-board {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at center, #1e293b 0%, #020617 100%);
+            overflow: hidden;
+            transition: background 0.3s;
+        }
+
+        .wave-active-bg {
+            background: radial-gradient(circle at center, #3f1010 0%, #020617 100%) !important;
+            animation: bgPulse 1s infinite alternate;
+        }
+        @keyframes bgPulse {
+            from { box-shadow: inset 0 0 30px rgba(239, 68, 68, 0.1); }
+            to { box-shadow: inset 0 0 100px rgba(239, 68, 68, 0.4); }
+        }
+
+        #player-core {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #60a5fa, #2563eb);
+            border-radius: 50%;
+            box-shadow: 0 0 30px #3b82f6;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .enemy-word {
+            position: absolute;
+            white-space: nowrap;
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: #f87171;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.9);
+            padding: 4px 10px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #991b1b;
+            border-radius: 6px;
+            transform: translate(-50%, -50%);
+            transition: color 0.1s;
+        }
+
+        /* 희귀 단어(엘리트 몬스터) 스타일 */
+        .elite-word {
+            color: #60a5fa !important;
+            border-color: #3b82f6 !important;
+            background: rgba(15, 23, 42, 0.9) !important;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.8) !important;
+            font-size: 1.8rem;
+            animation: floatUpDown 1.5s infinite alternate;
+            z-index: 8;
+        }
+        @keyframes floatUpDown {
+            from { transform: translate(-50%, -50%) scale(1); }
+            to { transform: translate(-50%, -50%) scale(1.1); }
+        }
+
+        .explode {
+            color: #4ade80 !important;
+            border-color: #22c55e !important;
+            transform: translate(-50%, -50%) scale(2) !important;
+            opacity: 0;
+            transition: all 0.2s ease-out;
+        }
+        
+        .explode-wave {
+            color: #fbbf24 !important;
+            border-color: #fbbf24 !important;
+            transform: translate(-50%, -50%) scale(2.5) !important;
+            opacity: 0;
+            transition: all 0.4s ease-out;
+        }
+
+        .lightning {
+            position: absolute;
+            height: 4px;
+            background: #facc15;
+            box-shadow: 0 0 10px #facc15;
+            transform-origin: left center;
+            z-index: 9;
+            pointer-events: none;
+            opacity: 0.8;
+            animation: flashOut 0.3s forwards;
+        }
+        @keyframes flashOut { to { opacity: 0; } }
+
+        #ui-layer {
+            position: absolute;
+            bottom: 0; width: 100%; padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            z-index: 20;
+        }
+
+        #typing-input {
+            width: 50%; min-width: 400px;
+            background: rgba(30, 41, 59, 0.9);
+            border: 3px solid #3b82f6;
+            color: white; font-size: 2rem;
+            text-align: center; padding: 15px;
+            border-radius: 12px; outline: none;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+            transition: border-color 0.2s;
+        }
+        #typing-input:focus { border-color: #fbbf24; box-shadow: 0 0 20px rgba(251, 191, 36, 0.6); }
+
+        #top-bar {
+            position: absolute; top: 0; width: 100%; padding: 15px 30px;
+            display: flex; justify-content: space-between; z-index: 20;
+        }
+
+        #xp-bar-container {
+            width: 40%; height: 15px; background: #334155;
+            border-radius: 10px; overflow: hidden; border: 1px solid #475569; margin-top: 5px;
+        }
+        #xp-bar {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            transition: width 0.3s ease-out;
+        }
+
+        #status-panel {
+            position: absolute; left: 30px; top: 100px;
+            background: rgba(15, 23, 42, 0.8); border: 1px solid #475569;
+            padding: 15px; border-radius: 8px; z-index: 15; pointer-events: none;
+        }
+
+        #wave-alert {
+            position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
+            text-align: center; z-index: 15; pointer-events: none;
+            background: rgba(153, 27, 27, 0.6); padding: 5px 30px;
+            border-radius: 20px; border: 1px solid #ef4444;
+            backdrop-filter: blur(4px);
+            animation: fadeInOut 1s infinite alternate;
+        }
+        @keyframes fadeInOut { from { opacity: 0.7; } to { opacity: 1; } }
+
+        .upgrade-card {
+            background: #1e293b; border: 2px solid #475569; border-radius: 12px;
+            padding: 20px; cursor: pointer; transition: all 0.2s;
+        }
+        .upgrade-card:hover { border-color: #fbbf24; transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+
+        .damage-overlay { position: absolute; inset: 0; background: rgba(239, 68, 68, 0.3); z-index: 99; pointer-events: none; opacity: 0; }
+        .flash-damage { animation: flashRed 0.3s; }
+        @keyframes flashRed { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+
+        .leaderboard-table { width: 100%; text-align: center; border-collapse: collapse; margin-top: 15px; }
+        .leaderboard-table th, .leaderboard-table td { padding: 8px; border-bottom: 1px solid #475569; }
+        .leaderboard-table th { color: #fbbf24; font-weight: bold; text-align: center; }
+        
+        #cheat-modal input { background: #334155; border: 1px solid #475569; color: white; padding: 5px; border-radius: 4px; width: 80px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div id="game-board">
+        <div id="damage-overlay" class="damage-overlay"></div>
+        <div id="player-core">💎</div>
+
+        <div id="top-bar">
+            <div>
+                <div class="text-2xl title-font text-blue-400">LV. <span id="level-display" class="text-3xl text-white">1</span></div>
+                <div id="xp-bar-container"><div id="xp-bar"></div></div>
+            </div>
+            <div class="text-right">
+                <div class="text-xl text-gray-300">SCORE: <span id="score-display" class="text-yellow-400 font-bold text-2xl">0</span></div>
+                <div class="text-xl">HP: <span id="hp-display" class="text-red-500 font-bold tracking-widest text-2xl">♥♥♥♥♥</span></div>
+            </div>
+        </div>
+
+        <div id="status-panel">
+            <div class="text-yellow-400 font-bold mb-2 border-b border-gray-600 pb-1">보유 능력 현황</div>
+            <div id="stat-maxHp" class="text-sm text-gray-300 mb-1">최대 체력: 5</div>
+            <div id="stat-slow" class="text-sm text-gray-300 mb-1">적 이동 속도: 100%</div>
+            <div id="stat-splash" class="text-sm text-gray-300 mb-1">연쇄 번개 확률: 0%</div>
+            <div id="stat-xp" class="text-sm text-gray-300">경험치 획득량: 100%</div>
+        </div>
+
+        <div id="wave-alert" class="hidden flex items-center gap-4">
+            <span class="text-xl title-font text-yellow-300">⚠️ 집중 공세</span>
+            <span class="text-white font-bold"><span id="wave-time-left" class="text-2xl text-yellow-400">10</span>초</span>
+        </div>
+
+        <div id="start-screen" class="absolute inset-0 bg-gray-900/95 flex flex-col items-center justify-center z-50 overflow-y-auto py-10">
+            <h1 class="text-6xl text-blue-400 title-font mb-4 text-center mt-auto">글리피카 에듀</h1>
+            <p class="text-xl text-gray-300 mb-6 text-center leading-relaxed">
+                사방에서 다가오는 단어를 타이핑하고 <span class="text-yellow-400 font-bold">[스페이스바]</span>로 공격하세요.<br>
+                (치명적인 오타가 났을 때도 스페이스바로 즉시 초기화 가능)<br>
+                <span class="text-blue-300">3레벨 단위로 집중 공세(Wave)가 시작되며, 5레벨부터 희귀 단어(파란색)가 등장합니다.</span>
+            </p>
+            <button id="start-btn" class="px-12 py-4 bg-blue-600 hover:bg-blue-500 text-white text-3xl rounded-xl font-bold title-font shadow-[0_0_20px_rgba(59,130,246,0.6)] mb-8 transition">
+                전투 시작
+            </button>
+            
+            <div class="w-full max-w-md bg-gray-800 p-6 rounded-xl border border-gray-700 mb-auto">
+                <h3 class="text-2xl text-white title-font text-center mb-2">🏆 명예의 전당 (Top 5) 🏆</h3>
+                <table class="leaderboard-table">
+                    <thead><tr><th>순위</th><th>이름</th><th>점수</th></tr></thead>
+                    <tbody id="main-leaderboard-body">
+                        <tr><td colspan="3" class="text-gray-500 py-4">기록이 없습니다. 첫 기록을 세워보세요!</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="game-over-screen" class="absolute inset-0 bg-gray-900/95 flex flex-col items-center justify-center z-50 hidden">
+            <h2 class="text-6xl text-red-500 title-font mb-4">전투 종료</h2>
+            <p class="text-3xl text-yellow-400 mb-8">최종 점수: <span id="final-score" class="font-bold text-5xl">0</span></p>
+            
+            <div id="record-form" class="flex gap-4 mb-8">
+                <input type="text" id="player-name" placeholder="이름을 입력하세요" maxlength="6" class="p-4 text-xl rounded bg-gray-800 text-white border-2 border-gray-600 focus:border-yellow-400 outline-none text-center">
+                <button id="save-score-btn" class="px-8 py-4 bg-yellow-600 hover:bg-yellow-500 text-white text-xl rounded font-bold transition">기록 저장</button>
+            </div>
+            
+            <button id="return-main-btn" class="px-10 py-4 bg-gray-600 text-white hover:bg-gray-500 text-2xl rounded-xl font-bold title-font transition">
+                메인 화면으로
+            </button>
+        </div>
+
+        <div id="levelup-modal" class="absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-50 hidden backdrop-blur-sm">
+            <h2 id="modal-title" class="text-5xl text-yellow-400 title-font mb-2">LEVEL UP!</h2>
+            <p class="text-xl text-gray-300 mb-10">강화할 능력을 선택하세요</p>
+            <div id="upgrade-options" class="flex gap-6 w-full max-w-4xl px-4"></div>
+        </div>
+
+        <div id="cheat-modal" class="absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] hidden backdrop-blur-md">
+            <div class="bg-gray-800 p-8 rounded-xl border-2 border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.5)]">
+                <h2 class="text-4xl text-purple-400 title-font mb-6 text-center">🛠️ 개발자 테스트 모드 🛠️</h2>
+                <div class="grid grid-cols-2 gap-4 mb-8 text-lg">
+                    <div class="flex justify-between items-center"><label class="text-gray-300">현재 레벨 설정:</label> <input type="number" id="cheat-level" min="1"></div>
+                    <div class="flex justify-between items-center"><label class="text-gray-300">최대 체력 설정:</label> <input type="number" id="cheat-hp" min="1"></div>
+                    <div class="flex justify-between items-center"><label class="text-gray-300">번개 확률(0~500):</label> <input type="number" id="cheat-splash" min="0" max="500"></div>
+                    <div class="flex justify-between items-center"><label class="text-gray-300">점수 추가(+):</label> <input type="number" id="cheat-score" value="10000"></div>
+                </div>
+                <div class="flex gap-4">
+                    <button id="apply-cheat-btn" class="flex-1 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded font-bold text-xl">적용 & 재개</button>
+                    <button id="cancel-cheat-btn" class="flex-1 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded font-bold text-xl">취소</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="ui-layer">
+            <div class="text-sm text-gray-400 mb-2 font-bold tracking-widest">[스페이스바 또는 엔터로 공격 / 오타 리셋]</div>
+            <input type="text" id="typing-input" lang="ko" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="타이핑..." disabled>
+        </div>
+    </div>
+
+    <script>
+        const wordPool = [
+            "호랑이", "사자", "코끼리", "기린", "원숭이", "토끼", "다람쥐", "고양이", "강아지", "펭귄", "돌고래", "독수리", "올빼미", "고슴도치", "거북이", "캥거루", "판다", "알파카", "치타", "얼룩말",
+            "사과", "바나나", "포도", "딸기", "수박", "복숭아", "파인애플", "오렌지", "레몬", "체리", "햄버거", "피자", "김치찌개", "떡볶이", "초콜릿", "아이스크림", "스파게티", "마카롱",
+            "선생님", "의사", "간호사", "경찰관", "소방관", "요리사", "과학자", "우주비행사", "프로게이머", "마술사", "탐정", "가수", "배우", "작가", "화가",
+            "대한민국", "미국", "영국", "프랑스", "독일", "호주", "캐나다", "브라질", "이집트", "멕시코", "서울", "도쿄", "뉴욕", "파리", "런던",
+            "행복", "기쁨", "슬픔", "분노", "놀람", "긴장", "설렘", "뿌듯함", "우울함", "즐거움", "평온함", "따뜻함", "차가움",
+            "별빛", "달빛", "산들바람", "솜사탕", "무지개", "도깨비", "보물상자", "해바라기", "민들레", "여우비", "소나기", "노을", "새벽", "은하수", "마법사", "요정", "유니콘", "오로라", "그림자", "메아리", "종소리", "피아노", "꽃잎", "이슬방울", "나비", "반딧불이", "은빛", "금빛", "마법지팡이", "비밀의문", "시간여행", "밤하늘", "눈송이", "봄바람", "가을낙엽", "파도소리", "인어공주",
+            "고조선", "삼국통일", "고구려", "백제", "신라", "발해", "고려", "조선", "거북선", "훈민정음", "임진왜란", "광복절", "삼일운동", "유관순", "안중근", "이순신", "세종대왕", "장영실",
+            "광합성", "생태계", "지구온난화", "탄소중립", "태양계", "만유인력", "수증기", "화산", "지진", "세포", "먹이사슬", "신재생에너지",
+            "민주주의", "인권", "평등", "자유", "책임", "배려", "존중", "협동", "정의", "공정성", "다문화", "지방자치", "국회", "선거", "투표", "소비자", "생산자",
+            "알고리즘", "인공지능", "메타버스", "빅데이터", "소프트웨어", "하드웨어", "인터넷", "코딩", "디버깅", "창의성", "문제해결", "리더십"
+        ];
+
+        // 5레벨 이상부터 확률적으로 등장하여 업그레이드를 주는 희귀 단어 풀 (어려운 단어, 사자성어 중심)
+        const eliteWordPool = [
+            "백과사전", "불가사의", "자급자족", "환골탈태", "동분서주",
+            "초근목피", "안하무인", "군계일학", "다사다난", "자업자득",
+            "유비무환", "천진난만", "호가호위", "감언이설", "새옹지마",
+            "어부지리", "오리무중", "결초보은", "수수방관", "일취월장",
+            "프로크루스테스", "데우스엑스마키나", "미시시피강", "안드로메다은하", "슈뢰딩거의고양이"
+        ];
+
+        let enemies = [];
+        let score = 0;
+        let level = 1;
+        let xp = 0;
+        let xpToNextLevel = 300; 
+        let gameLoopId;
+        let spawnIntervalId;
+        let isPlaying = false;
+        let gameTime = 0; 
+        
+        let isWaveActive = false;
+        let waveEndTime = 0;
+        let lastWaveLevel = 0;
+        let pausedWaveTimeLeft = 0; 
+
+        const player = { maxHp: 5, hp: 5, speedMod: 1.0, splashChance: 0.0, xpMultiplier: 1.0 };
+        let spawnRate = 2000;
+
+        const board = document.getElementById('game-board');
+        const input = document.getElementById('typing-input');
+        const scoreDisplay = document.getElementById('score-display');
+        const hpDisplay = document.getElementById('hp-display');
+        const levelDisplay = document.getElementById('level-display');
+        const xpBar = document.getElementById('xp-bar');
+        const damageOverlay = document.getElementById('damage-overlay');
+        const waveAlert = document.getElementById('wave-alert');
+        const waveTimeLeft = document.getElementById('wave-time-left');
+
+        const upgrades = [
+            { id: 'heal', name: '💊 구급상자', desc: '체력을 2 회복합니다.', apply: () => player.hp = Math.min(player.maxHp, player.hp + 2) },
+            { id: 'maxHp', name: '❤️ 생명력 강화', desc: '최대 체력이 1 증가하고, 모두 회복합니다.', apply: () => { player.maxHp++; player.hp = player.maxHp; } },
+            { id: 'slow', name: '❄️ 얼음 오라', desc: '모든 적의 이동 속도가 10% 감소합니다.', apply: () => player.speedMod *= 0.90 },
+            { id: 'splash', name: '⚡ 연쇄 번개', desc: '타격 당 번개가 발사될 확률이 25% 상승합니다. (100% 초과 시 다중 발사)', apply: () => player.splashChance += 0.25 },
+            { id: 'xpBoost', name: '📚 학구열', desc: '획득하는 경험치가 20% 증가합니다.', apply: () => player.xpMultiplier *= 1.2 }
+        ];
+
+        function getCenter() { return { x: board.clientWidth / 2, y: board.clientHeight / 2 }; }
+
+        function loadLeaderboard() {
+            let records = JSON.parse(localStorage.getItem('glyphica_records')) || [];
+            const tbody = document.getElementById('main-leaderboard-body');
+            tbody.innerHTML = '';
+            
+            if (records.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-gray-500 py-4">기록이 없습니다. 첫 기록을 세워보세요!</td></tr>';
+                return;
+            }
+            records.forEach((record, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="font-bold text-yellow-400">${index + 1}위</td>
+                    <td class="text-white">${record.name}</td>
+                    <td class="text-blue-300 font-bold">${record.score}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        window.onload = loadLeaderboard;
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-screen').classList.add('hidden');
+            resetGame(); startGame();
+        });
+
+        document.getElementById('return-main-btn').addEventListener('click', () => {
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+            loadLeaderboard(); 
+        });
+
+        function pauseGame() {
+            isPlaying = false;
+            cancelAnimationFrame(gameLoopId);
+            clearTimeout(spawnIntervalId);
+            
+            if (isWaveActive) {
+                pausedWaveTimeLeft = waveEndTime - Date.now();
+            }
+        }
+
+        function resumeGame() {
+            isPlaying = true;
+            input.disabled = false; 
+            input.focus();
+            
+            if (isWaveActive && pausedWaveTimeLeft > 0) {
+                waveEndTime = Date.now() + pausedWaveTimeLeft;
+                pausedWaveTimeLeft = 0;
+            }
+            
+            gameLoopId = requestAnimationFrame(update);
+            scheduleSpawn();
+        }
+
+        function resetGame() {
+            enemies.forEach(e => e.el.remove()); enemies = [];
+            score = 0; level = 1; xp = 0; xpToNextLevel = 300; gameTime = 0;
+            player.maxHp = 5; player.hp = 5; player.speedMod = 1.0; player.splashChance = 0.0; player.xpMultiplier = 1.0;
+            spawnRate = 2000; isWaveActive = false; lastWaveLevel = 0; pausedWaveTimeLeft = 0;
+            board.classList.remove('wave-active-bg'); waveAlert.classList.add('hidden');
+            updateUI();
+        }
+
+        function startGame() { resumeGame(); }
+
+        function startWave() {
+            isWaveActive = true; lastWaveLevel = level;
+            waveEndTime = Date.now() + 10000; 
+            pausedWaveTimeLeft = 0;
+            waveAlert.classList.remove('hidden'); board.classList.add('wave-active-bg');
+        }
+
+        function endWave() {
+            isWaveActive = false; waveAlert.classList.add('hidden'); board.classList.remove('wave-active-bg');
+            enemies.forEach(e => {
+                e.el.classList.add('explode-wave');
+                setTimeout(() => { if(e.el.parentNode) e.el.remove(); }, 400);
+            });
+            enemies = [];
+            // 3레벨 간격으로 변경됨 (레벨비례 보상)
+            const bonusScore = 1500 * (level / 3); const bonusXp = 1000 * player.xpMultiplier;
+            score += bonusScore; addXp(bonusXp); updateUI();
+        }
+
+        function scheduleSpawn() {
+            if (!isPlaying) return;
+            // 웨이브 주기를 3레벨 간격으로 변경 (3, 6, 9, 12...)
+            if (level > 1 && level % 3 === 0 && lastWaveLevel !== level && !isWaveActive) {
+                startWave();
+            }
+
+            spawnEnemy();
+            
+            let currentSpawnRate;
+            if (isWaveActive) {
+                currentSpawnRate = Math.max(600, 1000 - (level * 20));
+            } else {
+                const elapsedSec = gameTime / 60;
+                currentSpawnRate = Math.max(300, spawnRate - (level * 40) - (elapsedSec * 4));
+            }
+
+            spawnIntervalId = setTimeout(scheduleSpawn, currentSpawnRate);
+        }
+
+        function spawnEnemy() {
+            const pad = 50; const w = window.innerWidth; const h = window.innerHeight;
+            let startX, startY;
+            const edge = Math.floor(Math.random() * 4);
+            if (edge === 0) { startX = Math.random() * w; startY = -pad; } 
+            else if (edge === 1) { startX = Math.random() * w; startY = h + pad; } 
+            else if (edge === 2) { startX = -pad; startY = Math.random() * h; } 
+            else { startX = w + pad; startY = Math.random() * h; } 
+
+            const el = document.createElement('div');
+            let text = "";
+            
+            // 5레벨 이상부터 8% 확률로 엘리트 몬스터 등장 (웨이브 중 제외)
+            let isElite = false;
+            if (level >= 5 && !isWaveActive && Math.random() < 0.08) {
+                isElite = true;
+                text = eliteWordPool[Math.floor(Math.random() * eliteWordPool.length)];
+                el.className = 'enemy-word elite-word';
+            } else {
+                text = wordPool[Math.floor(Math.random() * wordPool.length)];
+                el.className = 'enemy-word';
+            }
+            
+            el.textContent = text; 
+            board.appendChild(el);
+
+            const center = getCenter();
+            const distance = Math.hypot(center.x - startX, center.y - startY);
+            const elapsedSec = gameTime / 60;
+            
+            let framesToReach = Math.max(100, 600 - (level * 10) - elapsedSec); 
+            
+            if (isWaveActive) {
+                const speedMultiplier = Math.max(0.85, 1.0 - (level * 0.01));
+                framesToReach *= speedMultiplier; 
+            }
+            if (isElite) {
+                // 희귀 단어는 글자 수가 길기 때문에 일반 단어보다 1.5배 천천히 다가옴
+                framesToReach *= 1.5;
+            }
+
+            const speed = distance / framesToReach;
+            enemies.push({ id: Date.now()+Math.random(), el, text, x: startX, y: startY, speed, isElite });
+        }
+
+        function update() {
+            if (!isPlaying) return;
+            gameTime++; 
+
+            if (isWaveActive) {
+                const remainMs = waveEndTime - Date.now();
+                if (remainMs <= 0) { endWave(); } 
+                else { waveTimeLeft.textContent = Math.ceil(remainMs / 1000); }
+            }
+            
+            const center = getCenter(); const hitRadius = 30; 
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const e = enemies[i];
+                const dx = center.x - e.x; const dy = center.y - e.y;
+                const distance = Math.hypot(dx, dy);
+
+                if (distance < hitRadius) {
+                    takeDamage(1); e.el.remove(); enemies.splice(i, 1); continue;
+                }
+
+                const moveDist = e.speed * player.speedMod;
+                e.x += (dx / distance) * moveDist; e.y += (dy / distance) * moveDist;
+                e.el.style.left = `${e.x}px`; e.el.style.top = `${e.y}px`;
+            }
+
+            gameLoopId = requestAnimationFrame(update);
+        }
+
+        input.addEventListener('keydown', (e) => {
+            if (!isPlaying) return;
+            
+            if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault(); 
+                const typed = input.value.trim();
+                
+                if (typed === '코끼리기린') {
+                    input.value = '';
+                    setTimeout(() => openCheatModal(), 50);
+                    return;
+                }
+
+                if (typed.length > 0) checkWord(typed);
+                input.value = ''; 
+            }
+        });
+
+        document.addEventListener('click', (e) => { 
+            if(isPlaying && !document.getElementById('cheat-modal').classList.contains('hidden') === false) {
+                input.focus(); 
+            }
+        });
+
+        function checkWord(typed) {
+            for (let i = 0; i < enemies.length; i++) {
+                if (enemies[i].text === typed) { destroyEnemy(i); break; }
+            }
+        }
+
+        function destroyEnemy(index) {
+            const e = enemies[index]; const center = getCenter();
+            e.el.classList.add('explode');
+            setTimeout(() => { if(e.el.parentNode) e.el.remove(); }, 200);
+            
+            const gainedXp = (e.text.length * 15) * player.xpMultiplier;
+            score += e.text.length * 20; addXp(gainedXp);
+            
+            // 희귀 단어 파괴 시 즉시 업그레이드 보상
+            if (e.isElite) {
+                pauseGame();
+                input.disabled = true;
+                setTimeout(() => showUpgradeModal("🌟 희귀 단어 처치 보상!"), 50);
+            }
+
+            enemies.splice(index, 1); updateUI();
+
+            // 연쇄 번개 시스템 (100% 초과 시 다중 발사 로직)
+            if (player.splashChance > 0 && enemies.length > 0) {
+                // 확정 타격 횟수 계산
+                let splashCount = Math.floor(player.splashChance);
+                // 나머지 소수점 확률 계산
+                if (Math.random() < (player.splashChance % 1)) {
+                    splashCount++;
+                }
+
+                for (let k = 0; k < splashCount; k++) {
+                    if (enemies.length === 0) break;
+                    
+                    const randTarget = enemies[Math.floor(Math.random() * enemies.length)];
+                    const targetIndex = enemies.indexOf(randTarget);
+                    
+                    drawLightning(center.x, center.y, randTarget.x, randTarget.y);
+                    randTarget.el.classList.add('explode');
+                    setTimeout(() => { if(randTarget.el.parentNode) randTarget.el.remove(); }, 200);
+                    enemies.splice(targetIndex, 1);
+                }
+            }
+        }
+
+        function drawLightning(x1, y1, x2, y2) {
+            const length = Math.hypot(x2 - x1, y2 - y1);
+            const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+            const line = document.createElement('div');
+            line.className = 'lightning'; line.style.width = `${length}px`;
+            line.style.left = `${x1}px`; line.style.top = `${y1}px`; line.style.transform = `translateY(-50%) rotate(${angle}deg)`;
+            board.appendChild(line); setTimeout(() => line.remove(), 300);
+        }
+
+        function takeDamage(amount) {
+            player.hp -= amount;
+            damageOverlay.classList.remove('flash-damage');
+            void damageOverlay.offsetWidth; 
+            damageOverlay.classList.add('flash-damage');
+            updateUI();
+            if (player.hp <= 0) gameOver();
+        }
+
+        function addXp(amount) {
+            xp += amount;
+            if (xp >= xpToNextLevel) { xp -= xpToNextLevel; levelUp(); }
+            updateUI();
+        }
+
+        function levelUp() {
+            level++; xpToNextLevel = Math.floor(xpToNextLevel * 1.6); 
+            pauseGame(); input.disabled = true; 
+            setTimeout(() => showUpgradeModal("LEVEL UP!"), 50);
+        }
+
+        function showUpgradeModal(titleText) {
+            const modal = document.getElementById('levelup-modal');
+            const titleElement = document.getElementById('modal-title');
+            const container = document.getElementById('upgrade-options');
+            
+            titleElement.textContent = titleText || "LEVEL UP!";
+            container.innerHTML = '';
+
+            const shuffled = upgrades.sort(() => 0.5 - Math.random()).slice(0, 3);
+            shuffled.forEach(upg => {
+                const card = document.createElement('div');
+                card.className = 'upgrade-card flex-1 text-center';
+                card.innerHTML = `<h3 class="text-3xl font-bold mb-4 text-white">${upg.name}</h3><p class="text-lg text-gray-400 break-keep">${upg.desc}</p>`;
+                card.addEventListener('click', () => {
+                    upg.apply(); modal.classList.add('hidden');
+                    updateUI(); resumeGame();
+                });
+                container.appendChild(card);
+            });
+            modal.classList.remove('hidden');
+        }
+
+        function updateUI() {
+            scoreDisplay.textContent = score; levelDisplay.textContent = level;
+            let hpStr = '';
+            for(let i=0; i<player.maxHp; i++) { hpStr += (i < player.hp) ? '♥' : '♡'; }
+            hpDisplay.textContent = hpStr; hpDisplay.style.color = (player.hp <= 2) ? '#ef4444' : '#4ade80';
+
+            const xpPercent = Math.min(100, (xp / xpToNextLevel) * 100);
+            xpBar.style.width = `${xpPercent}%`;
+
+            document.getElementById('stat-maxHp').textContent = `최대 체력: ${player.maxHp}`;
+            document.getElementById('stat-slow').textContent = `적 이동 속도: ${Math.round(player.speedMod * 100)}%`;
+            document.getElementById('stat-splash').textContent = `연쇄 번개: ${Math.floor(player.splashChance)}개 + ${Math.round((player.splashChance % 1) * 100)}%`;
+            document.getElementById('stat-xp').textContent = `경험치 획득량: ${Math.round(player.xpMultiplier * 100)}%`;
+        }
+
+        function gameOver() {
+            pauseGame(); input.disabled = true;
+            document.getElementById('final-score').textContent = score;
+            
+            document.getElementById('record-form').classList.remove('hidden');
+            document.getElementById('player-name').value = '';
+            document.getElementById('save-score-btn').disabled = false;
+            document.getElementById('save-score-btn').textContent = "기록 저장";
+            
+            document.getElementById('game-over-screen').classList.remove('hidden');
+        }
+
+        document.getElementById('save-score-btn').addEventListener('click', () => {
+            const nameInput = document.getElementById('player-name').value.trim();
+            const name = nameInput.length > 0 ? nameInput : '익명';
+            
+            let records = JSON.parse(localStorage.getItem('glyphica_records')) || [];
+            records.push({ name: name, score: score });
+            records.sort((a, b) => b.score - a.score);
+            records = records.slice(0, 5); 
+            localStorage.setItem('glyphica_records', JSON.stringify(records));
+            
+            document.getElementById('save-score-btn').disabled = true;
+            document.getElementById('save-score-btn').textContent = "저장 완료!";
+            document.getElementById('record-form').classList.add('opacity-50', 'pointer-events-none');
+        });
+
+        function openCheatModal() {
+            pauseGame();
+            document.getElementById('cheat-modal').classList.remove('hidden');
+            document.getElementById('cheat-level').value = level;
+            document.getElementById('cheat-hp').value = player.maxHp;
+            document.getElementById('cheat-splash').value = Math.round(player.splashChance * 100);
+        }
+
+        document.getElementById('apply-cheat-btn').addEventListener('click', () => {
+            const newLevel = parseInt(document.getElementById('cheat-level').value);
+            if (!isNaN(newLevel) && newLevel > 0) level = newLevel;
+            
+            const newHp = parseInt(document.getElementById('cheat-hp').value);
+            if (!isNaN(newHp) && newHp > 0) { player.maxHp = newHp; player.hp = newHp; }
+            
+            const newSplash = parseInt(document.getElementById('cheat-splash').value);
+            if (!isNaN(newSplash)) player.splashChance = newSplash / 100;
+            
+            const addScore = parseInt(document.getElementById('cheat-score').value);
+            if (!isNaN(addScore)) score += addScore;
+
+            document.getElementById('cheat-modal').classList.add('hidden');
+            updateUI();
+            resumeGame();
+        });
+
+        document.getElementById('cancel-cheat-btn').addEventListener('click', () => {
+            document.getElementById('cheat-modal').classList.add('hidden');
+            resumeGame();
+        });
+
+    </script>
+</body>
+</html>
