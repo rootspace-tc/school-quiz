@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>타자연습 에듀: 서바이벌</title>
+    <title>글리피카 에듀: 서바이벌</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
     
@@ -116,13 +116,15 @@
         }
         @keyframes flashOut { to { opacity: 0; } }
 
+        /* 대폭발 효과 업그레이드 (크기 증가 및 경계선 강화) */
         .explosion-effect {
             position: absolute;
-            width: 350px; height: 350px;
-            background: radial-gradient(circle, rgba(239, 68, 68, 0.8) 0%, transparent 70%);
+            width: 560px; height: 560px; /* 반경 280px */
+            background: radial-gradient(circle, rgba(239, 68, 68, 0.6) 0%, rgba(251, 191, 36, 0.3) 50%, transparent 80%);
+            border: 4px solid rgba(251, 191, 36, 0.8);
             transform: translate(-50%, -50%) scale(0.1);
             border-radius: 50%; pointer-events: none; z-index: 15;
-            animation: explodeAnim 0.4s ease-out forwards;
+            animation: explodeAnim 0.5s ease-out forwards;
         }
         @keyframes explodeAnim { to { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
 
@@ -177,7 +179,15 @@
             background: #1e293b; border: 2px solid #475569; border-radius: 12px;
             padding: 20px; cursor: pointer; transition: all 0.2s; position: relative;
         }
-        .upgrade-card:hover { border-color: #fbbf24; transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .upgrade-card:hover { border-color: #60a5fa; }
+        
+        /* 2단계 선택 (하이라이트) 효과 */
+        .upgrade-card.selected {
+            border-color: #fbbf24 !important;
+            box-shadow: 0 0 30px rgba(251, 191, 36, 0.6);
+            transform: scale(1.05);
+            background: #334155;
+        }
 
         .damage-overlay { position: absolute; inset: 0; z-index: 99; pointer-events: none; opacity: 0; }
         .flash-damage { animation: flashRed 0.3s; background: rgba(239, 68, 68, 0.3) !important; }
@@ -200,9 +210,14 @@
         <div id="damage-overlay" class="damage-overlay"></div>
         <div id="player-core">
             💎
+            <div id="lightning-companion" class="hidden absolute -left-10 -top-10 text-3xl transition-transform duration-150 z-20">
+                ⚡
+                <div id="lightning-count" class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-[11px] bg-black/80 text-yellow-300 px-1.5 py-0.5 rounded font-mono border border-yellow-500/50 leading-none"></div>
+            </div>
+            
             <div id="fairy-companion" class="hidden absolute -right-10 -top-10 text-3xl transition-transform duration-150 z-20">
                 🧚
-                <div id="fairy-countdown" class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-[11px] bg-black/80 text-pink-300 px-1.5 py-0.5 rounded font-mono border border-pink-500/50 leading-none"></div>
+                <div id="fairy-countdown" class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-[11px] bg-black/80 text-pink-300 px-1.5 py-0.5 rounded font-mono border border-pink-500/50 leading-none whitespace-nowrap"></div>
             </div>
         </div>
 
@@ -229,7 +244,7 @@
             <p class="text-xl text-gray-300 mb-6 text-center leading-relaxed">
                 사방에서 다가오는 단어를 타이핑하고 <span class="text-yellow-400 font-bold">[스페이스바]</span>로 공격하세요.<br>
                 <span class="text-blue-300">3레벨 단위로 집중 공세(Wave)가 시작되며, 5레벨부터 희귀 단어(파란색)가 등장합니다.</span><br>
-                <span class="text-green-400 text-lg font-bold mt-2 block">💡 레벨업 보상은 [ ㅓ, ㅏ, ㅣ ] 단축키로 마우스 없이 선택 가능합니다!</span>
+                <span class="text-green-400 text-lg font-bold mt-2 block">💡 레벨업 보상은 [ ㅓ, ㅏ, ㅣ ] 로 선택 후 [ 엔터 ]를 눌러 결정합니다.</span>
             </p>
             <button id="start-btn" class="px-12 py-4 bg-blue-600 hover:bg-blue-500 text-white text-3xl rounded-xl font-bold title-font shadow-[0_0_20px_rgba(59,130,246,0.6)] mb-8 transition">
                 전투 시작
@@ -262,8 +277,11 @@
 
         <div id="levelup-modal" class="absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-50 hidden backdrop-blur-sm">
             <h2 id="modal-title" class="text-5xl text-yellow-400 title-font mb-2">LEVEL UP!</h2>
-            <p class="text-xl text-gray-300 mb-10">강화할 능력을 선택하세요 <span class="text-sm text-yellow-500">(단축키: ㅓ, ㅏ, ㅣ)</span></p>
+            <p class="text-xl text-gray-300 mb-10">강화할 능력을 선택하세요 <br><span class="text-sm text-yellow-500 font-bold">(단축키 [ㅓ, ㅏ, ㅣ] 로 선택 후 [엔터]나 [스페이스바] 로 결정)</span></p>
             <div id="upgrade-options" class="flex gap-6 w-full max-w-4xl px-4"></div>
+            <button id="confirm-upgrade-btn" class="mt-10 px-8 py-3 bg-gray-700 text-gray-400 text-2xl rounded-lg font-bold title-font transition pointer-events-none opacity-50">
+                선택 완료 (Enter)
+            </button>
         </div>
 
         <div id="cheat-modal" class="absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-[100] hidden backdrop-blur-md">
@@ -289,6 +307,7 @@
     </div>
 
     <script>
+        // 단어장 (생략 없이 유지)
         const wordPool = [
             "호랑이", "사자", "코끼리", "기린", "원숭이", "토끼", "다람쥐", "고양이", "강아지", "펭귄", "돌고래", "독수리", "올빼미", "고슴도치", "거북이", "캥거루", "판다", "알파카", "치타", "얼룩말", "코뿔소", "하마", "낙타", "물개", "바다표범", "수달", "해달", "침팬지", "고릴라", "앵무새", "참새", "비둘기", "까마귀", "백조", "너구리", "코알라", "북극곰", "여우", "늑대", "악어", "이구아나", "카멜레온", "플라밍고", "수리부엉이", "타조", "공작새",
             "오징어", "문어", "상어", "고래", "해파리", "불가사리", "새우", "꽃게", "가오리", "해마", "나비", "벌", "잠자리", "무당벌레", "사슴벌레", "장수풍뎅이", "매미", "귀뚜라미", "개미", "달팽이", "장어", "거머리", "아나콘다", "사마귀",
@@ -308,13 +327,8 @@
         ];
 
         const eliteWordPool = [
-            "백과사전", "불가사의", "자급자족", "환골탈태", "동분서주",
-            "초근목피", "안하무인", "군계일학", "다사다난", "자업자득",
-            "유비무환", "천진난만", "호가호위", "감언이설", "새옹지마",
-            "어부지리", "오리무중", "결초보은", "수수방관", "일취월장",
-            "프로크루스테스", "데우스엑스마키나", "미시시피강", "안드로메다은하", "슈뢰딩거의고양이",
-            "임전무퇴", "사면초가", "다기망양", "토사구팽", "화룡점정", "대기만성", "구사일생", "금상첨화", "설상가상", "동병상련",
-            "오비이락", "갑론을박", "우공이산", "온고지신", "괄목상대", "일거양득", "동문서답", "막상막하", "백발백중", "작심삼일",
+            "백과사전", "불가사의", "자급자족", "환골탈태", "동분서주", "초근목피", "안하무인", "군계일학", "다사다난", "자업자득", "유비무환", "천진난만", "호가호위", "감언이설", "새옹지마", "어부지리", "오리무중", "결초보은", "수수방관", "일취월장", "프로크루스테스", "데우스엑스마키나", "미시시피강", "안드로메다은하", "슈뢰딩거의고양이",
+            "임전무퇴", "사면초가", "다기망양", "토사구팽", "화룡점정", "대기만성", "구사일생", "금상첨화", "설상가상", "동병상련", "오비이락", "갑론을박", "우공이산", "온고지신", "괄목상대", "일거양득", "동문서답", "막상막하", "백발백중", "작심삼일",
             "갈라파고스제도", "마다가스카르", "메소포타미아", "오스트랄로피테쿠스", "스테고사우루스", "트리케라톱스", "브라키오사우루스", "티라노사우루스", "벨로키랍토르",
             "아메리카노", "카페라떼", "카라멜마끼아또", "프라푸치노", "크로와상", "마르게리타피자",
             "임시정부수립일", "대한독립만세", "직지심체요절", "팔만대장경", "무령왕릉", "빗살무늬토기", "청동기시대",
@@ -339,14 +353,18 @@
 
         let isTimeStopped = false;
         let timeStopRemaining = 0;
-        let fairyTimer = 0;
 
+        // 모달 선택 상태
+        let selectedUpgradeIndex = -1;
+        let currentUpgrades = [];
+
+        // 다중 요정을 위한 배열 시스템
         const player = { 
             maxHp: 5, hp: 5, shield: 0, speedMod: 1.0, splashChance: 0.0, xpMultiplier: 1.0,
-            fairyCooldown: 0.0,      
+            fairies: [],             // { cooldown: 7.0, timer: 0 } 의 배열
             explosionChance: 0.0,    
-            knockbackLevel: 0,       // 넉백(공간 왜곡) 강화 레벨
-            knockbackCharges: 0,     // 남은 넉백 횟수
+            knockbackLevel: 0,       
+            knockbackCharges: 0,     
             vampireGoal: 0,          
             vampireCount: 0,         
             timeStopDuration: 0.0,   
@@ -370,7 +388,17 @@
             { id: 'slow', name: '❄️ 얼음 오라', desc: () => '모든 적의 이동 속도가 10% 감소합니다.', apply: () => player.speedMod *= 0.90 },
             { id: 'splash', name: '⚡ 연쇄 번개', desc: () => '타격 당 번개가 발사될 확률이 25% 상승합니다. (100% 초과 시 다중 발사)', apply: () => player.splashChance += 0.25 },
             { id: 'xpBoost', name: '📚 학구열', desc: () => '획득하는 경험치가 20% 증가합니다.', apply: () => player.xpMultiplier *= 1.2 },
-            { id: 'fairy', name: '🧚‍♂️ 마법 요정', desc: () => player.fairyCooldown === 0 ? '7초마다 무작위 적 1마리를 자동 처치합니다.' : '요정의 공격 주기가 0.5초 단축됩니다.', apply: () => player.fairyCooldown = player.fairyCooldown === 0 ? 7.0 : Math.max(1.0, player.fairyCooldown - 0.5) },
+            { id: 'fairy', name: '🧚‍♂️ 마법 요정', desc: () => '7초(최소 3초)마다 적을 처치합니다. 한계 도달 시 새 요정이 추가됩니다.', apply: () => { 
+                let applied = false;
+                for (let f of player.fairies) {
+                    if (f.cooldown > 3.0) {
+                        f.cooldown = Math.max(3.0, f.cooldown - 0.5);
+                        applied = true;
+                        break;
+                    }
+                }
+                if (!applied) player.fairies.push({ cooldown: 7.0, timer: 0 }); // 모두 3초 이하라면 새 요정 추가
+            }},
             { id: 'explosion', name: '💣 폭발성 타격', desc: () => player.explosionChance === 0 ? '단어 처치 시 15% 확률로 주변 적들을 폭발시킵니다.' : '폭발 확률이 5% 증가합니다.', apply: () => player.explosionChance = player.explosionChance === 0 ? 0.15 : player.explosionChance + 0.05 },
             { id: 'knockback', name: '💨 공간 왜곡', desc: () => player.knockbackLevel === 0 ? '단어 처치 시 화면의 모든 적을 밀쳐냅니다. (총 2회 충전)' : `전체 밀쳐내기 횟수를 ${player.knockbackLevel + 2}회 충전합니다.`, apply: () => { player.knockbackLevel++; player.knockbackCharges += player.knockbackLevel + 1; } },
             { id: 'vampire', name: '🩸 흡혈귀의 룬', desc: () => player.vampireGoal === 0 ? '단어를 50개 처치할 때마다 체력을 1 회복합니다.' : '체력 회복에 필요한 처치 수가 5개 감소합니다.', apply: () => player.vampireGoal = player.vampireGoal === 0 ? 50 : Math.max(5, player.vampireGoal - 5) },
@@ -433,12 +461,13 @@
             enemies.forEach(e => e.el.remove()); enemies = [];
             score = 0; level = 1; xp = 0; xpToNextLevel = 300; gameTime = 0;
             player.maxHp = 5; player.hp = 5; player.shield = 0; player.speedMod = 1.0; player.splashChance = 0.0; player.xpMultiplier = 1.0;
-            player.fairyCooldown = 0; player.explosionChance = 0; player.knockbackLevel = 0; player.knockbackCharges = 0;
+            player.fairies = []; player.explosionChance = 0; player.knockbackLevel = 0; player.knockbackCharges = 0;
             player.vampireGoal = 0; player.vampireCount = 0; player.timeStopDuration = 0; player.timeStopCooldown = 0;
-            isTimeStopped = false; timeStopRemaining = 0; fairyTimer = 0;
+            isTimeStopped = false; timeStopRemaining = 0; selectedUpgradeIndex = -1;
             spawnRate = 2000; isWaveActive = false; lastWaveLevel = 0; pausedWaveTimeLeft = 0;
             board.classList.remove('wave-active-bg', 'time-stop-bg'); waveAlert.classList.add('hidden');
             document.getElementById('fairy-companion').classList.add('hidden');
+            document.getElementById('lightning-companion').classList.add('hidden');
             updateUI();
         }
 
@@ -475,7 +504,8 @@
             
             let currentSpawnRate;
             if (isWaveActive) {
-                currentSpawnRate = Math.max(650, 1100 - (level * 15));
+                // 웨이브 난이도 소폭 상향 (생성 주기)
+                currentSpawnRate = Math.max(500, 1000 - (level * 20));
             } else {
                 const elapsedSec = gameTime / 60;
                 currentSpawnRate = Math.max(350, spawnRate - (level * 30) - (elapsedSec * 3));
@@ -518,7 +548,8 @@
             let framesToReach = Math.max(120, 600 - (level * 8) - (elapsedSec * 0.8)); 
             
             if (isWaveActive) {
-                const speedMultiplier = Math.max(0.88, 1.0 - (level * 0.008));
+                // 웨이브 난이도 소폭 상향 (속도)
+                const speedMultiplier = Math.max(0.80, 0.95 - (level * 0.01));
                 framesToReach *= speedMultiplier; 
             }
             if (isElite) framesToReach *= 1.5;
@@ -533,27 +564,48 @@
 
             if (player.timeStopCooldown > 0) player.timeStopCooldown--;
             
-            if (player.fairyCooldown > 0 && !isTimeStopped) {
+            // 번개 UI 관리
+            if (player.splashChance > 0) {
+                document.getElementById('lightning-companion').classList.remove('hidden');
+                document.getElementById('lightning-count').textContent = `${Math.floor(player.splashChance)}개+`;
+            }
+
+            // 다중 요정 루프 및 UI 갱신
+            if (player.fairies.length > 0) {
                 document.getElementById('fairy-companion').classList.remove('hidden');
-                fairyTimer++;
-                const remainSec = Math.max(0, player.fairyCooldown - (fairyTimer / 60));
-                document.getElementById('fairy-countdown').textContent = remainSec.toFixed(1);
+                
+                let minRemain = 999;
+                if (!isTimeStopped) {
+                    player.fairies.forEach(fairy => {
+                        fairy.timer++;
+                        let rem = Math.max(0, fairy.cooldown - (fairy.timer / 60));
+                        if (rem < minRemain) minRemain = rem;
 
-                if (fairyTimer >= player.fairyCooldown * 60) {
-                    fairyTimer = 0;
-                    const normalEnemies = enemies.filter(en => !en.isElite);
-                    if (normalEnemies.length > 0) {
-                        const target = normalEnemies[Math.floor(Math.random() * normalEnemies.length)];
-                        const targetIndex = enemies.indexOf(target);
-                        
-                        const fairyEl = document.getElementById('fairy-companion');
-                        fairyEl.style.transform = 'translateY(-15px)';
-                        setTimeout(() => fairyEl.style.transform = 'translateY(0)', 150);
+                        if (fairy.timer >= fairy.cooldown * 60) {
+                            fairy.timer = 0;
+                            const normalEnemies = enemies.filter(en => !en.isElite);
+                            if (normalEnemies.length > 0) {
+                                const target = normalEnemies[Math.floor(Math.random() * normalEnemies.length)];
+                                const targetIndex = enemies.indexOf(target);
+                                
+                                const fairyEl = document.getElementById('fairy-companion');
+                                fairyEl.style.transform = 'translateY(-15px)';
+                                setTimeout(() => fairyEl.style.transform = 'translateY(0)', 150);
 
-                        drawFairyLaser(getCenter().x + 20, getCenter().y - 20, target.x, target.y);
-                        destroyEnemy(targetIndex, true); 
-                    }
+                                drawFairyLaser(getCenter().x + 20, getCenter().y - 20, target.x, target.y);
+                                destroyEnemy(targetIndex, true); 
+                            }
+                        }
+                    });
+                } else {
+                    player.fairies.forEach(f => {
+                        let rem = Math.max(0, f.cooldown - (f.timer / 60));
+                        if (rem < minRemain) minRemain = rem;
+                    });
                 }
+                
+                const fairyText = player.fairies.length > 1 ? `${minRemain.toFixed(1)} (x${player.fairies.length})` : minRemain.toFixed(1);
+                document.getElementById('fairy-countdown').textContent = fairyText;
             }
 
             if (isWaveActive) {
@@ -605,17 +657,26 @@
             }
         });
 
+        // 레벨업 단축키 (2단계 확정 방식)
         document.addEventListener('keydown', (e) => { 
             const modal = document.getElementById('levelup-modal');
             if (!modal.classList.contains('hidden')) {
                 const key = e.key.toLowerCase();
                 const keyMap = { 'j': 0, 'ㅓ': 0, 'k': 1, 'ㅏ': 1, 'l': 2, 'ㅣ': 2 };
                 
+                // 1단계: 하이라이트 선택
                 if (key in keyMap) {
                     e.preventDefault();
-                    const index = keyMap[key];
-                    const cards = document.querySelectorAll('.upgrade-card');
-                    if (cards[index]) cards[index].click();
+                    selectUpgradeCard(keyMap[key]);
+                } 
+                // 2단계: 확정 (엔터 또는 스페이스)
+                else if (key === 'enter' || key === ' ') {
+                    e.preventDefault();
+                    if (selectedUpgradeIndex !== -1 && currentUpgrades[selectedUpgradeIndex]) {
+                        currentUpgrades[selectedUpgradeIndex].apply();
+                        modal.classList.add('hidden');
+                        updateUI(); resumeGame();
+                    }
                 }
             } else if(isPlaying && !document.getElementById('cheat-modal').classList.contains('hidden') === false) {
                 input.focus(); 
@@ -695,17 +756,17 @@
                 updateUI();
             }
 
-            // 2. 폭발성 타격
+            // 2. 폭발성 타격 (이펙트 및 반경 상향 - 반경 280px)
             if (player.explosionChance > 0 && Math.random() < player.explosionChance) {
                 const explosionEl = document.createElement('div');
                 explosionEl.className = 'explosion-effect';
                 explosionEl.style.left = `${eX}px`; explosionEl.style.top = `${eY}px`;
                 board.appendChild(explosionEl);
-                setTimeout(() => explosionEl.remove(), 400);
+                setTimeout(() => explosionEl.remove(), 500);
 
                 const toDestroy = [];
                 enemies.forEach(en => {
-                    if (Math.hypot(en.x - eX, en.y - eY) < 200) toDestroy.push(en);
+                    if (Math.hypot(en.x - eX, en.y - eY) < 280) toDestroy.push(en);
                 });
                 toDestroy.forEach(en => {
                     const idx = enemies.indexOf(en);
@@ -723,7 +784,11 @@
                     const randTarget = enemies[Math.floor(Math.random() * enemies.length)];
                     const targetIndex = enemies.indexOf(randTarget);
                     
-                    drawLightning(center.x, center.y, randTarget.x, randTarget.y);
+                    const lightEl = document.getElementById('lightning-companion');
+                    lightEl.style.transform = 'scale(1.2)';
+                    setTimeout(() => lightEl.style.transform = 'scale(1)', 150);
+
+                    drawLightning(center.x - 20, center.y - 20, randTarget.x, randTarget.y);
                     destroyEnemy(targetIndex, true);
                 }
             }
@@ -784,15 +849,34 @@
             setTimeout(() => showUpgradeModal("LEVEL UP!"), 50);
         }
 
+        // 아이템 선택 (하이라이트) 함수
+        function selectUpgradeCard(index) {
+            selectedUpgradeIndex = index;
+            const cards = document.querySelectorAll('.upgrade-card');
+            cards.forEach((c, i) => {
+                if (i === index) c.classList.add('selected');
+                else c.classList.remove('selected');
+            });
+            const btn = document.getElementById('confirm-upgrade-btn');
+            btn.classList.remove('pointer-events-none', 'opacity-50');
+            btn.classList.add('bg-yellow-600', 'text-white', 'hover:bg-yellow-500');
+        }
+
         function showUpgradeModal(titleText) {
             const modal = document.getElementById('levelup-modal');
             const titleElement = document.getElementById('modal-title');
             const container = document.getElementById('upgrade-options');
+            const confirmBtn = document.getElementById('confirm-upgrade-btn');
             
             titleElement.textContent = titleText || "LEVEL UP!";
             container.innerHTML = '';
+            selectedUpgradeIndex = -1; // 초기화
+            
+            confirmBtn.classList.add('pointer-events-none', 'opacity-50');
+            confirmBtn.classList.remove('bg-yellow-600', 'text-white', 'hover:bg-yellow-500');
 
             const shuffled = upgrades.sort(() => 0.5 - Math.random()).slice(0, 3);
+            currentUpgrades = shuffled;
             const keys = ['ㅓ', 'ㅏ', 'ㅣ'];
             
             shuffled.forEach((upg, index) => {
@@ -807,12 +891,20 @@
                     <p class="text-lg text-gray-400 break-keep">${upg.desc()}</p>
                 `;
                 
-                card.addEventListener('click', () => {
-                    upg.apply(); modal.classList.add('hidden');
-                    updateUI(); resumeGame();
-                });
+                // 마우스 클릭 시에도 하이라이트 되도록 변경
+                card.addEventListener('click', () => { selectUpgradeCard(index); });
                 container.appendChild(card);
             });
+            
+            // 확인 버튼 이벤트 (기존 이벤트 중복 방지를 위해 덮어쓰기)
+            confirmBtn.onclick = () => {
+                if (selectedUpgradeIndex !== -1 && currentUpgrades[selectedUpgradeIndex]) {
+                    currentUpgrades[selectedUpgradeIndex].apply();
+                    modal.classList.add('hidden');
+                    updateUI(); resumeGame();
+                }
+            };
+
             modal.classList.remove('hidden');
         }
 
@@ -835,7 +927,14 @@
             html += `<div class="text-gray-300">❄️ 감속: ${Math.round((1 - player.speedMod)*100)}%</div>`;
             html += `<div class="text-gray-300">📚 경험치: +${Math.round((player.xpMultiplier - 1)*100)}%</div>`;
             if (player.splashChance > 0) html += `<div class="text-gray-300">⚡ 번개: ${Math.floor(player.splashChance)}개 + ${Math.round((player.splashChance%1)*100)}%</div>`;
-            if (player.fairyCooldown > 0) html += `<div class="text-gray-300">🧚 요정: ${player.fairyCooldown.toFixed(1)}초마다</div>`;
+            if (player.fairies.length > 0) {
+                let minRemain = 999;
+                player.fairies.forEach(f => {
+                    let r = Math.max(0, f.cooldown - (f.timer/60));
+                    if(r < minRemain) minRemain = r;
+                });
+                html += `<div class="text-pink-300">🧚 요정: ${minRemain.toFixed(1)}초 (x${player.fairies.length})</div>`;
+            }
             if (player.explosionChance > 0) html += `<div class="text-gray-300">💣 폭발: ${Math.round(player.explosionChance*100)}%</div>`;
             
             if (player.knockbackLevel > 0) {
