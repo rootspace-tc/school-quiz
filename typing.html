@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>글리피카 에듀: 서바이벌</title>
+    <title>타자연습 에듀: 서바이벌</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
     
@@ -38,7 +38,6 @@
             to { box-shadow: inset 0 0 100px rgba(239, 68, 68, 0.4); }
         }
 
-        /* 시간 정지 효과 (배경 반전/회색화) */
         .time-stop-bg {
             filter: hue-rotate(180deg) saturate(150%) brightness(0.7);
         }
@@ -72,7 +71,7 @@
             border: 1px solid #991b1b;
             border-radius: 6px;
             transform: translate(-50%, -50%);
-            transition: color 0.1s, transform 0.2s ease-out; /* 넉백 애니메이션 부드럽게 */
+            transition: color 0.1s, transform 0.2s ease-out; 
         }
 
         .elite-word {
@@ -105,7 +104,6 @@
             transition: all 0.4s ease-out;
         }
 
-        /* 번개 및 요정 광선 효과 */
         .lightning {
             position: absolute; height: 4px; background: #facc15;
             box-shadow: 0 0 10px #facc15; transform-origin: left center;
@@ -118,7 +116,6 @@
         }
         @keyframes flashOut { to { opacity: 0; } }
 
-        /* 대폭발 효과 */
         .explosion-effect {
             position: absolute;
             width: 350px; height: 350px;
@@ -159,7 +156,6 @@
             transition: width 0.3s ease-out;
         }
 
-        /* 다수의 스탯을 예쁘게 보여주기 위한 패널 구조 변경 */
         #status-panel {
             position: absolute; left: 30px; top: 100px;
             background: rgba(15, 23, 42, 0.8); border: 1px solid #475569;
@@ -186,8 +182,10 @@
         .damage-overlay { position: absolute; inset: 0; z-index: 99; pointer-events: none; opacity: 0; }
         .flash-damage { animation: flashRed 0.3s; background: rgba(239, 68, 68, 0.3) !important; }
         .flash-heal { animation: flashGreen 0.4s; background: rgba(74, 222, 128, 0.3) !important; }
+        .flash-shield { animation: flashBlue 0.3s; background: rgba(59, 130, 246, 0.3) !important; }
         @keyframes flashRed { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
         @keyframes flashGreen { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+        @keyframes flashBlue { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
 
         .leaderboard-table { width: 100%; text-align: center; border-collapse: collapse; margin-top: 15px; }
         .leaderboard-table th, .leaderboard-table td { padding: 8px; border-bottom: 1px solid #475569; }
@@ -200,7 +198,13 @@
 
     <div id="game-board">
         <div id="damage-overlay" class="damage-overlay"></div>
-        <div id="player-core">💎</div>
+        <div id="player-core">
+            💎
+            <div id="fairy-companion" class="hidden absolute -right-10 -top-10 text-3xl transition-transform duration-150 z-20">
+                🧚
+                <div id="fairy-countdown" class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-[11px] bg-black/80 text-pink-300 px-1.5 py-0.5 rounded font-mono border border-pink-500/50 leading-none"></div>
+            </div>
+        </div>
 
         <div id="top-bar">
             <div>
@@ -213,8 +217,7 @@
             </div>
         </div>
 
-        <div id="status-panel">
-            </div>
+        <div id="status-panel"></div>
 
         <div id="wave-alert" class="hidden flex items-center gap-4">
             <span class="text-xl title-font text-yellow-300">⚠️ 집중 공세</span>
@@ -334,21 +337,20 @@
         let lastWaveLevel = 0;
         let pausedWaveTimeLeft = 0; 
 
-        // 시간 정지 관리 변수
         let isTimeStopped = false;
         let timeStopRemaining = 0;
         let fairyTimer = 0;
 
-        // 강력한 신규 능력들이 추가된 플레이어 객체
         const player = { 
-            maxHp: 5, hp: 5, speedMod: 1.0, splashChance: 0.0, xpMultiplier: 1.0,
-            fairyCooldown: 0.0,      // 요정 (0이면 비활성)
-            explosionChance: 0.0,    // 폭발 확률
-            knockbackTargets: 0,     // 넉백 마리수
-            vampireGoal: 0,          // 흡혈 룬 (처치 요구량)
-            vampireCount: 0,         // 흡혈 룬 (현재 처치수)
-            timeStopDuration: 0.0,   // 시간 정지 지속 시간
-            timeStopCooldown: 0      // 시간 정지 쿨타임 (프레임)
+            maxHp: 5, hp: 5, shield: 0, speedMod: 1.0, splashChance: 0.0, xpMultiplier: 1.0,
+            fairyCooldown: 0.0,      
+            explosionChance: 0.0,    
+            knockbackLevel: 0,       // 넉백(공간 왜곡) 강화 레벨
+            knockbackCharges: 0,     // 남은 넉백 횟수
+            vampireGoal: 0,          
+            vampireCount: 0,         
+            timeStopDuration: 0.0,   
+            timeStopCooldown: 0      
         };
 
         let spawnRate = 2000;
@@ -362,16 +364,15 @@
         const waveAlert = document.getElementById('wave-alert');
         const waveTimeLeft = document.getElementById('wave-time-left');
 
-        // 업그레이드 선택지 (설계된 수치 적용)
         const upgrades = [
+            { id: 'shield', name: '🛡️ 수호 방패', desc: () => '적의 공격을 1회 막아주는 방어막을 생성합니다. (누적 가능)', apply: () => player.shield++ },
             { id: 'maxHp', name: '❤️ 생명력 강화', desc: () => '최대 체력이 1 증가하고, 모두 회복합니다.', apply: () => { player.maxHp++; player.hp = player.maxHp; } },
             { id: 'slow', name: '❄️ 얼음 오라', desc: () => '모든 적의 이동 속도가 10% 감소합니다.', apply: () => player.speedMod *= 0.90 },
-            { id: 'splash', name: '⚡ 연쇄 번개', desc: () => '단어 처치 시 무작위 적을 처치할 확률이 25% 상승합니다.', apply: () => player.splashChance += 0.25 },
+            { id: 'splash', name: '⚡ 연쇄 번개', desc: () => '타격 당 번개가 발사될 확률이 25% 상승합니다. (100% 초과 시 다중 발사)', apply: () => player.splashChance += 0.25 },
             { id: 'xpBoost', name: '📚 학구열', desc: () => '획득하는 경험치가 20% 증가합니다.', apply: () => player.xpMultiplier *= 1.2 },
-            // 신규 능력 5종
             { id: 'fairy', name: '🧚‍♂️ 마법 요정', desc: () => player.fairyCooldown === 0 ? '7초마다 무작위 적 1마리를 자동 처치합니다.' : '요정의 공격 주기가 0.5초 단축됩니다.', apply: () => player.fairyCooldown = player.fairyCooldown === 0 ? 7.0 : Math.max(1.0, player.fairyCooldown - 0.5) },
             { id: 'explosion', name: '💣 폭발성 타격', desc: () => player.explosionChance === 0 ? '단어 처치 시 15% 확률로 주변 적들을 폭발시킵니다.' : '폭발 확률이 5% 증가합니다.', apply: () => player.explosionChance = player.explosionChance === 0 ? 0.15 : player.explosionChance + 0.05 },
-            { id: 'knockback', name: '💨 공간 왜곡', desc: () => player.knockbackTargets === 0 ? '단어 처치 시 가장 가까운 적 2마리를 튕겨냅니다.' : '밀쳐내는 적의 수가 1마리 증가합니다.', apply: () => player.knockbackTargets = player.knockbackTargets === 0 ? 2 : player.knockbackTargets + 1 },
+            { id: 'knockback', name: '💨 공간 왜곡', desc: () => player.knockbackLevel === 0 ? '단어 처치 시 화면의 모든 적을 밀쳐냅니다. (총 2회 충전)' : `전체 밀쳐내기 횟수를 ${player.knockbackLevel + 2}회 충전합니다.`, apply: () => { player.knockbackLevel++; player.knockbackCharges += player.knockbackLevel + 1; } },
             { id: 'vampire', name: '🩸 흡혈귀의 룬', desc: () => player.vampireGoal === 0 ? '단어를 50개 처치할 때마다 체력을 1 회복합니다.' : '체력 회복에 필요한 처치 수가 5개 감소합니다.', apply: () => player.vampireGoal = player.vampireGoal === 0 ? 50 : Math.max(5, player.vampireGoal - 5) },
             { id: 'timeStop', name: '⏳ 시간 정지', desc: () => player.timeStopDuration === 0 ? '피격 시 3초간 적들의 시간을 멈춥니다. (쿨타임 30초)' : '시간 정지 지속 시간이 1초 증가합니다.', apply: () => player.timeStopDuration = player.timeStopDuration === 0 ? 3.0 : player.timeStopDuration + 1.0 }
         ];
@@ -431,12 +432,13 @@
         function resetGame() {
             enemies.forEach(e => e.el.remove()); enemies = [];
             score = 0; level = 1; xp = 0; xpToNextLevel = 300; gameTime = 0;
-            player.maxHp = 5; player.hp = 5; player.speedMod = 1.0; player.splashChance = 0.0; player.xpMultiplier = 1.0;
-            player.fairyCooldown = 0; player.explosionChance = 0; player.knockbackTargets = 0;
+            player.maxHp = 5; player.hp = 5; player.shield = 0; player.speedMod = 1.0; player.splashChance = 0.0; player.xpMultiplier = 1.0;
+            player.fairyCooldown = 0; player.explosionChance = 0; player.knockbackLevel = 0; player.knockbackCharges = 0;
             player.vampireGoal = 0; player.vampireCount = 0; player.timeStopDuration = 0; player.timeStopCooldown = 0;
             isTimeStopped = false; timeStopRemaining = 0; fairyTimer = 0;
             spawnRate = 2000; isWaveActive = false; lastWaveLevel = 0; pausedWaveTimeLeft = 0;
             board.classList.remove('wave-active-bg', 'time-stop-bg'); waveAlert.classList.add('hidden');
+            document.getElementById('fairy-companion').classList.add('hidden');
             updateUI();
         }
 
@@ -529,19 +531,27 @@
             if (!isPlaying) return;
             gameTime++; 
 
-            // 쿨타임 및 요정 타이머
             if (player.timeStopCooldown > 0) player.timeStopCooldown--;
             
             if (player.fairyCooldown > 0 && !isTimeStopped) {
+                document.getElementById('fairy-companion').classList.remove('hidden');
                 fairyTimer++;
+                const remainSec = Math.max(0, player.fairyCooldown - (fairyTimer / 60));
+                document.getElementById('fairy-countdown').textContent = remainSec.toFixed(1);
+
                 if (fairyTimer >= player.fairyCooldown * 60) {
                     fairyTimer = 0;
                     const normalEnemies = enemies.filter(en => !en.isElite);
                     if (normalEnemies.length > 0) {
                         const target = normalEnemies[Math.floor(Math.random() * normalEnemies.length)];
                         const targetIndex = enemies.indexOf(target);
-                        drawFairyLaser(getCenter().x, getCenter().y - 30, target.x, target.y);
-                        destroyEnemy(targetIndex, true); // true = 연쇄/자동 판정
+                        
+                        const fairyEl = document.getElementById('fairy-companion');
+                        fairyEl.style.transform = 'translateY(-15px)';
+                        setTimeout(() => fairyEl.style.transform = 'translateY(0)', 150);
+
+                        drawFairyLaser(getCenter().x + 20, getCenter().y - 20, target.x, target.y);
+                        destroyEnemy(targetIndex, true); 
                     }
                 }
             }
@@ -552,7 +562,6 @@
                 else { waveTimeLeft.textContent = Math.ceil(remainMs / 1000); }
             }
 
-            // 시간 정지 상태라면 적들의 움직임만 스킵
             if (isTimeStopped) {
                 timeStopRemaining--;
                 if (timeStopRemaining <= 0) {
@@ -596,7 +605,6 @@
             }
         });
 
-        // 레벨업 단축키 (ㅓ, ㅏ, ㅣ 및 영문 j, k, l 대응)
         document.addEventListener('keydown', (e) => { 
             const modal = document.getElementById('levelup-modal');
             if (!modal.classList.contains('hidden')) {
@@ -628,7 +636,7 @@
 
         function destroyEnemy(index, isChain = false) {
             const e = enemies[index]; const center = getCenter();
-            const eX = e.x; const eY = e.y; // 폭발 처리를 위해 파괴될 당시의 좌표 저장
+            const eX = e.x; const eY = e.y; 
             
             e.el.classList.add('explode');
             setTimeout(() => { if(e.el.parentNode) e.el.remove(); }, 200);
@@ -636,7 +644,6 @@
             const gainedXp = (e.text.length * 15) * player.xpMultiplier;
             score += e.text.length * 20; addXp(gainedXp);
             
-            // 흡혈귀의 룬 (연쇄/자동 처치가 아닐 때만 카운트)
             if (!isChain && player.vampireGoal > 0) {
                 player.vampireCount++;
                 if (player.vampireCount >= player.vampireGoal) {
@@ -655,27 +662,37 @@
 
             enemies.splice(index, 1); updateUI();
 
-            if (isChain) return; // 다른 능력 연쇄 발동 방지
+            if (isChain) return; 
 
-            // 1. 공간 왜곡 (넉백)
-            if (player.knockbackTargets > 0 && enemies.length > 0) {
-                let sortedEnemies = enemies.map(en => {
-                    return { en, dist: Math.hypot(center.x - en.x, center.y - en.y) };
-                }).sort((a, b) => a.dist - b.dist);
-                
-                const targets = sortedEnemies.slice(0, player.knockbackTargets);
-                targets.forEach(t => {
-                    const dx = t.en.x - center.x; const dy = t.en.y - center.y;
+            // 1. 공간 왜곡 (전체 넉백 - 횟수제)
+            if (player.knockbackCharges > 0) {
+                player.knockbackCharges--;
+                enemies.forEach(t => {
+                    const dx = t.x - center.x; const dy = t.y - center.y;
                     const len = Math.hypot(dx, dy);
                     if (len > 0) {
-                        t.en.x += (dx / len) * 150; t.en.y += (dy / len) * 150; // 150px 뒤로 밀림
-                        t.en.el.style.transform = 'translate(-50%, -50%) scale(1.3)';
-                        t.en.el.style.borderColor = '#c084fc'; // 보라색 효과
+                        t.x += (dx / len) * 150; t.y += (dy / len) * 150; 
+                        t.el.style.transform = 'translate(-50%, -50%) scale(1.3)';
+                        t.el.style.borderColor = '#c084fc'; 
                         setTimeout(() => {
-                            if(t.en.el) { t.en.el.style.transform = 'translate(-50%, -50%) scale(1)'; t.en.el.style.borderColor = ''; }
+                            if(t.el) { t.el.style.transform = 'translate(-50%, -50%) scale(1)'; t.el.style.borderColor = ''; }
                         }, 300);
                     }
                 });
+                
+                const shockwave = document.createElement('div');
+                shockwave.style.position = 'absolute'; shockwave.style.left = `${center.x}px`; shockwave.style.top = `${center.y}px`;
+                shockwave.style.width = '100px'; shockwave.style.height = '100px'; shockwave.style.borderRadius = '50%';
+                shockwave.style.background = 'radial-gradient(circle, transparent 20%, rgba(192, 132, 252, 0.5) 80%, transparent 100%)';
+                shockwave.style.transform = 'translate(-50%, -50%) scale(0.1)'; shockwave.style.pointerEvents = 'none'; shockwave.style.zIndex = '15';
+                shockwave.style.transition = 'transform 0.4s ease-out, opacity 0.4s ease-out';
+                board.appendChild(shockwave);
+                
+                requestAnimationFrame(() => {
+                    shockwave.style.transform = 'translate(-50%, -50%) scale(15)'; shockwave.style.opacity = '0';
+                });
+                setTimeout(() => shockwave.remove(), 400);
+                updateUI();
             }
 
             // 2. 폭발성 타격
@@ -731,16 +748,24 @@
         }
 
         function takeDamage(amount) {
-            // 시간 정지 발동 조건 (쿨타임이 없고 스킬을 보유했을 때)
             if (player.timeStopDuration > 0 && player.timeStopCooldown <= 0) {
                 isTimeStopped = true;
                 timeStopRemaining = player.timeStopDuration * 60;
-                player.timeStopCooldown = 30 * 60; // 30초 쿨타임
+                player.timeStopCooldown = 30 * 60; 
                 board.classList.add('time-stop-bg');
             }
 
+            if (player.shield > 0) {
+                player.shield--;
+                damageOverlay.classList.remove('flash-damage', 'flash-shield');
+                void damageOverlay.offsetWidth; 
+                damageOverlay.classList.add('flash-shield');
+                updateUI();
+                return;
+            }
+            
             player.hp -= amount;
-            damageOverlay.classList.remove('flash-damage');
+            damageOverlay.classList.remove('flash-damage', 'flash-shield');
             void damageOverlay.offsetWidth; 
             damageOverlay.classList.add('flash-damage');
             updateUI();
@@ -801,20 +826,27 @@
             const xpPercent = Math.min(100, (xp / xpToNextLevel) * 100);
             xpBar.style.width = `${xpPercent}%`;
 
-            // 스탯 패널 동적 생성 (보기 좋게 다듬음)
             const panel = document.getElementById('status-panel');
             let html = '<div class="col-span-2 text-yellow-400 font-bold mb-1 border-b border-gray-600 pb-1">보유 능력 현황</div>';
             html += `<div class="text-gray-300">❤️ 체력: ${player.hp}/${player.maxHp}</div>`;
+            if (player.shield > 0) html += `<div class="text-blue-300 font-bold">🛡️ 방패: ${player.shield}개</div>`;
+            else html += `<div class="text-gray-500">🛡️ 방패: 없음</div>`;
+            
             html += `<div class="text-gray-300">❄️ 감속: ${Math.round((1 - player.speedMod)*100)}%</div>`;
             html += `<div class="text-gray-300">📚 경험치: +${Math.round((player.xpMultiplier - 1)*100)}%</div>`;
             if (player.splashChance > 0) html += `<div class="text-gray-300">⚡ 번개: ${Math.floor(player.splashChance)}개 + ${Math.round((player.splashChance%1)*100)}%</div>`;
             if (player.fairyCooldown > 0) html += `<div class="text-gray-300">🧚 요정: ${player.fairyCooldown.toFixed(1)}초마다</div>`;
             if (player.explosionChance > 0) html += `<div class="text-gray-300">💣 폭발: ${Math.round(player.explosionChance*100)}%</div>`;
-            if (player.knockbackTargets > 0) html += `<div class="text-gray-300">💨 왜곡: ${player.knockbackTargets}마리 밀침</div>`;
-            if (player.vampireGoal > 0) html += `<div class="text-gray-300">🩸 흡혈: ${player.vampireCount}/${player.vampireGoal} 처치</div>`;
+            
+            if (player.knockbackLevel > 0) {
+                const color = player.knockbackCharges > 0 ? 'text-purple-300 font-bold' : 'text-gray-500';
+                html += `<div class="${color}">💨 왜곡: ${player.knockbackCharges}회 남음</div>`;
+            }
+            if (player.vampireGoal > 0) html += `<div class="text-red-300">🩸 흡혈: ${player.vampireCount}/${player.vampireGoal} 처치</div>`;
             if (player.timeStopDuration > 0) {
                 let cdText = player.timeStopCooldown > 0 ? `(쿨 ${Math.ceil(player.timeStopCooldown/60)}초)` : '(대기완료)';
-                html += `<div class="text-gray-300 col-span-2">⏳ 정지: ${player.timeStopDuration}초 ${cdText}</div>`;
+                const color = player.timeStopCooldown > 0 ? 'text-gray-500' : 'text-green-300 font-bold';
+                html += `<div class="col-span-2 ${color}">⏳ 정지: ${player.timeStopDuration}초 ${cdText}</div>`;
             }
             panel.innerHTML = html;
         }
