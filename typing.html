@@ -203,13 +203,11 @@
         <div id="damage-overlay" class="damage-overlay"></div>
         <div id="player-core">
             💎
-            <div id="lightning-companion" class="hidden absolute -left-12 -top-12 text-5xl transition-transform duration-150 z-20" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.8));">
+            <div id="lightning-companion" class="hidden absolute right-full mr-4 -top-8 text-5xl transition-transform duration-150 z-20" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.8));">
                 🌩️
             </div>
             
-            <div id="fairy-companion" class="hidden absolute -right-10 -top-10 text-3xl transition-transform duration-150 z-20">
-                🧚
-                <div id="fairy-countdown" class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-[11px] bg-black/80 text-pink-300 px-1.5 py-0.5 rounded font-mono border border-pink-500/50 leading-none whitespace-nowrap"></div>
+            <div id="fairy-companion-container" class="hidden absolute left-full ml-4 -top-8 flex flex-wrap w-32 gap-y-4 gap-x-2 z-20">
             </div>
         </div>
 
@@ -374,7 +372,22 @@
             "고조선", "삼국통일", "고구려", "백제", "신라", "발해", "고려", "조선", "거북선", "훈민정음", "임진왜란", "광복절", "삼일운동", "유관순", "안중근", "이순신", "세종대왕", "장영실",
             "광합성", "생태계", "지구온난화", "탄소중립", "만유인력", "수증기", "화산", "지진", "세포", "먹이사슬", "신재생에너지",
             "민주주의", "인권", "평등", "지방자치", "국회", "선거", "투표", "소비자", "생산자",
-            "알고리즘", "인공지능", "메타버스", "빅데이터", "소프트웨어", "하드웨어", "인터넷", "코딩", "디버깅", "창의성", "문제해결", "리더십", "블록체인"
+            "알고리즘", "인공지능", "메타버스", "빅데이터", "소프트웨어", "하드웨어", "인터넷", "코딩", "디버깅", "창의성", "문제해결", "리더십", "블록체인",
+            "교실", "운동장", "방학", "소풍", "급식", "짝꿍", "쉬는시간", "숙제", "일기", "발표",
+"놀이터", "도서관", "박물관", "우체국", "병원", "약국", "자전거", "버스", "지하철", "기차",
+"헬리콥터", "비행기", "트럭", "택시", "한복", "태극기", "윷놀이", "제기차기", "연날리기", "양치질",
+"비타민", "정직", "건강", "예절", "규칙", "습관", "줄넘기", "숨바꼭질", "팽이", "그림책",
+"머리", "어깨", "무릎", "손가락", "발가락", "개나리", "진달래", "소나무", "미소", "눈물",
+"배", "등", "팔", "다리", "목", "손바닥", "발바닥", "코", "입", "귀",
+"할아버지", "할머니", "아빠", "엄마", "형", "누나", "오빠", "언니", "동생", "아기",
+"봄", "여름", "가을", "겨울", "아침", "점심", "저녁", "밤", "어제", "오늘",
+"내일", "빨강", "노랑", "파랑", "초록", "보라", "하양", "까망", "분홍", "하늘색",
+"동그라미", "세모", "네모", "육각형", "하트", "장미", "튤립", "선인장", "창문", "거실",
+"경청", "공감", "설득", "갈등", "화해", "사춘기", "성취감", "진로", "적성", "꿈",
+"독립", "유적지", "문화유산", "시민의식", "기부", "홍보", "방송", "사이버예절", "편견", "다문화사회",
+"미세먼지", "기후변화", "멸종위기", "분리배출", "천연자원", "현미경", "별자리", "오목렌즈", "자기장", "전기회로",
+"소화기관", "심장박동", "호흡", "근육", "신경", "영양성분", "탄수화물", "단백질", "지방", "생활습관",
+"합리적소비", "저축", "예산", "광고", "수출", "용돈기입장", "일기예보", "열전도", "기압", "무게중심"
         ];
 
         const eliteWordPool = [
@@ -383,9 +396,15 @@
             "갈라파고스제도", "마다가스카르", "메소포타미아", "오스트랄로피테쿠스", "스테고사우루스", "트리케라톱스", "브라키오사우루스", "티라노사우루스", "벨로키랍토르",
             "아메리카노", "카페라떼", "카라멜마끼아또", "프라푸치노", "크로와상", "마르게리타피자",
             "임시정부수립일", "대한독립만세", "직지심체요절", "팔만대장경", "무령왕릉", "빗살무늬토기", "청동기시대",
-            "이산화탄소", "일산화탄소", "산화환원반응", "아보가드로의법칙", "열역학제2법칙", "만유인력의법칙", "관성의법칙",
-            "인터넷익스플로러", "하이퍼텍스트마크업언어", "객체지향프로그래밍", "블록체인네트워크", "가상현실기기", "증강현실기술"
+            "이산화탄소", "일산화탄소", "산화환원반응", "아보가드로의법칙", "오펜하이머", "만유인력의법칙", "관성의법칙",
+            "인터넷익스플로러", "하이퍼텍스트마크업언어", "객체지향프로그래밍", "블록체인네트워크", "가상현실기기", "증강현실기술",
+"인플레이션", "자본주의", "헌법", "삼권분립", "국무회의", "가상현실", "증강현실", "사물인터넷", "자율주행", "기후위기",
+"생물다양성", "탄소발자국", "고정관념", "다양성", "정체성", "자존감", "비판적사고", "논리적분석", "협동학습", "상호작용",
+"민주공화국", "대법원", "헌법재판소", "국제연합", "비정부기구", "무역수지", "개발도상국", "선진국", "에너지효율", "업사이클링",
+"지속가능성", "사회공헌", "유비쿼터스", "사이버범죄", "개인정보보호", "저작권", "인공지능윤리", "로봇공학", "우주망원경", "미생물",
+"유전자변형", "원자구조", "화학반응", "전자기파", "생태통로", "경제성장률", "기본권", "지방의회", "시민참여", "문화상대주의"
         ];
+
 
         let enemies = [];
         let score = 0;
@@ -437,7 +456,7 @@
             { id: 'shield', name: '🛡️ 수호 방패', desc: () => '적의 공격을 1회 막아주는 방어막을 생성합니다. (누적 가능)', apply: () => player.shield++ },
             { id: 'maxHp', name: '❤️ 생명력 강화', desc: () => '최대 체력이 1 증가하고, 모두 회복합니다.', apply: () => { player.maxHp++; player.hp = player.maxHp; } },
             { id: 'slow', name: '❄️ 얼음 오라', desc: () => '모든 적의 이동 속도가 10% 감소합니다.', apply: () => player.speedMod *= 0.90 },
-            { id: 'splash', name: '⚡ 연쇄 번개', desc: () => '타격 당 번개가 발사될 확률이 25% 상승합니다. (100% 초과 시 다중 발사)', apply: () => player.splashChance += 0.25 },
+            { id: 'splash', name: '⚡ 연쇄 번개', desc: () => '타격 당 번개가 발사될 확률이 20% 상승합니다. (100% 초과 시 다중 발사)', apply: () => player.splashChance += 0.20 },
             { id: 'xpBoost', name: '📚 학구열', desc: () => '획득하는 경험치가 20% 증가합니다.', apply: () => player.xpMultiplier *= 1.2 },
             { id: 'fairy', name: '🧚‍♂️ 마법 요정', desc: () => '7초(최소 3초)마다 적을 자동 처치합니다. 한계 도달 시 새 요정이 추가됩니다.', apply: () => { 
                 let applied = false;
@@ -448,7 +467,10 @@
                         break;
                     }
                 }
-                if (!applied) player.fairies.push({ cooldown: 7.0, timer: 0 }); 
+                if (!applied) {
+                    player.fairies.push({ cooldown: 7.0, timer: 0 }); 
+                }
+                updateFairyDOM();
             }},
             { id: 'explosion', name: '💣 폭발성 타격', desc: () => player.explosionChance === 0 ? '단어 처치 시 15% 확률로 대폭발을 일으킵니다.' : '폭발 확률이 5% 증가합니다.', apply: () => player.explosionChance = player.explosionChance === 0 ? 0.15 : player.explosionChance + 0.05 },
             { id: 'knockback', name: '💨 공간 왜곡', desc: () => player.knockbackLevel === 0 ? '단어 처치 시 모든 적을 밀쳐냅니다. (2회 충전)' : `전체 밀쳐내기 횟수를 ${player.knockbackLevel + 2}회 충전합니다.`, apply: () => { player.knockbackLevel++; player.knockbackCharges += player.knockbackLevel + 1; } },
@@ -524,6 +546,28 @@
             scheduleSpawn();
         }
 
+        // 요정 UI 개별 생성 함수
+        function updateFairyDOM() {
+            const container = document.getElementById('fairy-companion-container');
+            if (player.fairies.length === 0) {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+                return;
+            }
+            container.classList.remove('hidden');
+            let html = '';
+            player.fairies.forEach((f, i) => {
+                html += `
+                <div id="fairy-${i}" class="relative text-3xl transition-transform duration-150">
+                    🧚
+                    <div id="fairy-time-${i}" class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-[11px] bg-black/80 text-pink-300 px-1.5 py-0.5 rounded font-mono border border-pink-500/50 leading-none whitespace-nowrap">
+                        ${f.cooldown.toFixed(1)}
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
         function resetGame() {
             enemies.forEach(e => e.el.remove()); enemies = [];
             score = 0; level = 1; xp = 0; xpToNextLevel = 300; gameTime = 0;
@@ -532,9 +576,10 @@
             player.vampireGoal = 0; player.vampireCount = 0; player.timeStopDuration = 0; player.timeStopCooldown = 0;
             isTimeStopped = false; timeStopRemaining = 0; selectedUpgradeIndex = -1;
             spawnRate = 2000; isWaveActive = false; lastWaveLevel = 0; pausedWaveTimeLeft = 0;
+            
             board.classList.remove('wave-active-bg', 'time-stop-bg'); waveAlert.classList.add('hidden');
-            document.getElementById('fairy-companion').classList.add('hidden');
             document.getElementById('lightning-companion').classList.add('hidden');
+            updateFairyDOM();
             updateUI();
         }
 
@@ -572,10 +617,12 @@
             
             let currentSpawnRate;
             if (isWaveActive) {
-                currentSpawnRate = Math.max(500, 1000 - (level * 20));
+                // 어려움 상향: 웨이브 집중 포화
+                currentSpawnRate = Math.max(400, 900 - (level * 25));
             } else {
+                // 어려움 상향: 평상시 가속
                 const elapsedSec = gameTime / 60;
-                currentSpawnRate = Math.max(350, spawnRate - (level * 30) - (elapsedSec * 3));
+                currentSpawnRate = Math.max(450, spawnRate - (level * 40) - (elapsedSec * 5));
             }
 
             let diffSpawnMul = currentDifficulty === 'easy' ? 1.5 : (currentDifficulty === 'normal' ? 1.2 : 1.0);
@@ -615,10 +662,11 @@
             const distance = Math.hypot(center.x - startX, center.y - startY);
             const elapsedSec = gameTime / 60;
             
-            let framesToReach = Math.max(120, 600 - (level * 8) - (elapsedSec * 0.8)); 
+            // 어려움 상향: 한계 속도를 더 빠르게
+            let framesToReach = Math.max(200, 600 - (level * 12) - (elapsedSec * 1.5)); 
             
             if (isWaveActive) {
-                const speedMultiplier = Math.max(0.80, 0.95 - (level * 0.01));
+                const speedMultiplier = Math.max(0.70, 0.90 - (level * 0.015));
                 framesToReach *= speedMultiplier; 
             }
             if (isElite) framesToReach *= 1.5;
@@ -640,15 +688,11 @@
                 document.getElementById('lightning-companion').classList.remove('hidden');
             }
 
+            // 개별 요정 로직
             if (player.fairies.length > 0) {
-                document.getElementById('fairy-companion').classList.remove('hidden');
-                let minRemain = 999;
-                if (!isTimeStopped) {
-                    player.fairies.forEach(fairy => {
+                player.fairies.forEach((fairy, i) => {
+                    if (!isTimeStopped) {
                         fairy.timer++;
-                        let rem = Math.max(0, fairy.cooldown - (fairy.timer / 60));
-                        if (rem < minRemain) minRemain = rem;
-
                         if (fairy.timer >= fairy.cooldown * 60) {
                             fairy.timer = 0;
                             const normalEnemies = enemies.filter(en => !en.isElite);
@@ -656,24 +700,22 @@
                                 const target = normalEnemies[Math.floor(Math.random() * normalEnemies.length)];
                                 const targetIndex = enemies.indexOf(target);
                                 
-                                const fairyEl = document.getElementById('fairy-companion');
-                                fairyEl.style.transform = 'translateY(-15px)';
-                                setTimeout(() => fairyEl.style.transform = 'translateY(0)', 150);
+                                const fairyEl = document.getElementById(`fairy-${i}`);
+                                if(fairyEl) {
+                                    fairyEl.style.transform = 'translateY(-15px)';
+                                    setTimeout(() => fairyEl.style.transform = 'translateY(0)', 150);
+                                }
 
                                 drawFairyLaser(getCenter().x + 20, getCenter().y - 20, target.x, target.y);
                                 destroyEnemy(targetIndex, true); 
                                 sfx.fairy();
                             }
                         }
-                    });
-                } else {
-                    player.fairies.forEach(f => {
-                        let rem = Math.max(0, f.cooldown - (f.timer / 60));
-                        if (rem < minRemain) minRemain = rem;
-                    });
-                }
-                const fairyText = player.fairies.length > 1 ? `${minRemain.toFixed(1)} (x${player.fairies.length})` : minRemain.toFixed(1);
-                document.getElementById('fairy-countdown').textContent = fairyText;
+                    }
+                    let rem = Math.max(0, fairy.cooldown - (fairy.timer / 60));
+                    const timeEl = document.getElementById(`fairy-time-${i}`);
+                    if(timeEl) timeEl.textContent = rem.toFixed(1);
+                });
             }
 
             if (isWaveActive) {
@@ -699,6 +741,7 @@
                         if (!e.isElite) {
                             takeDamage(1); 
                         }
+                        // 엘리트(아이템 단어)는 데미지를 주지 않고 사라짐
                         e.el.remove(); enemies.splice(i, 1); continue;
                     }
 
@@ -849,7 +892,7 @@
                 });
             }
 
-            // 3. 연쇄 번개
+            // 3. 연쇄 번개 (진짜 번개 이모티콘 날아가기)
             if (player.splashChance > 0 && enemies.length > 0) {
                 let splashCount = Math.floor(player.splashChance);
                 if (Math.random() < (player.splashChance % 1)) splashCount++;
@@ -1017,12 +1060,7 @@
             html += `<div class="text-gray-300">📚 경험치: +${Math.round((player.xpMultiplier - 1)*100)}%</div>`;
             if (player.splashChance > 0) html += `<div class="text-gray-300">🌩️ 연쇄 번개: 발동률 ${Math.round(player.splashChance*100)}%</div>`;
             if (player.fairies.length > 0) {
-                let minRemain = 999;
-                player.fairies.forEach(f => {
-                    let r = Math.max(0, f.cooldown - (f.timer/60));
-                    if(r < minRemain) minRemain = r;
-                });
-                html += `<div class="text-pink-300">🧚 요정: ${minRemain.toFixed(1)}초 (x${player.fairies.length})</div>`;
+                html += `<div class="text-pink-300">🧚 요정: ${player.fairies.length}마리</div>`;
             }
             if (player.explosionChance > 0) html += `<div class="text-gray-300">💣 폭발: ${Math.round(player.explosionChance*100)}%</div>`;
             
