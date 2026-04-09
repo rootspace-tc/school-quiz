@@ -230,7 +230,7 @@
         </div>
 
         <div id="start-screen" class="absolute inset-0 bg-gray-900/95 flex flex-col items-center justify-center z-50 overflow-y-auto py-10">
-            <h1 class="text-6xl text-blue-400 title-font mb-4 text-center mt-auto">글리피카 에듀</h1>
+            <h1 class="text-6xl text-blue-400 title-font mb-4 text-center mt-auto">타자연습 에듀</h1>
             <p class="text-xl text-gray-300 mb-6 text-center leading-relaxed">
                 사방에서 다가오는 단어를 타이핑하고 <span class="text-yellow-400 font-bold">[스페이스바]</span>로 공격하세요.<br>
                 <span class="text-blue-300">3레벨 단위로 집중 공세(Wave)가 시작되며, 5레벨부터 희귀 단어(파란색)가 등장합니다.</span><br>
@@ -625,7 +625,7 @@
                 currentSpawnRate = Math.max(450, spawnRate - (level * 40) - (elapsedSec * 5));
             }
 
-            let diffSpawnMul = currentDifficulty === 'easy' ? 1.5 : (currentDifficulty === 'normal' ? 1.2 : 1.0);
+            let diffSpawnMul = currentDifficulty === 'easy' ? 2.5 : (currentDifficulty === 'normal' ? 1.6 : 1.0);
             currentSpawnRate *= diffSpawnMul;
 
             spawnIntervalId = setTimeout(scheduleSpawn, currentSpawnRate);
@@ -671,7 +671,7 @@
             }
             if (isElite) framesToReach *= 1.5;
 
-            let diffSpeedMul = currentDifficulty === 'easy' ? 1.5 : (currentDifficulty === 'normal' ? 1.25 : 1.0);
+            let diffSpeedMul = currentDifficulty === 'easy' ? 2.5 : (currentDifficulty === 'normal' ? 1.6 : 1.0);
             framesToReach *= diffSpeedMul;
 
             const speed = distance / framesToReach;
