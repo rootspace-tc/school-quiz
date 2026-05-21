@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>수학 종이 사칙연산 & 다면적 곱셈 & 나눗셈</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #333;
+            min-width: 1200px;
+        }
+
+        h1 { margin-bottom: 20px; font-size: 36px; color: #2c3e50; }
+
+        .current-total {
+            font-size: 32px;
+            color: #2c3e50;
+            background: #fff;
+            padding: 12px 40px;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+            border: 3px solid #e1e8ed;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .tab-menu { display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; justify-content: center; }
+        .tab-btn {
+            font-family: 'Jua', sans-serif;
+            font-size: 20px;
+            padding: 10px 18px;
+            cursor: pointer;
+            background-color: #dcdde1;
+            color: #718093;
+            border: none;
+            border-radius: 12px 12px 0 0;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background-color: white;
+            color: #2c3e50;
+            box-shadow: 0 -4px 6px rgba(0,0,0,0.05);
+            font-weight: bold;
+            border-top: 4px solid #4D96FF;
+        }
+
+        .tab-content {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 1300px;
+            display: none;
+        }
+        .tab-content.active { display: block; }
+
+        .control-panel {
+            display: flex; gap: 10px; align-items: center; margin-bottom: 20px;
+            flex-wrap: wrap; background: #f8f9fa; padding: 15px;
+            border-radius: 10px; border: 1px solid #e1e8ed;
+        }
+
+        input[type="number"], select {
+            font-family: 'Jua', sans-serif; font-size: 20px; padding: 5px 10px;
+            text-align: center; border: 2px solid #ccc; border-radius: 8px; width: 100px;
+        }
+
+        button {
+            font-family: 'Jua', sans-serif; font-size: 18px; padding: 8px 16px;
+            cursor: pointer; border: none; border-radius: 8px; color: white;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        button:hover { opacity: 0.9; }
+        button:disabled { background-color: #bdc3c7 !important; cursor: not-allowed; transform: none; }
+
+        .btn-primary { background-color: #4D96FF; }
+        .btn-success { background-color: #6BCB77; }
+        .btn-warning { background-color: #FFD93D; color: #333; }
+        .btn-danger { background-color: #FF6B6B; }
+        .btn-purple { background-color: #9D4EDD; }
+        .btn-gray { background-color: #7f8c8d; }
+        .btn-indigo { background-color: #3f51b5; }
+        .btn-teal { background-color: #009688; }
+
+        .math-block {
+            width: 45px; height: 45px; border-radius: 8px; cursor: grab;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 22px; color: white; box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+            user-select: none; transition: transform 0.2s, background-color 0.4s; flex-shrink: 0; position: relative;
+        }
+        .math-block:active { cursor: grabbing; transform: scale(1.1); }
+        .math-block.hide-text { color: transparent !important; }
+
+        .bg-1 { background-color: #4D96FF; }
+        .bg-10 { background-color: #6BCB77; }
+        .bg-100 { background-color: #FF6B6B; }
+        .bg-1000 { background-color: #FFD93D; color: #333; }
+        .bg-10000 { background-color: #9D4EDD; }
+        .bg-100000 { background-color: #3f51b5; }
+
+        .board { display: flex; flex-direction: row-reverse; gap: 20px; width: 100%; }
+        .zone-container { flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+        .zone-title { font-size: 20px; margin-bottom: 10px; }
+        .drop-zone {
+            width: 100%; min-height: 250px; border: 4px dashed; border-radius: 12px;
+            padding: 10px; display: flex; flex-wrap: wrap; align-content: flex-start;
+            gap: 8px; background-color: #fff; position: relative;
+        }
+
+        .zone-1 { border-color: #4D96FF; color: #4D96FF; }
+        .zone-10 { border-color: #6BCB77; color: #6BCB77; }
+        .zone-100 { border-color: #FF6B6B; color: #FF6B6B; }
+        .zone-1000 { border-color: #E5BE00; color: #E5BE00; }
+        .zone-10000 { border-color: #9D4EDD; color: #9D4EDD; }
+
+        .pool-container { width: 100%; background: #e1e8ed; border-radius: 12px; padding: 15px; margin-bottom: 20px; min-height: 80px; display: flex; flex-wrap: wrap; gap: 10px; border: 2px dashed #95a5a6; }
+        .pool-title { width: 100%; font-size: 16px; color: #7f8c8d; margin-bottom: 5px; }
+
+        .equation-row { display: flex; align-items: center; margin-bottom: 10px; background: #fdfdfd; border: 2px solid #eee; border-radius: 10px; padding: 10px 20px; min-height: 80px; }
+        .eq-sign { font-size: 36px; color: #333; width: 30px; text-align: center; }
+        .eq-number { font-size: 42px; color: #2c3e50; font-weight: bold; width: 120px; text-align: right; margin-right: 20px; letter-spacing: 3px; }
+        .eq-blocks { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; min-height: 50px; }
+        .result-divider { height: 4px; background-color: #2c3e50; width: 100%; margin: 20px 0; border-radius: 2px; }
+        .combine-btn { margin-top: 10px; font-size: 16px; background-color: #e74c3c; display: none; width: 100%; animation: pulse 1s infinite alternate; }
+
+        .vertical-math { display: inline-flex; flex-direction: column; align-items: flex-end; font-size: 46px; font-weight: bold; padding: 20px; background: #fff; border: 3px solid #eee; border-radius: 15px; margin-right: 30px; min-width: 250px;}
+        .v-row { display: flex; gap: 15px; width: 100%; justify-content: flex-end;}
+        .v-line { width: 100%; height: 5px; background: #333; margin: 10px 0; }
+        .v-btn { font-size: 16px; margin-top: 5px; white-space: nowrap; }
+        .mini-source { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; justify-content: flex-end; min-width: 140px; min-height: 50px; border: 2px dashed #ccc; border-radius: 8px; padding: 5px; background: #fafafa; }
+
+        .area-grid { display: grid; gap: 10px; margin-bottom: 20px; }
+        .area-cell { border: 3px solid #ccc; border-radius: 10px; padding: 15px; display: flex; flex-wrap: wrap; gap: 5px; background: #fafafa; min-height: 100px; align-content: flex-start;}
+        .area-label { width: 100%; font-size: 18px; color: #7f8c8d; margin-bottom: 10px; border-bottom: 2px dashed #eee; padding-bottom: 5px; }
+
+        .mul4-group-wrapper.active { border-color: #e74c3c !important; background-color: rgba(231, 76, 60, 0.05) !important; }
+
+        /* 바구니 스타일 (등분제) */
+        .basket-zone {
+            flex: 1; min-width: 150px; min-height: 150px; border: 3px solid #009688;
+            border-radius: 0 0 20px 20px; background: #e0f2f1; padding: 15px;
+            display: flex; flex-wrap: wrap; align-content: flex-start; gap: 5px; position: relative;
+        }
+        .basket-title {
+            position: absolute; top: -30px; left: 0; width: 100%; background: #009688;
+            color: white; text-align: center; border-radius: 10px 10px 0 0; padding: 5px 0; font-size: 18px;
+        }
+        .basket-container-wrap { margin-top: 30px; display: flex; flex: 1; min-width: 150px; position: relative;}
+
+        /* 묶음 스타일 (포함제) */
+        .completed-group {
+            border: 3px solid #E5BE00; background: #fffde7; border-radius: 15px;
+            padding: 10px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-width: 80px; position: relative;
+        }
+        .completed-group::after {
+            content: '1묶음'; position: absolute; bottom: -15px; background: #E5BE00; color: #333;
+            font-size: 12px; padding: 2px 8px; border-radius: 10px; font-weight: bold;
+        }
+
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
+        @keyframes popAppear { 0% { transform: scale(0); opacity: 0; } 70% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes vanish { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.3) rotate(10deg); opacity: 0.8; } 100% { transform: scale(0) rotate(-10deg); opacity: 0; } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px) rotate(-5deg); } 75% { transform: translateX(5px) rotate(5deg); } }
+        @keyframes upgrade { 0% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.2) translateY(-10px); filter: brightness(1.5); } 100% { transform: scale(1); filter: brightness(1); } }
+        @keyframes dropDown { 0% { transform: translateY(-30px) scale(0.8); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+        @keyframes pulseFast { 0% { transform: scale(1); } 50% { transform: scale(1.05); filter: brightness(1.1); } 100% { transform: scale(1); } }
+
+        .anim-pop { animation: popAppear 0.4s forwards; }
+        .anim-vanish { animation: vanish 0.4s forwards; pointer-events: none; }
+        .anim-shake { animation: shake 0.3s; }
+        .anim-upgrade { animation: upgrade 0.6s ease-in-out forwards; }
+        .anim-drop { animation: dropDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .anim-pulse-fast { animation: pulseFast 0.3s; }
+    </style>
+</head>
+<body>
+
+    <h1>✨ 수학 종이 칠판 ✨</h1>
+
+    <div class="tab-menu">
+        <button class="tab-btn active" onclick="switchTab('basic')">수의 기본</button>
+        <button class="tab-btn" onclick="switchTab('add')">덧셈</button>
+        <button class="tab-btn" onclick="switchTab('sub')">뺄셈</button>
+        <button class="tab-btn" onclick="switchTab('mul1')">곱셈(복사)</button>
+        <button class="tab-btn" onclick="switchTab('mul2')">곱셈(세로식)</button>
+        <button class="tab-btn" onclick="switchTab('mul3')">곱셈(분할)</button>
+        <button class="tab-btn" onclick="switchTab('mul4')">곱셈(면적)</button>
+        <button class="tab-btn" onclick="switchTab('div1')">나눗셈(등분)</button>
+        <button class="tab-btn" onclick="switchTab('div2')">나눗셈(포함)</button>
+    </div>
+
+    <div id="tab-basic" class="tab-content active">
+        <div class="current-total" id="basic-total-display"></div>
+        <div class="control-panel">
+            <input type="number" id="basic-input" placeholder="숫자 입력" min="1" max="99999">
+            <button class="btn-primary" onclick="expressBasicNumber()">입력 숫자로 표현</button>
+            <div style="width: 2px; height: 30px; background: #ccc; margin: 0 10px;"></div>
+            <span>보관함 추가:</span>
+            <button class="btn-primary" onclick="addBlocksToPool('basic-pool', 1, 1)">파란색(1)</button>
+            <button class="btn-success" onclick="addBlocksToPool('basic-pool', 10, 1)">초록색(10)</button>
+            <button class="btn-danger" onclick="addBlocksToPool('basic-pool', 100, 1)">빨간색(100)</button>
+            <button class="btn-warning" onclick="addBlocksToPool('basic-pool', 1000, 1)">노란색(1000)</button>
+            <div style="flex-grow: 1;"></div>
+            <button class="btn-purple" onclick="toggleText()">숫자 켜기/끄기</button>
+            <button class="btn-gray" onclick="clearAll('basic', true)">초기화</button>
+        </div>
+        <div class="pool-container drop-zone" id="basic-pool" data-allowed="any" ondragover="allowDrop(event)" ondrop="drop(event, 'any')">
+            <div class="pool-title">📥 수학 종이 보관함 (이곳에서도 종이를 더블클릭하면 10개로 쪼개집니다.)</div>
+        </div>
+        <div id="basic-board-container"></div>
+    </div>
+
+    <div id="tab-add" class="tab-content">
+        <div class="control-panel">
+            <select id="digit-add-n"><option value="1">1자리</option><option value="2">2자리</option><option value="3" selected>3자리</option></select>
+            <span>+</span>
+            <select id="digit-add-m"><option value="1">1자리</option><option value="2" selected>2자리</option><option value="3">3자리</option></select>
+            <button class="btn-warning" onclick="generateRandom('add')">자동 문제 생성</button>
+            <div style="width: 2px; height: 30px; background: #ccc; margin: 0 10px;"></div>
+            <input type="number" id="add-input-1" placeholder="첫 번째 수"> + <input type="number" id="add-input-2" placeholder="두 번째 수">
+            <button class="btn-primary" onclick="expressOperation('add')">문제 표현하기</button>
+            <div style="flex-grow: 1;"></div>
+            <button class="btn-purple" onclick="toggleText()">숫자 켜기/끄기</button>
+            <button class="btn-gray" onclick="clearAll('add', true)">초기화</button>
+        </div>
+        <div class="equation-row"><div class="eq-sign"></div><div class="eq-number" id="add-num-1"></div><div class="eq-blocks drop-zone" id="add-source-1" data-allowed="any"></div></div>
+        <div class="equation-row"><div class="eq-sign">+</div><div class="eq-number" id="add-num-2"></div><div class="eq-blocks drop-zone" id="add-source-2" data-allowed="any"></div></div>
+        <div class="result-divider"></div>
+        <div style="text-align: center; color: #7f8c8d; margin-bottom: 10px;">⬇️ 위에서 종이를 끌어와 아래 자리에 알맞게 넣어 계산해 보세요 ⬇️</div>
+        <div class="current-total" id="add-total-display"></div>
+        <div id="add-board-container"></div>
+    </div>
+
+    <div id="tab-sub" class="tab-content">
+        <div class="control-panel">
+            <select id="digit-sub-n"><option value="1">1자리</option><option value="2">2자리</option><option value="3" selected>3자리</option></select>
+            <span>-</span>
+            <select id="digit-sub-m"><option value="1">1자리</option><option value="2" selected>2자리</option><option value="3">3자리</option></select>
+            <button class="btn-warning" onclick="generateRandom('sub')">자동 문제 생성</button>
+            <div style="width: 2px; height: 30px; background: #ccc; margin: 0 10px;"></div>
+            <input type="number" id="sub-input-1" placeholder="큰 수"> - <input type="number" id="sub-input-2" placeholder="뺄 수">
+            <button class="btn-danger" onclick="expressOperation('sub')">문제 표현하기</button>
+            <div style="flex-grow: 1;"></div>
+            <button class="btn-purple" onclick="toggleText()">숫자 켜기/끄기</button>
+            <button class="btn-gray" onclick="clearAll('sub', true)">초기화</button>
+        </div>
+        <div class="equation-row"><div class="eq-sign"></div><div class="eq-number" id="sub-num-1"></div><div class="eq-blocks drop-zone" id="sub-source-1" data-allowed="any"></div></div>
+        <div class="equation-row"><div class="eq-sign">-</div><div class="eq-number" id="sub-num-2"></div><div class="eq-blocks drop-zone" id="sub-source-2" data-allowed="any"></div></div>
+        <div class="result-divider"></div>
+        <div style="text-align: center; color: #7f8c8d; margin-bottom: 10px;">⬇️ 뺄 수(아래쪽 종이)를 큰 수(위쪽 종이) 위에 바로 올려서 서로 펑! 상쇄시켜 보세요! ⬇️</div>
+        
+        <div style="text-align: center; margin-bottom: 15px;">
+            <button class="btn-success" onclick="moveSubToBoard()" style="font-size: 20px; padding: 10px 30px;">⬇️ 남은 수학 종이 한 번에 보드로 내리기 ⬇️</button>
+        </div>
+        
+        <div class="current-total" id="sub-total-display"></div>
+        <div id="sub-board-container"></div>
+    </div>
+
+    <div id="tab-mul1" class="tab-content">
+        <div class="control-panel">
+            <input type="number" id="mul1-input-1" placeholder="곱해지는 수"> <span style="font-size: 24px;">X</span> <input type="number" id="mul1-input-2" placeholder="묶음 수" max="9">
+            <button class="btn-success" onclick="setupMul1()">복사기 세팅</button>
+            <div style="flex-grow: 1;"></div>
+            <button class="btn-purple" onclick="toggleText()">숫자 켜기/끄기</button>
+            <button class="btn-gray" onclick="clearAll('mul1', true)">초기화</button>
+        </div>
+        <div class="equation-row" style="border-color: #6BCB77;">
+            <div class="eq-number" id="mul1-num-1" style="width: auto; min-width: 60px;"></div>
+            <div style="font-size: 20px; color: #666; margin-right: 20px;">의 수학종이</div>
+            <div class="eq-blocks drop-zone" id="mul1-source" data-allowed="any" style="border-left: 2px dashed #ccc; padding-left: 20px;"></div>
+            <button class="btn-primary" onclick="copyMul1()" id="mul1-copy-btn" style="display: none; font-size: 22px; padding: 10px 30px;">🖨️ 1묶음 복사하여 내리기!</button>
+        </div>
+        <div class="current-total" id="mul1-total-display"></div>
+        <div id="mul1-board-container"></div>
+    </div>
+
+    <div id="tab-mul2" class="tab-content">
+        <div class="control-panel">
+            <input type="number" id="mul2-input-1" placeholder="곱해지는 수 (n자리)"> <span style="font-size: 24px;">X</span> <input type="number" id="mul2-input-2" placeholder="곱하는 수 (n자리)">
+            <button class="btn-warning" onclick="setupMul2()">세로식 애니메이션 세팅</button>
+            <div style="flex-grow: 1;"></div>
+            <button class="btn-purple" onclick="toggleText()">숫자 켜기/끄기</button>
+            <button class="btn-gray" onclick="clearAll('mul2', true)">초기화</button>
+        </div>
+
+        <div style="display: flex; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 20px;">
+            <div class="vertical-math">
+                <div class="v-row"><div></div><div id="v-num1"></div></div>
+                <div class="v-row"><div>X</div><div id="v-num2"></div></div>
+                <div class="v-line"></div>
+                <div id="mul2-dynamic-rows" style="width: 100%; display: flex; flex-direction: column; gap: 10px; margin-top: 10px;"></div>
+            </div>
+            
+            <div style="flex: 1; font-size: 20px; color: #555; padding: 20px; background: #fffde7; border-radius: 10px; border: 2px dashed #fbc02d;">
+                💡 <b>10의 자리 이상의 곱하기</b>를 누르면 2단계 마법이 일어납니다!<br><br>
+                1단계: 대기 중인 수학 종이들이 자릿수에 맞춰 먼저 <b>진화(색상 변경)</b>를 하며 멈춥니다.<br>
+                2단계: 새롭게 나타난 '이제 N배 내리기' 버튼을 누르면 아래로 떨어지며 제자리를 찾아갑니다.
+            </div>
+        </div>
+        <div class="current-total" id="mul2-total-display"></div>
+        <div id="mul2-board-container"></div>
+    </div>
+
+    <div id="tab-mul3" class="tab-content">
+        <div class="control-panel">
+            <input type="number" id="mul3-input-1" placeholder="n자리 수"> <span style="font-size: 24px;">X</span> <input type="number" id="mul3-input-2" placeholder="n자리 수">
+            <button class="btn-danger" onclick="setupMul3()">각 자릿수 분할 세팅</button>
+            <div style="flex-grow: 1;"></div>
+            <button class="btn-purple" onclick="toggleText()">숫자 켜기/끄기</button>
+            <button class="btn-gray" onclick="clearAll('mul3', true)">초기화</button>
+        </div>
+
+        <div id="mul3-equation-display" style="font-size: 46px; font-weight: bold; text-align: center; margin-bottom: 15px; letter-spacing: 5px;"></div>
+        <div class="area-grid" id="mul3-dynamic-grid" style="display: none;"></div>
+        
+        <div style="text-align: center; margin-bottom: 20px;">
+            <button class="btn-success" id="mul3-move-btn" style="display:none; font-size: 20px; padding: 10px 30px;" onclick="moveAreaToBoard('mul3')">⬇️ 모두 보드로 옮겨서 합치기 ⬇️</button>
+        </div>
+        <div class="current-total" id="mul3-total-display"></div>
+        <div id="mul3-board-container"></div>
+    </div>
+
+    <div id="tab-mul4" class="tab-content">
+        <div class="control-panel">
+            <input type="number" id="mul4-input-1" placeholder="가로(W)"> <span style="font-size: 24px;">X</span> <input type="number" id="mul4-input-2" placeholder="세로(H)">
+            <button class="btn-primary" onclick="setupMul4()">사각형 면적 만들기</button>
+            <div style="flex-grow: 1;"></div>
+            <button class="btn-gray" onclick="clearAll('mul4', true)">초기화</button>
+        </div>
+
+        <div id="mul4-equation-display" style="font-size: 46px; font-weight: bold; text-align: center; margin-bottom: 15px; letter-spacing: 5px;"></div>
+        
+        <div style="text-align: center; margin-bottom: 20px; display: none;" id="mul4-actions">
+            <button class="btn-danger" id="mul4-group-btn" style="font-size: 20px; padding: 10px 30px; margin-right: 10px;" onclick="groupMul4Area()">📦 10개, 5개씩 묶어보기</button>
+            <button class="btn-success" id="mul4-convert-btn" style="font-size: 20px; padding: 10px 30px;" onclick="convertMul4ToBlocks()">⬇️ 수학 종이로 바꾸기 ⬇️</button>
+        </div>
+
+        <div id="mul4-grid-container" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 30px; align-items: center;"></div>
+
+        <div class="current-total" id="mul4-total-display"></div>
+        <div id="mul4-board-container"></div>
+    </div>
+
+    <div id="tab-div1" class="tab-content">
+        <div class="control-panel">
+            <select id="digit-div1-n"><option value="1">1자리</option><option value="2" selected>2자리</option><option value="3">3자리</option></select>
+            <span>÷</span>
+            <select id="digit-div1-m"><option value="1" selected>1자리</option><option value="2">2자리</option></select>
+            <button class="btn-warning" onclick="generateRandomDiv('div1')">자동 문제 생성</button>
+            <div style="width: 2px; height: 30px; background: #ccc; margin: 0 10px;"></div>
+            
+            <input type="number" id="div1-input-1" placeholder="나누어지는 수"> <span style="font-size: 24px;">÷</span> <input type="number" id="div1-input-2" placeholder="바구니 수">
+            <button class="btn-teal" onclick="setupDiv1()">바구니에 나누기</button>
+            <div style="flex-grow: 1;"></div>
+            <button class="btn-indigo" onclick="combineScatteredBlocks('div1')">흩어진 종이 10개 묶기</button>
+            <button class="btn-purple" onclick="toggleText()">숫자 켜기/끄기</button>
+            <button class="btn-gray" onclick="clearAll('div1', true)">초기화</button>
+        </div>
+        
+        <div style="text-align: center; color: #7f8c8d; margin-bottom: 10px; font-size: 18px;">
+            💡 아래의 종이를 바구니에 똑같이 나누어 담아보세요! 바구니에 안 들어갈 땐 <b>종이를 더블클릭</b>하여 쪼갤 수 있습니다.<br>쪼갠 종이는 <b>상단 버튼</b>으로 다시 묶을 수 있어요.
+        </div>
+
+        <div class="equation-row" style="border-color: #009688;">
+            <div class="eq-blocks drop-zone" id="div1-source" data-allowed="any" ondragover="allowDrop(event)" ondrop="drop(event, 'any')"></div>
+        </div>
+
+        <div id="div1-baskets-container" style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 30px; padding-top: 15px;"></div>
+
+        <div style="text-align: center; margin-bottom: 20px;">
+            <button class="btn-primary" style="font-size: 20px; padding: 10px 30px;" onclick="checkDiv1Baskets()">✔️ 바구니 똑같이 나누었는지 확인하기!</button>
+        </div>
+
+        <div style="text-align: center; color: #7f8c8d; margin-bottom: 10px;">⬇️ 확인이 완료되면 똑같이 나눈 몫 한 묶음이 아래 보드에 나타납니다. (나머지는 직접 내려보세요) ⬇️</div>
+        <div class="current-total" id="div1-total-display"></div>
+        <div id="div1-board-container"></div>
+    </div>
+
+    <div id="tab-div2" class="tab-content">
+        <div class="control-panel">
+            <select id="digit-div2-n"><option value="1">1자리</option><option value="2" selected>2자리</option><option value="3">3자리</option></select>
+            <span>÷</span>
+            <select id="digit-div2-m"><option value="1" selected>1자리</option><option value="2">2자리</option></select>
+            <button class="btn-warning" onclick="generateRandomDiv('div2')">자동 문제 생성</button>
+            <div style="width: 2px; height: 30px; background: #ccc; margin: 0 10px;"></div>
+
+            <input type="number" id="div2-input-1" placeholder="나누어지는 수"> <span style="font-size: 24px;">÷</span> <input type="number" id="div2-input-2" placeholder="기준 모양 수">
+            <button class="btn-danger" onclick="setupDiv2()">묶음 찾기</button>
+            <div style="flex-grow: 1;"></div>
+            <button class="btn-indigo" onclick="combineScatteredBlocks('div2')">흩어진 종이 10개 묶기</button>
+            <button class="btn-purple" onclick="toggleText()">숫자 켜기/끄기</button>
+            <button class="btn-gray" onclick="clearAll('div2', true)">초기화</button>
+        </div>
+
+        <div style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
+            <div style="flex: 2; border: 2px dashed #4D96FF; padding: 15px; border-radius: 12px; background: #fff; min-width: 300px;">
+                <h3 style="margin-top:0; color: #4D96FF;">나누어지는 수 <span style="font-size:16px; color:#666;">(이곳에서 드래그하여 아래 묶음 영역으로 이동 / 더블클릭 시 쪼개짐)</span></h3>
+                <div class="eq-blocks drop-zone" id="div2-source" data-allowed="any" ondragover="allowDrop(event)" ondrop="drop(event, 'any')" style="min-height: 150px;"></div>
+            </div>
+            <div style="flex: 1; border: 2px solid #E5BE00; padding: 15px; border-radius: 12px; background: #fffde7; min-width: 200px;">
+                <h3 style="margin-top:0; color: #d4af37;">기준 (나누는 수)</h3>
+                <div class="eq-blocks" id="div2-standard" style="min-height: 100px; pointer-events: none;"></div>
+            </div>
+        </div>
+        
+        <div style="border: 3px solid #6BCB77; padding: 15px; border-radius: 12px; background: #f0fdf4; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap:10px;">
+                <h3 style="margin: 0; color: #2e7d32;">✨ 이곳으로 종이를 끌어와 기준 모양과 똑같이 만들어보세요 ✨</h3>
+                <button class="btn-success" onclick="groupDiv2Blocks()" style="font-weight:bold; font-size: 20px;">포장하기 (1묶음 만들기)!</button>
+            </div>
+            <div class="eq-blocks drop-zone" id="div2-group-staging" data-allowed="any" ondragover="allowDrop(event)" ondrop="drop(event, 'any')" style="min-height: 120px; border: 2px dashed #6BCB77; background: #fff;"></div>
+        </div>
+
+        <h3 style="color: #E5BE00;">완성된 묶음들 (몫)</h3>
+        <div id="div2-completed-groups" style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 30px; min-height: 80px; padding: 10px; border: 2px dashed #ccc; border-radius: 10px;"></div>
+        
+        <div style="text-align: center; color: #7f8c8d; margin-bottom: 10px;">⬇️ 묶고 남은 나머지는 보드에 올려두세요 ⬇️</div>
+        <div class="current-total" id="div2-total-display"></div>
+        <div id="div2-board-container"></div>
+    </div>
+
+    <script>
+        let blockIdCounter = 0;
+        let isTextHidden = false;
+
+        const nextValMap = { 1: 10, 10: 100, 100: 1000, 1000: 10000, 10000: 100000 };
+        const prevValMap = { 10: 1, 100: 10, 1000: 100, 10000: 1000, 100000: 10000 };
+
+        window.onload = () => {
+            ['basic', 'add', 'sub', 'mul1', 'mul2', 'mul3', 'mul4', 'div1', 'div2'].forEach(prefix => {
+                const container = document.getElementById(`${prefix}-board-container`);
+                if(container) container.innerHTML = generateBoardHTML(prefix);
+            });
+            updateDisplays();
+        };
+
+        function generateBoardHTML(prefix) {
+            return `
+            <div class="board">
+                <div class="zone-container"><div class="zone-title zone-1">1의 자리</div><div class="drop-zone zone-1" id="${prefix}-z1" data-val="1" ondragover="allowDrop(event)" ondrop="drop(event, 1)"></div><button class="combine-btn" id="btn-${prefix}-1" onclick="combineBlocks('${prefix}', 1)">10개 모아 바꾸기!</button></div>
+                <div class="zone-container"><div class="zone-title zone-10">10의 자리</div><div class="drop-zone zone-10" id="${prefix}-z10" data-val="10" ondragover="allowDrop(event)" ondrop="drop(event, 10)"></div><button class="combine-btn" id="btn-${prefix}-10" onclick="combineBlocks('${prefix}', 10)">10개 모아 바꾸기!</button></div>
+                <div class="zone-container"><div class="zone-title zone-100">100의 자리</div><div class="drop-zone zone-100" id="${prefix}-z100" data-val="100" ondragover="allowDrop(event)" ondrop="drop(event, 100)"></div><button class="combine-btn" id="btn-${prefix}-100" onclick="combineBlocks('${prefix}', 100)">10개 모아 바꾸기!</button></div>
+                <div class="zone-container"><div class="zone-title zone-1000">1000의 자리</div><div class="drop-zone zone-1000" id="${prefix}-z1000" data-val="1000" ondragover="allowDrop(event)" ondrop="drop(event, 1000)"></div><button class="combine-btn" id="btn-${prefix}-1000" onclick="combineBlocks('${prefix}', 1000)">10개 모아 바꾸기!</button></div>
+                <div class="zone-container"><div class="zone-title zone-10000">10000의 자리</div><div class="drop-zone zone-10000" id="${prefix}-z10000" data-val="10000" ondragover="allowDrop(event)" ondrop="drop(event, 10000)"></div></div>
+            </div>`;
+        }
+
+        function formatColoredNumberHTML(num) {
+            if (num === 0 || num === '0' || !num) return '<span style="color: #2c3e50;">0</span>';
+            const colors = ['#4D96FF', '#6BCB77', '#FF6B6B', '#E5BE00', '#9D4EDD', '#3f51b5']; 
+            let str = num.toString();
+            let html = '';
+            for (let i = 0; i < str.length; i++) {
+                let placeIndex = str.length - 1 - i; 
+                let color = colors[placeIndex] || '#333';
+                html += `<span style="color: ${color}; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); font-weight: bold;">${str[i]}</span>`;
+            }
+            return html;
+        }
+
+        function updateDisplays() {
+            ['basic', 'add', 'sub', 'mul1', 'mul2', 'mul3', 'mul4', 'div1', 'div2'].forEach(prefix => {
+                let total = 0;
+                [1, 10, 100, 1000, 10000].forEach(val => {
+                    const zone = document.getElementById(`${prefix}-z${val}`);
+                    if (zone) {
+                        const plusCount = zone.querySelectorAll('.math-block[data-sign="plus"]').length;
+                        const minusCount = zone.querySelectorAll('.math-block[data-sign="minus"]').length;
+                        total += (plusCount - minusCount) * val;
+                    }
+                });
+                const display = document.getElementById(`${prefix}-total-display`);
+                let prefixText = '현재 놓여진 숫자';
+                if(prefix === 'div1' || prefix === 'div2') prefixText = '수학 종이';
+                if (display) display.innerHTML = `${prefixText}: <div style="display:inline-flex;">${formatColoredNumberHTML(total)}</div>`;
+            });
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
+
+        function toggleText() {
+            isTextHidden = !isTextHidden;
+            document.querySelectorAll('.math-block').forEach(b => {
+                if (isTextHidden) b.classList.add('hide-text');
+                else b.classList.remove('hide-text');
+            });
+        }
+
+        // --- 기본 탭 추가 기능 (표현, 보관함 추가) ---
+        function expressBasicNumber() {
+            const num = document.getElementById('basic-input').value;
+            if(!num) return;
+            const pool = document.getElementById('basic-pool');
+            // 기존 풀의 종이들을 초기화
+            Array.from(pool.children).forEach(c => { 
+                if(!c.classList.contains('pool-title')) c.remove(); 
+            });
+            appendBlocksForNumber(num, 'basic-pool');
+            updateDisplays();
+        }
+
+        function addBlocksToPool(poolId, val, count) {
+            const pool = document.getElementById(poolId);
+            if(!pool) return;
+            for(let i = 0; i < count; i++) {
+                pool.appendChild(createSingleBlock(val));
+            }
+            updateDisplays();
+        }
+        // ---------------------------------------------
+
+        function createSingleBlock(val, sign = 'plus') {
+            const block = document.createElement('div');
+            block.className = `math-block bg-${val} anim-pop`;
+            if (isTextHidden) block.classList.add('hide-text');
+            block.id = `block-${blockIdCounter++}`;
+            block.draggable = true;
+            block.dataset.val = val;
+            block.dataset.sign = sign;
+            block.innerText = '1'; 
+            block.addEventListener('dragstart', dragStart);
+            block.addEventListener('dragend', dragEnd);
+            block.addEventListener('dblclick', () => splitBlock(block));
+            setTimeout(() => block.classList.remove('anim-pop'), 400);
+            return block;
+        }
+
+        function appendBlocksForNumber(num, containerId, sign = 'plus') {
+            const container = document.getElementById(containerId);
+            if(!container) return;
+            let temp = parseInt(num);
+            [100000, 10000, 1000, 100, 10, 1].forEach(unit => {
+                const count = Math.floor(temp / unit);
+                temp %= unit;
+                for (let i = 0; i < count; i++) container.appendChild(createSingleBlock(unit, sign));
+            });
+        }
+
+        function splitBlock(block) {
+            if(block.parentElement.classList.contains('mini-source') || block.parentElement.id === 'div2-standard') return; 
+            const val = parseInt(block.dataset.val);
+            const sign = block.dataset.sign;
+            if (val === 1) return; 
+
+            const container = block.parentElement;
+            const prevVal = prevValMap[val];
+            let targetContainer = container;
+            
+            if (container.classList.contains('drop-zone') && container.id.includes('-z')) {
+                const prefix = container.id.split('-z')[0];
+                targetContainer = document.getElementById(`${prefix}-z${prevVal}`);
+            }
+
+            block.draggable = false; block.classList.add('anim-vanish');
+            setTimeout(() => {
+                block.remove();
+                for (let i = 0; i < 10; i++) targetContainer.appendChild(createSingleBlock(prevVal, sign));
+                checkAllCombineButtons(); updateDisplays();
+            }, 350);
+        }
+
+        function combineBlocks(prefix, val) {
+            const zone = document.getElementById(`${prefix}-z${val}`);
+            const blocks = Array.from(zone.querySelectorAll('.math-block[data-sign="plus"]')).slice(0, 10);
+            blocks.forEach(b => { b.draggable = false; b.classList.add('anim-vanish'); });
+            setTimeout(() => {
+                blocks.forEach(b => b.remove());
+                const nextVal = nextValMap[val];
+                document.getElementById(`${prefix}-z${nextVal}`).appendChild(createSingleBlock(nextVal, 'plus'));
+                checkAllCombineButtons(); updateDisplays();
+            }, 350);
+        }
+
+        // --- 나눗셈 전용: 흩어진 10개 종이 묶기 기능 ---
+        function combineScatteredBlocks(prefix) {
+            const tab = document.getElementById(`tab-${prefix}`);
+            const zones = tab.querySelectorAll('.drop-zone');
+            let combinedAnything = false;
+
+            zones.forEach(zone => {
+                let blocksByVal = {1: [], 10: [], 100: [], 1000: [], 10000: []};
+                Array.from(zone.children).forEach(b => {
+                    if (b.classList.contains('math-block')) {
+                        blocksByVal[parseInt(b.dataset.val)].push(b);
+                    }
+                });
+
+                [1, 10, 100, 1000].forEach(val => {
+                    let blocks = blocksByVal[val];
+                    while (blocks.length >= 10) {
+                        let group = blocks.splice(0, 10);
+                        group.forEach(b => {
+                            b.draggable = false;
+                            b.classList.add('anim-vanish');
+                        });
+                        combinedAnything = true;
+                        
+                        setTimeout(() => {
+                            group.forEach(b => b.remove());
+                            const nextVal = nextValMap[val];
+                            const newBlock = createSingleBlock(nextVal, 'plus');
+                            newBlock.classList.add('anim-upgrade');
+                            zone.appendChild(newBlock);
+                            updateDisplays();
+                        }, 350);
+                    }
+                });
+            });
+
+            if(!combinedAnything) {
+                alert('같은 자리수의 종이가 하나의 영역(바구니/포장 칸 등)에 10개 이상 모여있지 않아요!');
+            }
+        }
+        // ---------------------------------------------
+
+        function checkAllCombineButtons() {
+            ['basic', 'add', 'sub', 'mul1', 'mul2', 'mul3', 'mul4', 'div1', 'div2'].forEach(prefix => {
+                [1, 10, 100, 1000].forEach(val => {
+                    const zone = document.getElementById(`${prefix}-z${val}`);
+                    const btn = document.getElementById(`btn-${prefix}-${val}`);
+                    if (zone && btn) {
+                        const count = zone.querySelectorAll('.math-block[data-sign="plus"]').length;
+                        btn.style.display = count >= 10 ? 'block' : 'none';
+                    }
+                });
+            });
+        }
+
+        let draggedBlockId = null;
+
+        function dragStart(e) {
+            if (e.target.parentElement.classList.contains('mini-source') || e.target.parentElement.id === 'div2-standard') { e.preventDefault(); return; }
+            draggedBlockId = e.target.id;
+            e.dataTransfer.setData('text/plain', draggedBlockId);
+            setTimeout(() => e.target.style.opacity = '0.5', 0);
+        }
+
+        function dragEnd(e) {
+            e.target.style.opacity = '1'; checkAllCombineButtons(); updateDisplays();
+        }
+        function allowDrop(e) { e.preventDefault(); }
+
+        function drop(e, allowedZoneVal) {
+            e.preventDefault();
+            const block = document.getElementById(draggedBlockId);
+            if (!block) return;
+
+            let dropTargetBlock = e.target.closest('.math-block');
+            if (dropTargetBlock && block.dataset.sign && dropTargetBlock.dataset.sign && block.dataset.sign !== dropTargetBlock.dataset.sign) {
+                if (block.dataset.val === dropTargetBlock.dataset.val) {
+                    block.classList.add('anim-vanish'); dropTargetBlock.classList.add('anim-vanish');
+                    block.style.pointerEvents = 'none'; dropTargetBlock.style.pointerEvents = 'none';
+                    dropTargetBlock.parentNode.appendChild(block); 
+                    setTimeout(() => { block.remove(); dropTargetBlock.remove(); updateDisplays(); checkAllCombineButtons(); }, 400);
+                    return; 
+                } else {
+                    block.classList.add('anim-shake'); setTimeout(() => block.classList.remove('anim-shake'), 300); return; 
+                }
+            }
+
+            let zoneTarget = e.target.closest('.drop-zone, .pool-container, .eq-blocks, .area-cell');
+            if (!zoneTarget) return;
+
+            if (zoneTarget.id.includes('source') || zoneTarget.id.includes('area') || zoneTarget.id.includes('basket') || zoneTarget.id.includes('staging') || zoneTarget.id.includes('pool')) {
+                const originalContainer = block.parentElement;
+                if (zoneTarget === originalContainer) {
+                    zoneTarget.appendChild(block); updateDisplays(); return;
+                }
+            }
+
+            if (block.dataset.sign === 'minus' && zoneTarget.id.includes('z')) {
+                block.classList.add('anim-shake'); setTimeout(() => block.classList.remove('anim-shake'), 300); return;
+            }
+
+            const blockVal = parseInt(block.dataset.val);
+            if (allowedZoneVal === 'any' || allowedZoneVal === blockVal) {
+                zoneTarget.appendChild(block); updateDisplays();
+            } else {
+                block.classList.add('anim-shake'); setTimeout(() => block.classList.remove('anim-shake'), 300);
+            }
+        }
+
+        function moveSubToBoard() {
+            ['sub-source-1'].forEach(id => {
+                const source = document.getElementById(id);
+                if(source) {
+                    Array.from(source.querySelectorAll('.math-block[data-sign="plus"]')).forEach(b => {
+                        const val = b.dataset.val;
+                        document.getElementById(`sub-z${val}`).appendChild(b);
+                    });
+                }
+            });
+            updateDisplays();
+            checkAllCombineButtons();
+        }
+
+        function clearAll(prefix, clearInputs = false) {
+            [1, 10, 100, 1000, 10000].forEach(val => { const z = document.getElementById(`${prefix}-z${val}`); if(z) z.innerHTML = ''; });
+            
+            if(clearInputs) {
+                const inputs = document.querySelectorAll(`#tab-${prefix} input[type="number"]`);
+                inputs.forEach(input => input.value = '');
+            }
+
+            if(prefix === 'basic') {
+                const pool = document.getElementById('basic-pool');
+                Array.from(pool.children).forEach(c => { if(!c.classList.contains('pool-title')) c.remove(); });
+            } else if(prefix === 'add' || prefix === 'sub') {
+                document.getElementById(`${prefix}-num-1`).innerHTML = ''; document.getElementById(`${prefix}-num-2`).innerHTML = '';
+                document.getElementById(`${prefix}-source-1`).innerHTML = ''; document.getElementById(`${prefix}-source-2`).innerHTML = '';
+            } else if(prefix === 'mul1') {
+                document.getElementById('mul1-source').innerHTML = ''; document.getElementById('mul1-num-1').innerHTML = '';
+                const btn = document.getElementById('mul1-copy-btn');
+                btn.style.display = 'none'; btn.disabled = false; btn.style.backgroundColor = '#4D96FF';
+            } else if(prefix === 'mul2') {
+                document.getElementById('v-num1').innerHTML = ''; document.getElementById('v-num2').innerHTML = '';
+                document.getElementById('mul2-dynamic-rows').innerHTML = '';
+            } else if(prefix === 'mul3') {
+                document.getElementById('mul3-equation-display').innerHTML = '';
+                document.getElementById('mul3-dynamic-grid').innerHTML = '';
+                document.getElementById('mul3-dynamic-grid').style.display = 'none';
+                document.getElementById('mul3-move-btn').style.display = 'none';
+            } else if(prefix === 'mul4') {
+                document.getElementById('mul4-equation-display').innerHTML = '';
+                document.getElementById('mul4-grid-container').innerHTML = '';
+                document.getElementById('mul4-actions').style.display = 'none'; 
+            } else if(prefix === 'div1') {
+                document.getElementById('div1-source').innerHTML = '';
+                document.getElementById('div1-baskets-container').innerHTML = '';
+            } else if(prefix === 'div2') {
+                document.getElementById('div2-source').innerHTML = '';
+                document.getElementById('div2-standard').innerHTML = '';
+                document.getElementById('div2-group-staging').innerHTML = '';
+                document.getElementById('div2-completed-groups').innerHTML = '';
+            }
+            checkAllCombineButtons(); updateDisplays();
+        }
+
+        function generateRandom(type) {
+            const n = parseInt(document.getElementById(`digit-${type}-n`).value);
+            const m = parseInt(document.getElementById(`digit-${type}-m`).value);
+            let num1 = Math.floor(Math.random() * (Math.pow(10, n) - Math.pow(10, n-1))) + Math.pow(10, n-1);
+            let num2 = Math.floor(Math.random() * (Math.pow(10, m) - Math.pow(10, m-1))) + Math.pow(10, m-1);
+            if (type === 'sub' && num1 < num2) { const t = num1; num1 = num2; num2 = t; }
+            document.getElementById(`${type}-input-1`).value = num1; document.getElementById(`${type}-input-2`).value = num2;
+            expressOperation(type);
+        }
+
+        // --- 나눗셈 전용 자동 문제 생성 ---
+        function generateRandomDiv(type) {
+            const n = parseInt(document.getElementById(`digit-${type}-n`).value);
+            const m = parseInt(document.getElementById(`digit-${type}-m`).value);
+            let num1 = Math.floor(Math.random() * (Math.pow(10, n) - Math.pow(10, n-1))) + Math.pow(10, n-1);
+            let num2 = Math.floor(Math.random() * (Math.pow(10, m) - Math.pow(10, m-1))) + Math.pow(10, m-1);
+            
+            if(num1 < num2) { let t = num1; num1 = num2; num2 = t; }
+
+            document.getElementById(`${type}-input-1`).value = num1; 
+            document.getElementById(`${type}-input-2`).value = num2;
+            
+            if(type === 'div1') setupDiv1();
+            if(type === 'div2') setupDiv2();
+        }
+        // -----------------------------------
+
+        function expressOperation(type) {
+            const num1 = document.getElementById(`${type}-input-1`).value; const num2 = document.getElementById(`${type}-input-2`).value;
+            if(!num1 || !num2) return; clearAll(type, false);
+            document.getElementById(`${type}-num-1`).innerHTML = formatColoredNumberHTML(num1);
+            document.getElementById(`${type}-num-2`).innerHTML = formatColoredNumberHTML(num2);
+            appendBlocksForNumber(num1, `${type}-source-1`, 'plus');
+            appendBlocksForNumber(num2, `${type}-source-2`, type === 'add' ? 'plus' : 'minus');
+        }
+
+        let mul1CopiesLeft = 0, mul1OriginalNum = 0;
+        function setupMul1() {
+            const num1 = parseInt(document.getElementById('mul1-input-1').value); const num2 = parseInt(document.getElementById('mul1-input-2').value);
+            if(!num1 || !num2) return; clearAll('mul1', false);
+            mul1OriginalNum = num1; mul1CopiesLeft = num2;
+            document.getElementById('mul1-num-1').innerHTML = formatColoredNumberHTML(num1);
+            appendBlocksForNumber(num1, 'mul1-source');
+            const btn = document.getElementById('mul1-copy-btn');
+            btn.style.display = 'inline-block'; btn.innerText = `🖨️ 1묶음 복사하여 내리기 (남은 횟수: ${mul1CopiesLeft}번)`;
+        }
+        function copyMul1() {
+            if (mul1CopiesLeft <= 0) return; mul1CopiesLeft--;
+            let temp = mul1OriginalNum;
+            [100000, 10000, 1000, 100, 10, 1].forEach(unit => {
+                const count = Math.floor(temp / unit); temp %= unit;
+                const zone = document.getElementById(`mul1-z${unit}`);
+                for (let i = 0; i < count; i++) {
+                    const block = createSingleBlock(unit); block.classList.add('anim-drop'); zone.appendChild(block);
+                }
+            });
+            const btn = document.getElementById('mul1-copy-btn');
+            if (mul1CopiesLeft > 0) btn.innerText = `🖨️ 1묶음 복사하여 내리기 (남은 횟수: ${mul1CopiesLeft}번)`;
+            else { btn.innerText = `✅ 모두 복사 완료! 아래에서 계산하세요.`; btn.style.backgroundColor = '#7f8c8d'; btn.disabled = true; }
+            checkAllCombineButtons(); updateDisplays();
+        }
+
+        function setupMul2() {
+            const num1 = parseInt(document.getElementById('mul2-input-1').value); 
+            const num2 = parseInt(document.getElementById('mul2-input-2').value);
+            if(!num1 || !num2) return; clearAll('mul2', false);
+            document.getElementById('v-num1').innerHTML = formatColoredNumberHTML(num1); 
+            document.getElementById('v-num2').innerHTML = formatColoredNumberHTML(num2);
+            const container = document.getElementById('mul2-dynamic-rows'); container.innerHTML = '';
+            let temp = num2; let place = 1; let digits = [];
+            while(temp > 0) { digits.push({ val: temp % 10, place: place }); temp = Math.floor(temp / 10); place *= 10; }
+            digits.forEach(d => {
+                if(d.val > 0) {
+                    const row = document.createElement('div'); row.style = 'display:flex; justify-content:space-between; align-items:center; width: 100%; margin-top: 10px;';
+                    let btnClass = 'btn-primary'; if(d.place === 10) btnClass = 'btn-danger'; else if(d.place === 100) btnClass = 'btn-success';
+                    row.innerHTML = `<div id="btn-wrap-${d.place}"><button class="${btnClass} v-btn" id="v-btn-${d.place}" onclick="stepMul2(${d.place}, ${d.val})">${d.place}의 자리 (${d.val * d.place}) 곱하기</button></div><div id="mul2-mini-${d.place}" class="mini-source"></div>`;
+                    container.appendChild(row); appendBlocksForNumber(num1, `mul2-mini-${d.place}`);
+                }
+            });
+        }
+        function stepMul2(place, times) {
+            const btn = document.getElementById(`v-btn-${place}`); const wrap = document.getElementById(`btn-wrap-${place}`); const miniContainer = document.getElementById(`mul2-mini-${place}`);
+            const executeDrop = () => {
+                let currentIteration = 0;
+                function animateNext() {
+                    if(currentIteration >= times) return;
+                    miniContainer.classList.remove('anim-pulse-fast'); void miniContainer.offsetWidth; miniContainer.classList.add('anim-pulse-fast');
+                    Array.from(miniContainer.children).forEach(b => {
+                        const val = parseInt(b.dataset.val); const zone = document.getElementById(`mul2-z${val}`);
+                        if(zone) { const newBlock = createSingleBlock(val); newBlock.classList.add('anim-drop'); zone.appendChild(newBlock); }
+                    });
+                    updateDisplays(); checkAllCombineButtons(); currentIteration++; setTimeout(animateNext, 400);
+                }
+                animateNext();
+            };
+            if (place > 1) {
+                Array.from(miniContainer.children).forEach(block => {
+                    let currentVal = parseInt(block.dataset.val); let newVal = currentVal * place;
+                    block.className = `math-block bg-${newVal} anim-upgrade`; block.dataset.val = newVal;
+                });
+                btn.style.display = 'none';
+                let nextBtn = document.createElement('button'); nextBtn.className = 'btn-success v-btn anim-pop'; nextBtn.innerText = `이제 ${times}배 내리기!`;
+                nextBtn.onclick = () => { nextBtn.style.display = 'none'; executeDrop(); }; wrap.appendChild(nextBtn);
+            } else { btn.style.display = 'none'; executeDrop(); }
+        }
+
+        function moveAreaToBoard(prefix) {
+            let containerId = prefix === 'mul3' ? 'mul3-dynamic-grid' : 'mul4-grid-container';
+            const container = document.getElementById(containerId);
+            Array.from(container.querySelectorAll('.math-block')).forEach(b => { document.getElementById(`${prefix}-z${b.dataset.val}`).appendChild(b); });
+            if(document.getElementById(`${prefix}-move-btn`)) document.getElementById(`${prefix}-move-btn`).style.display = 'none';
+            updateDisplays(); checkAllCombineButtons();
+        }
+        function setupMul3() {
+            const num1 = parseInt(document.getElementById('mul3-input-1').value); const num2 = parseInt(document.getElementById('mul3-input-2').value);
+            if(!num1 || !num2) return; clearAll('mul3', false);
+            document.getElementById('mul3-equation-display').innerHTML = formatColoredNumberHTML(num1) + ' <span style="color:#2c3e50;">X</span> ' + formatColoredNumberHTML(num2) + ' <span style="color:#2c3e50;">= ?</span>';
+            const parseToPlaces = (num) => { let arr = []; let temp = num; let place = 1; while(temp > 0) { arr.unshift( (temp % 10) * place ); temp = Math.floor(temp / 10); place *= 10; } return arr.filter(v => v > 0); };
+            const p1 = parseToPlaces(num1); const p2 = parseToPlaces(num2); 
+            const grid = document.getElementById('mul3-dynamic-grid'); grid.style.display = 'grid'; grid.style.gridTemplateColumns = `repeat(${p2.length}, 1fr)`;
+            document.getElementById('mul3-move-btn').style.display = 'inline-block';
+            p1.forEach(v1 => { p2.forEach(v2 => { const cellId = `mul3-area-${v1}-${v2}`; const cell = document.createElement('div'); cell.className = 'area-cell drop-zone'; cell.id = cellId; cell.dataset.allowed = 'any'; cell.innerHTML = `<div class="area-label">${v1} × ${v2} 영역</div>`; grid.appendChild(cell); appendBlocksForNumber(v1 * v2, cellId); }); });
+        }
+
+        let mul4TotalValue = 0;
+        function partitionW(n) { let parts = []; let temp = n; while(temp >= 5) { parts.push(5); temp -= 5; } if (temp > 0) { parts.push(temp); } return parts; }
+        function partitionH(n) { let parts = []; let temp = n; while(temp >= 10) { parts.push(10); temp -= 10; } if (temp > 0) { parts.push(temp); } return parts; }
+        function setupMul4() {
+            const w = parseInt(document.getElementById('mul4-input-1').value); const h = parseInt(document.getElementById('mul4-input-2').value);
+            if(!w || !h) return; clearAll('mul4', false); mul4TotalValue = w * h;
+            document.getElementById('mul4-equation-display').innerHTML = formatColoredNumberHTML(w) + ' <span style="color:#2c3e50;">X</span> ' + formatColoredNumberHTML(h) + ' <span style="color:#2c3e50;">= ?</span>';
+            document.getElementById('mul4-actions').style.display = 'block';
+            const container = document.getElementById('mul4-grid-container'); const pW = partitionW(w); const pH = partitionH(h);
+            pH.forEach(hPart => {
+                const rowDiv = document.createElement('div'); rowDiv.style = 'display: flex; gap: 6px; margin-bottom: 6px;';
+                pW.forEach(wPart => {
+                    const chunkDiv = document.createElement('div'); chunkDiv.className = 'mul4-chunk'; chunkDiv.style.display = 'flex'; chunkDiv.style.flexDirection = 'column'; chunkDiv.style.gap = '2px';
+                    for (let r = 0; r < hPart; r += 2) {
+                        let rowsInGroup = Math.min(2, hPart - r); let groupDiv = document.createElement('div');
+                        if (wPart === 5) { groupDiv.className = 'mul4-group-wrapper'; }
+                        groupDiv.style = 'border: 2px solid transparent; border-radius: 6px; padding: 2px; display: flex; flex-direction: column; gap: 2px; transition: border 0.3s, background-color 0.3s;';
+                        for (let i = 0; i < rowsInGroup; i++) { let rDiv = document.createElement('div'); rDiv.style = 'display: flex; gap: 2px;'; for (let c = 0; c < wPart; c++) { let sq = document.createElement('div'); sq.style = 'width: 25px; height: 25px; background-color: #1b4f72; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);'; rDiv.appendChild(sq); } groupDiv.appendChild(rDiv); }
+                        chunkDiv.appendChild(groupDiv);
+                    }
+                    rowDiv.appendChild(chunkDiv);
+                });
+                container.appendChild(rowDiv);
+            });
+        }
+        function groupMul4Area() { const wrappers = document.querySelectorAll('.mul4-group-wrapper'); wrappers.forEach(w => w.classList.add('active')); }
+        function convertMul4ToBlocks() {
+            document.getElementById('mul4-grid-container').innerHTML = ''; document.getElementById('mul4-actions').style.display = 'none';
+            const tempDiv = document.createElement('div'); tempDiv.id = 'mul4-temp-source'; document.body.appendChild(tempDiv);
+            appendBlocksForNumber(mul4TotalValue, 'mul4-temp-source');
+            Array.from(tempDiv.children).forEach(b => { document.getElementById(`mul4-z${b.dataset.val}`).appendChild(b); });
+            tempDiv.remove(); updateDisplays(); checkAllCombineButtons();
+        }
+
+        // ==========================================
+        // 새롭게 추가/강화된 나눗셈 로직
+        // ==========================================
+
+        let div1Dividend = 0;
+        let div1Divisor = 0;
+
+        // [나눗셈 - 등분제] 바구니 셋업
+        function setupDiv1() {
+            const num1 = parseInt(document.getElementById('div1-input-1').value);
+            const num2 = parseInt(document.getElementById('div1-input-2').value);
+            if(!num1 || !num2) return;
+            clearAll('div1', false);
+
+            div1Dividend = num1;
+            div1Divisor = num2;
+
+            appendBlocksForNumber(num1, 'div1-source');
+            
+            const basketContainer = document.getElementById('div1-baskets-container');
+            for(let i=1; i<=num2; i++) {
+                const wrap = document.createElement('div');
+                wrap.className = 'basket-container-wrap';
+                wrap.innerHTML = `
+                    <div class="basket-title">바구니 ${i}</div>
+                    <div class="basket-zone drop-zone" id="div1-basket-${i}" data-allowed="any" ondragover="allowDrop(event)" ondrop="drop(event, 'any')"></div>
+                `;
+                basketContainer.appendChild(wrap);
+            }
+        }
+
+        // [나눗셈 - 등분제] 바구니 동일 여부 검사
+        function checkDiv1Baskets() {
+            if (div1Divisor === 0) return;
+            let expectedQuotient = Math.floor(div1Dividend / div1Divisor);
+            let success = true;
+            let sums = [];
+
+            for (let i = 1; i <= div1Divisor; i++) {
+                const basket = document.getElementById(`div1-basket-${i}`);
+                if (!basket) continue;
+                let sum = 0;
+                Array.from(basket.children).forEach(b => {
+                    if(b.classList.contains('math-block')) sum += parseInt(b.dataset.val);
+                });
+                sums.push(sum);
+                // 몫이 정확한지 확인
+                if (sum !== expectedQuotient) {
+                    success = false;
+                }
+            }
+
+            if (success) {
+                alert(`✨ 성공입니다! 바구니마다 똑같이 ${expectedQuotient}만큼 나누어 담았습니다! ✨\n1묶음(몫)을 아래 보드에 나타냅니다.`);
+                // 몫을 아래 보드에 생성
+                [1, 10, 100, 1000, 10000].forEach(val => {
+                    const z = document.getElementById(`div1-z${val}`);
+                    if(z) z.innerHTML = ''; // 보드 초기화
+                });
+                
+                let temp = expectedQuotient;
+                [100000, 10000, 1000, 100, 10, 1].forEach(unit => {
+                    const count = Math.floor(temp / unit); temp %= unit;
+                    const zone = document.getElementById(`div1-z${unit}`);
+                    for (let i = 0; i < count; i++) {
+                        if(zone) {
+                            const block = createSingleBlock(unit);
+                            block.classList.add('anim-drop');
+                            zone.appendChild(block);
+                        }
+                    }
+                });
+                updateDisplays();
+                checkAllCombineButtons();
+            } else {
+                alert(`아직 똑같이 나누어지지 않았어요!\n(현재 바구니 안의 수: ${sums.join(', ')})\n다시 한번 확인해보세요.`);
+            }
+        }
+
+        // [나눗셈 - 포함제] 묶음 셋업
+        let div2TargetDivisor = 0;
+        function setupDiv2() {
+            const num1 = parseInt(document.getElementById('div2-input-1').value);
+            const num2 = parseInt(document.getElementById('div2-input-2').value);
+            if(!num1 || !num2) return;
+            clearAll('div2', false);
+            
+            div2TargetDivisor = num2;
+
+            appendBlocksForNumber(num1, 'div2-source');
+            appendBlocksForNumber(num2, 'div2-standard');
+        }
+
+        // [나눗셈 - 포함제] 묶음 검사 로직
+        function groupDiv2Blocks() {
+            const staging = document.getElementById('div2-group-staging');
+            let currentSum = 0;
+            
+            Array.from(staging.children).forEach(block => {
+                if(block.classList.contains('math-block')) {
+                    currentSum += parseInt(block.dataset.val);
+                }
+            });
+
+            if (currentSum === 0) {
+                alert("포장할 종이가 없습니다. 위에서 끌어와주세요!");
+                return;
+            }
+
+            if (currentSum === div2TargetDivisor) {
+                const groupsContainer = document.getElementById('div2-completed-groups');
+                const newGroup = document.createElement('div');
+                newGroup.className = 'completed-group anim-pop';
+                
+                Array.from(staging.children).forEach(block => {
+                    block.draggable = false; 
+                    block.style.cursor = 'default';
+                    newGroup.appendChild(block);
+                });
+                
+                groupsContainer.appendChild(newGroup);
+            } else {
+                alert(`기준 모양의 크기(${div2TargetDivisor})와 다릅니다! 현재 모인 크기: ${currentSum}`);
+                Array.from(staging.children).forEach(block => {
+                    block.classList.add('anim-shake');
+                    setTimeout(() => block.classList.remove('anim-shake'), 300);
+                });
+            }
+        }
+
+    </script>
+</body>
+</html>
