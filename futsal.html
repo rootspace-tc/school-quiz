@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>풋살 작전판 프로</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            margin: 0 0 20px 0;
+            color: #f1c40f;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 1100px;
+        }
+
+        button {
+            font-family: 'Jua', sans-serif;
+            background-color: #34495e;
+            color: white;
+            border: 2px solid #7f8c8d;
+            border-radius: 5px;
+            padding: 8px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover { background-color: #2c3e50; }
+        button.active { background-color: #e67e22; border-color: #d35400; }
+        
+        .save-btn { background-color: #27ae60; }
+        .load-btn { background-color: #2980b9; }
+        .reset-btn { background-color: #c0392b; }
+
+        /* 전체 작전판 영역 (경기장 라인 외부 공간 포함) */
+        .board-wrapper {
+            position: relative;
+            width: 1100px;
+            height: 650px;
+            background-color: #27ae60; /* 잔디색 */
+            border: 2px dashed rgba(255,255,255,0.3);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        /* 실제 풋살 경기장 라인 (내부에 배치하여 바깥 공간 확보) */
+        .pitch-outline {
+            position: absolute;
+            left: 100px;
+            top: 75px;
+            width: 900px;
+            height: 500px;
+            border: 5px solid white;
+            box-sizing: border-box;
+            pointer-events: none; /* 클릭 방해 금지 */
+        }
+        
+        .line-center {
+            position: absolute;
+            left: 550px; /* 1100의 절반 */
+            top: 75px;
+            height: 500px;
+            width: 5px;
+            background-color: white;
+            pointer-events: none;
+        }
+        
+        .circle-center {
+            position: absolute;
+            left: 550px;
+            top: 325px; /* 650의 절반 */
+            width: 140px;
+            height: 140px;
+            border: 5px solid white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+        
+        .penalty-area-left {
+            position: absolute;
+            left: 100px;
+            top: 325px;
+            width: 150px;
+            height: 280px;
+            border: 5px solid white;
+            border-left: none;
+            border-radius: 0 140px 140px 0;
+            transform: translateY(-50%);
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+        
+        .penalty-area-right {
+            position: absolute;
+            right: 100px;
+            top: 325px;
+            width: 150px;
+            height: 280px;
+            border: 5px solid white;
+            border-right: none;
+            border-radius: 140px 0 0 140px;
+            transform: translateY(-50%);
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+
+        /* 코너킥 라인 표시 */
+        .corner {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 5px solid white;
+            pointer-events: none;
+        }
+        .clt { left: 100px; top: 75px; border-radius: 0 0 20px 0; border-left:none; border-top:none; }
+        .clb { left: 100px; bottom: 75px; border-radius: 0 20px 0 0; border-left:none; border-bottom:none; }
+        .crt { right: 100px; top: 75px; border-radius: 0 0 0 20px; border-right:none; border-top:none; }
+        .crb { right: 100px; bottom: 75px; border-radius: 20px 0 0 0; border-right:none; border-bottom:none; }
+
+        /* 캔버스 (드로잉용) */
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 10;
+        }
+
+        /* 선수 디자인 */
+        .player {
+            position: absolute;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 15px;
+            text-shadow: 1px 1px 2px black;
+            cursor: grab;
+            user-select: none;
+            z-index: 20;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+            border: 2px solid rgba(255,255,255,0.6);
+            box-sizing: border-box;
+        }
+        .player:active { cursor: grabbing; }
+        
+        .team-red { background-color: #e74c3c; }
+        .team-blue { background-color: #3498db; }
+        
+        /* 공 디자인 수정 (문양 전용) */
+        .ball {
+            background-color: white;
+            width: 32px;
+            height: 32px;
+            font-size: 24px;
+            line-height: 1;
+            z-index: 25;
+            border: 1px solid #333;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.5);
+            text-shadow: none;
+        }
+
+        .instruction {
+            margin-top: 15px;
+            color: #bdc3c7;
+            font-size: 15px;
+            text-align: center;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>⚽ 풋살 작전판 (확장판)</h1>
+
+    <div class="toolbar">
+        <button id="btn-pen" class="active" onclick="setMode('pen')">✏️ 펜</button>
+        <button id="btn-text" onclick="setMode('text')">🔤 글씨쓰기</button>
+        <button id="btn-eraser" onclick="setMode('eraser')">🧹 지우개(부분)</button>
+        <button onclick="clearCanvas()">🗑️ 모두 지우기(선/글)</button>
+        
+        <div style="width: 20px;"></div>
+        
+        <button class="save-btn" onclick="saveFormation(1)">💾 1번 저장</button>
+        <button class="load-btn" onclick="loadFormation(1)">📂 1번 불러오기</button>
+        <button class="save-btn" onclick="saveFormation(2)">💾 2번 저장</button>
+        <button class="load-btn" onclick="loadFormation(2)">📂 2번 불러오기</button>
+        <button class="save-btn" onclick="saveFormation(3)">💾 3번 저장</button>
+        <button class="load-btn" onclick="loadFormation(3)">📂 3번 불러오기</button>
+        
+        <button class="reset-btn" onclick="loadFormation('default')">🔄 초기 배열로 리셋</button>
+    </div>
+
+    <div class="board-wrapper" id="board">
+        <div class="pitch-outline"></div>
+        <div class="line-center"></div>
+        <div class="circle-center"></div>
+        <div class="penalty-area-left"></div>
+        <div class="penalty-area-right"></div>
+        
+        <div class="corner clt"></div>
+        <div class="corner clb"></div>
+        <div class="corner crt"></div>
+        <div class="corner crb"></div>
+
+        <canvas id="drawLayer" width="1100" height="650"></canvas>
+
+        <div class="player ball" id="ball" style="left: 534px; top: 309px;">⚽</div>
+
+        <div class="player team-red" id="r1" style="left: 130px; top: 304px;">GK</div>
+        <div class="player team-red" id="r2" style="left: 280px; top: 160px;">피보</div>
+        <div class="player team-red" id="r3" style="left: 280px; top: 450px;">아라L</div>
+        <div class="player team-red" id="r4" style="left: 430px; top: 220px;">아라R</div>
+        <div class="player team-red" id="r5" style="left: 430px; top: 390px;">픽소</div>
+
+        <div class="player team-blue" id="b1" style="left: 930px; top: 304px;">GK</div>
+        <div class="player team-blue" id="b2" style="left: 780px; top: 160px;">피보</div>
+        <div class="player team-blue" id="b3" style="left: 780px; top: 450px;">아라R</div>
+        <div class="player team-blue" id="b4" style="left: 630px; top: 220px;">아라L</div>
+        <div class="player team-blue" id="b5" style="left: 630px; top: 390px;">픽소</div>
+    </div>
+
+    <div class="instruction">
+        💡 <strong>안내:</strong> 경기장 흰색 선 바깥의 여유 공간으로 선수와 공을 보낼 수 있어 <strong>킥인, 코너킥, 골킥</strong> 전술 설명이 가능합니다.<br>
+        선수를 <strong>더블 클릭</strong>하면 이름을 변경할 수 있습니다. (공은 변경 제외)
+    </div>
+
+    <script>
+        // --- 드래그 앤 드롭 기능 ---
+        let draggedElement = null;
+        let offsetX = 0;
+        let offsetY = 0;
+        const board = document.getElementById('board');
+
+        document.querySelectorAll('.player').forEach(player => {
+            // 이름 변경 (더블클릭)
+            player.addEventListener('dblclick', function() {
+                if(this.classList.contains('ball')) return; 
+                const currentName = this.innerText;
+                const newName = prompt("선수 이름을 입력하세요:", currentName);
+                if (newName !== null) {
+                    this.innerText = newName.substring(0, 4); 
+                }
+            });
+
+            // 드래그 시작
+            player.addEventListener('mousedown', function(e) {
+                draggedElement = this;
+                const rect = this.getBoundingClientRect();
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
+            });
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (draggedElement) {
+                const boardRect = board.getBoundingClientRect();
+                let x = e.clientX - boardRect.left - offsetX;
+                let y = e.clientY - boardRect.top - offsetY;
+
+                // 제한 범위를 전체 보드(1100x650) 경계로 넓혀서 선 밖으로 이동 가능하게 처리
+                x = Math.max(0, Math.min(x, boardRect.width - draggedElement.offsetWidth));
+                y = Math.max(0, Math.min(y, boardRect.height - draggedElement.offsetHeight));
+
+                draggedElement.style.left = x + 'px';
+                draggedElement.style.top = y + 'px';
+            }
+        });
+
+        document.addEventListener('mouseup', () => { draggedElement = null; });
+
+
+        // --- 캔버스 그리기 기능 ---
+        const canvas = document.getElementById('drawLayer');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let drawMode = 'pen'; 
+
+        function setMode(mode) {
+            drawMode = mode;
+            document.getElementById('btn-pen').classList.remove('active');
+            document.getElementById('btn-text').classList.remove('active');
+            document.getElementById('btn-eraser').classList.remove('active');
+            document.getElementById(`btn-${mode}`).classList.add('active');
+        }
+
+        canvas.addEventListener('mousedown', function(e) {
+            if (drawMode === 'text') {
+                const text = prompt("입력할 작전 메모를 적어주세요:");
+                if (text) {
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.fillStyle = '#f1c40f'; // 눈에 잘 띄는 노란색 글씨
+                    ctx.font = '24px Jua';
+                    ctx.shadowColor = 'black';
+                    ctx.shadowBlur = 4;
+                    ctx.fillText(text, e.offsetX, e.offsetY);
+                    ctx.shadowBlur = 0; 
+                }
+                return;
+            }
+
+            isDrawing = true;
+            ctx.beginPath();
+            ctx.moveTo(e.offsetX, e.offsetY);
+        });
+
+        canvas.addEventListener('mousemove', function(e) {
+            if (!isDrawing || drawMode === 'text') return;
+
+            ctx.lineTo(e.offsetX, e.offsetY);
+            
+            if (drawMode === 'eraser') {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.lineWidth = 25;
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+            }
+            ctx.stroke();
+        });
+
+        canvas.addEventListener('mouseup', () => { isDrawing = false; });
+        canvas.addEventListener('mouseout', () => { isDrawing = false; });
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+
+        // --- 포메이션 저장 및 리셋 기능 ---
+        const formations = { 1: null, 2: null, 3: null };
+        let defaultFormation = [];
+
+        // 페이지 초기 포메이션 데이터 기억
+        window.onload = () => {
+            document.querySelectorAll('.player').forEach(p => {
+                defaultFormation.push({
+                    id: p.id,
+                    left: p.style.left,
+                    top: p.style.top,
+                    text: p.innerText
+                });
+            });
+        };
+
+        function saveFormation(slotNumber) {
+            let state = [];
+            document.querySelectorAll('.player').forEach(p => {
+                state.push({
+                    id: p.id,
+                    left: p.style.left,
+                    top: p.style.top,
+                    text: p.innerText
+                });
+            });
+            formations[slotNumber] = state;
+            alert(`${slotNumber}번 포메이션 전술이 저장되었습니다.`);
+        }
+
+        function loadFormation(slotNumber) {
+            let stateToLoad = slotNumber === 'default' ? defaultFormation : formations[slotNumber];
+            
+            if (!stateToLoad) {
+                alert(`저장된 ${slotNumber}번 포메이션이 없습니다.`);
+                return;
+            }
+
+            stateToLoad.forEach(data => {
+                const element = document.getElementById(data.id);
+                if (element) {
+                    element.style.left = data.left;
+                    element.style.top = data.top;
+                    // 공 문양 이모지가 텍스트 변경으로 사라지지 않게 방어
+                    if (!element.classList.contains('ball')) {
+                        element.innerText = data.text;
+                    }
+                }
+            });
+
+            if (slotNumber === 'default') {
+                clearCanvas();
+            }
+        }
+    </script>
+</body>
+</html>
