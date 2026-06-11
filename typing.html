@@ -197,6 +197,12 @@
         .leaderboard-table th { color: #fbbf24; font-weight: bold; text-align: center; }
         
         #cheat-modal input { background: #334155; border: 1px solid #475569; color: white; padding: 5px; border-radius: 4px; width: 80px; text-align: center; }
+        
+        /* 스크롤바 커스텀 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
     </style>
 </head>
 <body>
@@ -248,6 +254,30 @@
             <button id="close-help-btn" class="mt-8 px-8 py-3 bg-gray-600 hover:bg-gray-500 text-white text-2xl rounded-xl font-bold transition">닫기</button>
         </div>
 
+        <div id="word-settings-modal" class="absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-[80] hidden backdrop-blur-md">
+            <h2 class="text-4xl text-green-400 title-font mb-4">⚙️ 맞춤형 단어장 설정</h2>
+            <p class="text-gray-300 mb-6 text-center leading-relaxed">
+                단어를 직접 입력하시면 입력한 단어들로만 게임이 진행됩니다.<br>
+                <span class="text-sm text-gray-400">(단어는 띄어쓰기, 줄바꿈, 쉼표 등으로 편하게 구분하여 넣으세요. 비워두면 기존 기본 단어장이 사용됩니다.)</span>
+            </p>
+            
+            <div class="w-full max-w-3xl bg-gray-800 p-6 rounded-xl border border-gray-600 flex flex-col gap-5">
+                <div>
+                    <label class="text-white font-bold mb-2 block">📝 일반 단어 <span class="text-sm font-normal text-gray-400">- 이곳에 연습할 단어들을 넣어주세요.</span></label>
+                    <textarea id="custom-normal-input" class="w-full h-32 bg-gray-900 text-white p-3 rounded border border-gray-600 focus:border-green-400 outline-none resize-none" placeholder="여기에 일반 단어들을 붙여넣기 하세요..."></textarea>
+                </div>
+                <div>
+                    <label class="text-blue-300 font-bold mb-2 block">✨ 희귀(엘리트) 단어 <span class="text-sm font-normal text-gray-400">- 비워두면 위의 '일반 단어' 중에서 20%를 무작위로 자동 분류합니다!</span></label>
+                    <textarea id="custom-elite-input" class="w-full h-24 bg-gray-900 text-blue-200 p-3 rounded border border-blue-600 focus:border-blue-400 outline-none resize-none" placeholder="특정 단어만 희귀 단어로 띄우고 싶다면 여기에 따로 입력하세요..."></textarea>
+                </div>
+            </div>
+            
+            <div class="flex gap-4 mt-8">
+                <button id="save-words-btn" class="px-10 py-4 bg-green-600 hover:bg-green-500 text-white text-2xl rounded-xl font-bold transition shadow-[0_0_15px_rgba(34,197,94,0.4)]">설정 완료 및 닫기</button>
+                <button id="reset-words-btn" class="px-8 py-4 bg-red-600 hover:bg-red-500 text-white text-xl rounded-xl font-bold transition">입력창 초기화</button>
+            </div>
+        </div>
+
         <div id="start-screen" class="absolute inset-0 bg-gray-900/95 flex flex-col items-center justify-center z-50 overflow-y-auto py-10">
             <h1 class="text-6xl text-blue-400 title-font mb-4 text-center mt-auto">타자연습 에듀</h1>
             <p class="text-xl text-gray-300 mb-4 text-center leading-relaxed">
@@ -263,7 +293,10 @@
                 <button class="diff-btn px-6 py-2 bg-red-600 text-white rounded-lg text-xl font-bold transition border-2 border-white" data-diff="hard">어려움</button>
             </div>
             
-            <button id="main-help-btn" class="px-6 py-2 bg-purple-700 hover:bg-purple-600 text-white text-lg rounded-lg font-bold transition mb-6 border border-purple-400">📖 아이템 도감 확인</button>
+            <div class="flex gap-4 mb-6">
+                <button id="main-help-btn" class="px-6 py-2 bg-purple-700 hover:bg-purple-600 text-white text-lg rounded-lg font-bold transition border border-purple-400">📖 아이템 도감</button>
+                <button id="custom-word-btn" class="px-6 py-2 bg-green-700 hover:bg-green-600 text-white text-lg rounded-lg font-bold transition border border-green-400">⚙️ 내 단어장 설정</button>
+            </div>
 
             <button id="start-btn" class="px-12 py-4 bg-blue-600 hover:bg-blue-500 text-white text-3xl rounded-xl font-bold title-font shadow-[0_0_20px_rgba(59,130,246,0.6)] mb-8 transition">
                 전투 시작
@@ -376,24 +409,66 @@
             knockback: () => playTone(200, 'sine', 0.4, 0.1)
         };
 
-        const wordPool = ["감각", "사물", "표현", "낭송", "실천", "지방", "해양", "문장", "추측", "전통", "공경", "교문", "언어", "출근", "대화", "생신", "외삼촌", "도시", "취직", "중요", "정리", "견학", "과제", "정보", "대표", "능력","외국", "원인", "속담", "기본형", "안전", "사전", "기후", "전학", "전화", "소용", "여유", "분리", "일회용", "일기", "강력", "생략", "안내문", "성공", "서약서", "참가", "채집", "연구", "역할", "종일", "금지", "제안","조건", "방안", "밀접", "주변", "특징", "의도", "다양", "가상", "현실", "주요", "여가", "의료", "교육", "인공위성", "공공 기관", "확대", "축소", "영상", "증명", "생태", "답사", "기능", "발급", "개선", "안심", "권리", "의논", "사례","화폐", "이동", "기준", "과거", "신문", "나열", "풍경", "변화", "짐작", "영향", "연도", "연대", "역사", "애장품", "증언", "증거", "건축물", "유적", "과밀", "추억", "지역", "고유", "문헌", "유래", "상징", "편집", "촬영","과정", "개념", "활용", "점검", "평면", "도형", "평면도형", "변", "삼각형", "사각형", "공통", "선분", "직선", "반직선", "이용", "설명", "각", "직각", "표시", "직각삼각형", "칠교판", "직사각형", "점선", "정사각형","합", "수직선", "비교", "횟수", "차", "계산", "시간", "시각", "관계", "소수", "단위분수", "분모", "분자", "측정", "규칙", "분류", "공통점", "도구", "도입", "융합", "정보처리", "추론", "계량","협력", "수평", "탐구", "정확", "용수철", "물체", "관찰", "공유", "소통", "화단", "차이점", "관련", "도감", "균형", "극지방", "사막", "남극", "북극", "모방", "수직", "탐험", "식물", "생활용품","별명", "생활방식", "저장", "보안경", "환경", "생체모방", "창의성", "기기", "생물", "자손", "주의", "계획", "계획서", "사육", "보완", "보호", "곤충", "구분", "온도", "선택", "실험", "보통", "부분","의견", "목적", "전개", "상황", "소감", "사회", "분명", "효율", "채집", "수확", "위조", "차이", "구별", "근거", "정확", "평가", "편집", "묘사", "대비", "생동감", "이해", "파악", "주제", "완주", "회의","전교", "참석", "절차", "참여", "개회", "선정", "토의", "표결", "폐회", "규제", "채택", "활용", "짐작", "관계", "상용", "탐사", "궤도", "제안", "특성", "배경", "표어", "점검", "탁월", "연표", "과장","노선도", "안내도", "방위", "지도", "기호", "자율주행", "방향", "범례", "등고선", "축척", "약도", "지형", "특별시", "특별자치도", "특별자치시", "평야", "행정구역", "면적", "인구", "하천", "산지", "해안", "기온", "기상청", "무형유산","국가유산", "자연유산", "답사", "면담", "기념관", "유적지", "가상현실", "발굴", "경제활동", "자원", "한정", "희소성", "구매", "합리적선택", "품질", "정보", "생산", "소비", "생산지", "교류", "상호의존", "소득", "특산물", "자매결연", "협약","자석", "물체", "극", "나침반", "현상", "작용", "장치", "상태", "변화", "고체", "액체", "기체", "수증기", "증발", "기포", "응결", "침식", "운반", "퇴적", "하류", "상류", "경사", "폭", "화산", "분화구", "분출", "지표면", "용암", "암석", "화성암", "현무암", "화강암", "지진", "규모", "대처", "산사태", "재난", "균사", "균류", "양분", "포자", "번식", "현미경", "배율", "접안", "대물", "회전판", "재물대", "초점조절나사", "원생생물", "세균", "나선", "분해", "생명과학", "각도", "직각", "예각", "둔각", "단위", "방법", "범위", "기부", "금액", "잔액", "수입", "평면도형", "이동", "위치", "모양", "활용", "공간", "예상", "계산", "문제", "규칙", "배열", "등호", "표현", "비교", "완성", "결과", "확인", "자료", "조사", "정리", "해석", "수량", "제목", "수집", "분석", "추측", "항목", "추천", "권장", "공유", "주장", "공감", "홍보", "처지", "고려", "단서", "짐작", "생략", "예상", "기행문", "여정", "견문", "감상", "개요", "유형", "선별", "제안", "의도", "대안", "명료", "매체", "신뢰", "검색", "제공", "적합", "반영", "구성", "상징", "열거", "대조", "대처", "파손", "수집", "공공", "관점", "토의", "보완", "타당", "비판", "방안", "비유적", "은유", "직유", "인상", "대비", "단연", "후환", "주권", "국토", "지형", "산맥", "하천", "평야", "해안", "다도해", "반도", "만", "행정 구역", "영토", "영해", "영공", "영역", "천연기념물", "기후", "등온선", "자연재해", "황사", "호우", "태풍", "폭염", "폭설", "한파", "인구분포", "인구밀도", "인구구조", "수도권", "지방", "규범", "법", "헌법", "준법", "강제성", "의무", "권리", "인권", "보장", "차별", "평등", "자유", "제재", "근로", "분쟁", "인권침해", "편의시설", "사회보장제도", "사회복지사", "자연수", "혼합", "계산식", "차례", "결과", "해당", "조건", "반복", "개념", "배", "배수", "공배수", "최소공배수", "약수", "공약수", "최대공약수", "공통", "각각", "대응", "관계", "양", "배열", "연산", "기준", "분수", "분모", "분자", "약분", "기약분수", "통분", "공통분모", "암호", "해독", "진분수", "대분수", "가분수", "단위분수", "다각형", "정다각형", "변", "모양", "도형", "단위", "대각선", "수직", "평행", "평행선", "개수", "칠교판", "지층", "퇴적물", "수평", "추리", "운반", "암석", "퇴적암", "이암", "사암", "역암", "화석", "표본", "흔적", "삼엽충", "모형", "산지", "전등", "지시기", "직진", "평면", "확산", "반사", "굴절", "통과", "경계", "확대", "장치", "현상", "용해", "용매", "용질", "용액", "요인", "상온", "구조", "기능", "골격", "근육", "지탱", "기관", "영양소", "소화", "경로", "혈액", "순환", "호흡", "노폐물", "배설", "맥박", "질병"];
+        // 📝 [기본 단어장] 여기에 기존처럼 기본 단어를 채워주시면 됩니다!
+        const wordPool = ["감각", "사물", "표현", "낭송", "실천", "지방", "해양", "문장", "추측", "전통", "공경", "교문", "언어", "출근", "대화", "생신", "외삼촌", "도시", "취직", "중요", "정리", "견학", "과제", "정보", "대표", "능력","외국", "원인", "속담", "기본형", "안전", "사전", "기후", "전학", "전화", "소용", "여유", "분리", "일회용", "일기", "강력", "생략", "안내문", "성공", "서약서", "참가", "채집", "연구", "역할", "종일", "금지", "제안","조건", "방안", "밀접", "주변", "특징", "의도", "다양", "가상", "현실", "주요", "여가", "의료", "교육", "인공위성", "공공 기관", "확대", "축소", "영상", "증명", "생태", "답사", "기능", "발급", "개선", "안심", "권리", "의논", "사례","화폐", "이동", "기준", "과거", "신문", "나열", "풍경", "변화", "짐작", "영향", "연도", "연대", "역사", "애장품", "증언", "증거", "건축물", "유적", "과밀", "추억", "지역", "고유", "문헌", "유래", "상징", "편집", "촬영","과정", "개념", "활용", "점검", "평면", "도형", "평면도형", "변", "삼각형", "사각형", "공통", "선분", "직선", "반직선", "이용", "설명", "각", "직각", "표시", "직각삼각형", "칠교판", "직사각형", "점선", "정사각형","합", "수직선", "비교", "횟수", "차", "계산", "시간", "시각", "관계", "소수", "단위분수", "분모", "분자", "측정", "규칙", "분류", "공통점", "도구", "도입", "융합", "정보처리", "추론", "계량","협력", "수평", "탐구", "정확", "용수철", "물체", "관찰", "공유", "소통", "화단", "차이점", "관련", "도감", "균형", "극지방", "사막", "남극", "북극", "모방", "수직", "탐험", "식물", "생활용품","별명", "생활방식", "저장", "보안경", "환경", "생체모방", "창의성", "기기", "생물", "자손", "주의", "계획", "계획서", "사육", "보완", "보호", "곤충", "구분", "온도", "선택", "실험", "보통", "부분","의견", "목적", "전개", "상황", "소감", "사회", "분명", "효율", "채집", "수확", "위조", "차이", "구별", "근거", "정확", "평가", "편집", "묘사", "대비", "생동감", "이해", "파악", "주제", "완주", "회의","전교", "참석", "절차", "참여", "개회", "선정", "토의", "표결", "폐회", "규제", "채택", "활용", "짐작", "관계", "상용", "탐사", "궤도", "제안", "특성", "배경", "표어", "점검", "탁월", "연표", "과장","노선도", "안내도", "방위", "지도", "기호", "자율주행", "방향", "범례", "등고선", "축척", "약도", "지형", "특별시", "특별자치도", "특별자치시", "평야", "행정구역", "면적", "인구", "하천", "산지", "해안", "기온", "기상청", "무형유산","국가유산", "자연유산", "답사", "면담", "기념관", "유적지", "가상현실", "발굴", "경제활동", "자원", "한정", "희소성", "구매", "합리적선택", "품질", "정보", "생산", "소비", "생산지", "교류", "상호의존", "소득", "특산물", "자매결연", "협약","자석", "물체", "극", "나침반", "현상", "작용", "장치", "상태", "변화", "고체", "액체", "기체", "수증기", "증발", "기포", "응결", "침식", "운반", "퇴적", "하류", "상류", "경사", "폭", "화산", "분화구", "분출", "지표면", "용암", "암석", "화성암", "현무암", "화강암", "지진", "규모", "대처", "산사태", "재난", "균사", "균류", "양분", "포자", "번식", "현미경", "배율", "접안", "대물", "회전판", "재물대", "초점조절나사", "원생생물", "세균", "나선", "분해", "생명과학", "각도", "직각", "예각", "둔각", "단위", "방법", "범위", "기부", "금액", "잔액", "수입", "평면도형", "이동", "위치", "모양", "활용", "공간", "예상", "계산", "문제", "규칙", "배열", "등호", "표현", "비교", "완성", "결과", "확인", "자료", "조사", "정리", "해석", "수량", "제목", "수집", "분석", "추측", "항목", "추천", "권장", "공유", "주장", "공감", "홍보", "처지", "고려", "단서", "짐작", "생략", "예상", "기행문", "여정", "견문", "감상", "개요", "유형", "선별", "제안", "의도", "대안", "명료", "매체", "신뢰", "검색", "제공", "적합", "반영", "구성", "상징", "열거", "대조", "대처", "파손", "수집", "공공", "관점", "토의", "보완", "타당", "비판", "방안", "비유적", "은유", "직유", "인상", "대비", "단연", "후환", "주권", "국토", "지형", "산맥", "하천", "평야", "해안", "다도해", "반도", "만", "행정 구역", "영토", "영해", "영공", "영역", "천연기념물", "기후", "등온선", "자연재해", "황사", "호우", "태풍", "폭염", "폭설", "한파", "인구분포", "인구밀도", "인구구조", "수도권", "지방", "규범", "법", "헌법", "준법", "강제성", "의무", "권리", "인권", "보장", "차별", "평등", "자유", "제재", "근로", "분쟁", "인권침해", "편의시설", "사회보장제도", "사회복지사", "자연수", "혼합", "계산식", "차례", "결과", "해당", "조건", "반복", "개념", "배", "배수", "공배수", "최소공배수", "약수", "공약수", "최대공약수", "공통", "각각", "대응", "관계", "양", "배열", "연산", "기준", "분수", "분모", "분자", "약분", "기약분수", "통분", "공통분모", "암호", "해독", "진분수", "대분수", "가분수", "단위분수", "다각형", "정다각형", "변", "모양", "도형", "단위", "대각선", "수직", "평행", "평행선", "개수", "칠교판", "지층", "퇴적물", "수평", "추리", "운반", "암석", "퇴적암", "이암", "사암", "역암", "화석", "표본", "흔적", "삼엽충", "모형", "산지", "전등", "지시기", "직진", "평면", "확산", "반사", "굴절", "통과", "경계", "확대", "장치", "현상", "용해", "용매", "용질", "용액", "요인", "상온", "구조", "기능", "골격", "근육", "지탱", "기관", "영양소", "소화", "경로", "혈액", "순환", "호흡", "노폐물", "배설", "맥박", "질병"]; 
+        const eliteWordPool = ["가치", "방안", "감상", "본론", "개요", "비판적", "객관적", "서론", "견문", "서술어", "견학기록문", "설득력", "결론", "속담", "공식적", "여정", "관용어", "의도", "관점", "교정부호", "인용", "저작권", "근거", "전기문", "논의", "주관적", "다의어", "주어", "대립", "초상권", "대본", "출처", "대사", "타당", "매체", "토론", "목적어", "토의", "묘사", "판정", "문단", "편집", "문맥", "표절", "문장성분", "합리적", "반론", "해설", "발언", "호응" , "간선제", "삼심제도", "경공업", "성명", "경도", "세계지도", "계엄령", "시차", "국경선", "여론", "국무총리", "예산", "국무회의", "위도", "국방비", "유권자", "국정감사", "재판", "국회", "저위도", "권력분립", "적도", "대륙", "정변", "대양", "정상회담", "독재", "정책", "동경", "정치", "민주주의", "중화학 공업", "법원", "지구본", "보통 선거", "지방 자치제", "본초자오선", "직선제", "부정선거", "태평양", "북반구", "항쟁", "북위", "행정부", "분단", "허위", "비무장", "혁명", "산업화", "휴전선" , "개념", "실생활", "거래", "열량", "계산기", "유용", "공간", "이자", "구상", "입금", "구조물", "자연수", "기약분수", "잔액", "기준량", "전개도", "기타", "정보", "기호", "조건", "단위", "중심", "득표수", "직육면체", "밀집", "차이점", "발생량", "축척", "출금", "백분율", "부분", "타율", "통계", "비율", "할인", "빈도", "선분", "합계", "합동", "수직", "항목", "수집", "해결", "습도", "해석", "횟수", "개량", "양분", "개화", "염기성", "경보", "용액", "공전", "운동", "과속", "위성", "관측", "자전", "광학", "재물대", "광합성", "저장", "궤도", "접안", "기공", "제산제", "기관", "조경", "단속", "주입", "대물", "증산", "도감", "지시약", "망원경", "지지", "방위", "천문", "방제", "천체", "병충해", "보행자", "투영", "산성", "표백제", "산성화", "표본", "세포", "흡수", "속력", "핵", "안전수칙", "훼손", "안전장치", "표피","일석이조", "고진감래", "작심삼일", "동문서답", "역지사지", "새옹지마", "유비무환", "이심전심", "십시일반", "개과천선", "금상첨화", "설상가상", "대기만성", "우이독경", "과유불급", "구사일생", "동고동락", "사필귀정", "천고마비", "청출어람", "유유상종", "다재다능", "감언이설", "마이동풍", "아전인수", "오리무중", "학수고대", "각골난망", "형설지공", "칠전팔기"]; 
 
-        const eliteWordPool = ["가치", "방안", "감상", "본론", "개요", "비판적", "객관적", "서론", "견문", "서술어", "견학기록문", "설득력", "결론", "속담", "공식적", "여정", "관용어", "의도", "관점", "교정부호", "인용", "저작권", "근거", "전기문", "논의", "주관적", "다의어", "주어", "대립", "초상권", "대본", "출처", "대사", "타당", "매체", "토론", "목적어", "토의", "묘사", "판정", "문단", "편집", "문맥", "표절", "문장성분", "합리적", "반론", "해설", "발언", "호응" , "간선제", "삼심제도", "경공업", "성명", "경도", "세계지도", "계엄령", "시차", "국경선", "여론", "국무총리", "예산", "국무회의", "위도", "국방비", "유권자", "국정감사", "재판", "국회", "저위도", "권력분립", "적도", "대륙", "정변", "대양", "정상회담", "독재", "정책", "동경", "정치", "민주주의", "중화학 공업", "법원", "지구본", "보통 선거", "지방 자치제", "본초자오선", "직선제", "부정선거", "태평양", "북반구", "항쟁", "북위", "행정부", "분단", "허위", "비무장", "혁명", "산업화", "휴전선" , "개념", "실생활", "거래", "열량", "계산기", "유용", "공간", "이자", "구상", "입금", "구조물", "자연수", "기약분수", "잔액", "기준량", "전개도", "기타", "정보", "기호", "조건", "단위", "중심", "득표수", "직육면체", "밀집", "차이점", "발생량", "축척", "출금", "백분율", "부분", "타율", "통계", "비율", "할인", "빈도", "선분", "합계", "합동", "수직", "항목", "수집", "해결", "습도", "해석", "횟수", "개량", "양분", "개화", "염기성", "경보", "용액", "공전", "운동", "과속", "위성", "관측", "자전", "광학", "재물대", "광합성", "저장", "궤도", "접안", "기공", "제산제", "기관", "조경", "단속", "주입", "대물", "증산", "도감", "지시약", "망원경", "지지", "방위", "천문", "방제", "천체", "병충해", "보행자", "투영", "산성", "표백제", "산성화", "표본", "세포", "흡수", "속력", "핵", "안전수칙", "훼손", "안전장치", "표피","일석이조", "고진감래", "작심삼일", "동문서답", "역지사지", "새옹지마", "유비무환", "이심전심", "십시일반", "개과천선", "금상첨화", "설상가상", "대기만성", "우이독경", "과유불급", "구사일생", "동고동락", "사필귀정", "천고마비", "청출어람", "유유상종", "다재다능", "감언이설", "마이동풍", "아전인수", "오리무중", "학수고대", "각골난망", "형설지공", "칠전팔기"];
+        // 🌟 [추가됨] 실제로 게임에 쓰이는(활성화된) 단어장 배열
+        let activeWordPool = [];
+        let activeEliteWordPool = [];
 
         let currentWordPool = [];
         let currentEliteWordPool = [];
 
+        // 🌟 [추가됨] 커스텀 단어장 파싱 및 적용 로직
+        function applyCustomWords() {
+            const normalText = document.getElementById('custom-normal-input').value.trim();
+            const eliteText = document.getElementById('custom-elite-input').value.trim();
+            
+            // 입력칸이 모두 비어있다면 코드의 기본 단어장(wordPool) 사용
+            if (!normalText && !eliteText) {
+                activeWordPool = [...wordPool];
+                activeEliteWordPool = [...eliteWordPool];
+                
+                // 만약 코드 단어장마저 비워져 있다면 오류 방지용 임시 단어 삽입
+                if(activeWordPool.length === 0) activeWordPool = ["단어설정필요", "기본단어없음", "타자연습"];
+                if(activeEliteWordPool.length === 0) activeEliteWordPool = ["엘리트단어없음", "희귀단어"];
+                return;
+            }
+
+            // 쉼표, 띄어쓰기, 줄바꿈 등으로 단어 분리
+            const splitRegex = /[,\s\n]+/;
+            const parsedNormal = normalText.split(splitRegex).filter(w => w.length > 0);
+            const parsedElite = eliteText.split(splitRegex).filter(w => w.length > 0);
+
+            if (parsedNormal.length > 0) {
+                activeWordPool = parsedNormal;
+            } else {
+                activeWordPool = [...parsedElite]; // 만약 일반칸은 비우고 엘리트칸만 채운 경우 대비
+            }
+
+            if (parsedElite.length > 0) {
+                activeEliteWordPool = parsedElite;
+            } else {
+                // 엘리트칸을 비워둔 경우: 일반 단어 풀에서 약 20%를 골라내어 엘리트 단어로 자동 복사(추출)
+                const shuffled = [...activeWordPool].sort(() => Math.random() - 0.5);
+                const pickCount = Math.max(1, Math.floor(shuffled.length * 0.2)); 
+                activeEliteWordPool = shuffled.slice(0, pickCount);
+            }
+        }
+
+        // 🌟 [수정됨] 단어 뽑을 때 activeWordPool을 참조하도록 변경
         function getNextWord(isEliteType) {
             if (isEliteType) {
                 if (currentEliteWordPool.length === 0) {
-                    if (eliteWordPool.length === 0) return "희귀단어없음"; 
-                    currentEliteWordPool = [...eliteWordPool].sort(() => Math.random() - 0.5);
+                    if (activeEliteWordPool.length === 0) return "희귀단어오류"; 
+                    currentEliteWordPool = [...activeEliteWordPool].sort(() => Math.random() - 0.5);
                 }
                 return currentEliteWordPool.pop();
             } else {
                 if (currentWordPool.length === 0) {
-                    if (wordPool.length === 0) return "일반단어없음";
-                    currentWordPool = [...wordPool].sort(() => Math.random() - 0.5);
+                    if (activeWordPool.length === 0) return "일반단어오류";
+                    currentWordPool = [...activeWordPool].sort(() => Math.random() - 0.5);
                 }
                 return currentWordPool.pop();
             }
@@ -428,7 +503,7 @@
         };
 
         let spawnRate = 2000;
-        const triggerRadius = 190; // 🌟 넉백 발동 범위 190px 적용
+        const triggerRadius = 190; // 넉백 발동 범위 190px
         
         const board = document.getElementById('game-board');
         const input = document.getElementById('typing-input');
@@ -530,6 +605,19 @@
             });
         });
 
+        // 🌟 내 단어장 설정 메뉴 열기/닫기/초기화 이벤트
+        document.getElementById('custom-word-btn').addEventListener('click', () => {
+            document.getElementById('word-settings-modal').classList.remove('hidden');
+        });
+        document.getElementById('save-words-btn').addEventListener('click', () => {
+            document.getElementById('word-settings-modal').classList.add('hidden');
+        });
+        document.getElementById('reset-words-btn').addEventListener('click', () => {
+            document.getElementById('custom-normal-input').value = '';
+            document.getElementById('custom-elite-input').value = '';
+            alert("단어장 입력칸이 초기화되었습니다. (저장 시 기본 단어장으로 실행됩니다.)");
+        });
+
         document.getElementById('start-btn').addEventListener('click', () => {
             initAudio(); 
             document.getElementById('start-screen').classList.add('hidden');
@@ -586,7 +674,8 @@
         window.addEventListener('blur', () => {
             if (isPlaying && 
                 document.getElementById('levelup-modal').classList.contains('hidden') && 
-                document.getElementById('cheat-modal').classList.contains('hidden')) {
+                document.getElementById('cheat-modal').classList.contains('hidden') &&
+                document.getElementById('word-settings-modal').classList.contains('hidden')) {
                 openPauseMenu();
             }
         });
@@ -614,6 +703,9 @@
             player.vampireGoal = 0; player.vampireCount = 0; player.timeStopDuration = 0; player.timeStopCooldown = 0;
             isTimeStopped = false; timeStopRemaining = 0; selectedUpgradeIndex = -1;
             spawnRate = 2000; isWaveActive = false; lastWaveLevel = 0; pausedWaveTimeLeft = 0;
+            
+            // 🌟 커스텀 단어장 파싱 후 적용
+            applyCustomWords();
             
             currentWordPool = []; currentEliteWordPool = [];
             board.classList.remove('wave-active-bg', 'time-stop-bg'); waveAlert.classList.add('hidden');
@@ -876,7 +968,12 @@
         });
 
         document.addEventListener('keydown', (e) => { 
+            // 단어장 모달 닫기
             if (e.key === 'Escape') {
+                if (!document.getElementById('word-settings-modal').classList.contains('hidden')) {
+                    document.getElementById('word-settings-modal').classList.add('hidden');
+                    return;
+                }
                 if (isPlaying) { openPauseMenu(); } 
                 else if (!document.getElementById('pause-modal').classList.contains('hidden') || !document.getElementById('help-modal').classList.contains('hidden')) { 
                     closePauseMenu(); 
@@ -902,13 +999,21 @@
                         updateUI(); resumeGame();
                     }
                 }
-            } else if(isPlaying && document.getElementById('cheat-modal').classList.contains('hidden') && document.getElementById('pause-modal').classList.contains('hidden') && document.getElementById('help-modal').classList.contains('hidden')) {
+            } else if(isPlaying && 
+                      document.getElementById('cheat-modal').classList.contains('hidden') && 
+                      document.getElementById('pause-modal').classList.contains('hidden') && 
+                      document.getElementById('help-modal').classList.contains('hidden') &&
+                      document.getElementById('word-settings-modal').classList.contains('hidden')) {
                 input.focus(); 
             }
         });
 
         document.addEventListener('click', (e) => { 
-            if(isPlaying && document.getElementById('cheat-modal').classList.contains('hidden') && document.getElementById('pause-modal').classList.contains('hidden') && document.getElementById('help-modal').classList.contains('hidden')) {
+            if(isPlaying && 
+               document.getElementById('cheat-modal').classList.contains('hidden') && 
+               document.getElementById('pause-modal').classList.contains('hidden') && 
+               document.getElementById('help-modal').classList.contains('hidden') &&
+               document.getElementById('word-settings-modal').classList.contains('hidden')) {
                 input.focus(); 
             }
         });
@@ -1156,16 +1261,12 @@
             document.getElementById('game-over-screen').classList.remove('hidden');
         }
 
-        // 🌟 [추가됨] 기록 저장 시 닉네임 옆에 플레이 난이도 자동 표기 로직
         document.getElementById('save-score-btn').addEventListener('click', () => {
             const nameInput = document.getElementById('player-name').value.trim();
             const baseName = nameInput.length > 0 ? nameInput : '익명';
             
-            // 난이도별 한글명 매핑
             const diffMap = { 'easy': '쉬움', 'normal': '보통', 'hard': '어려움' };
             const diffText = diffMap[currentDifficulty] || '알수없음';
-            
-            // 최종 이름 생성 (예: 익명 (어려움))
             const finalName = `${baseName} (${diffText})`;
 
             let records = JSON.parse(localStorage.getItem('glyphica_records')) || [];
