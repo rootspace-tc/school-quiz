@@ -198,7 +198,6 @@
         
         #cheat-modal input { background: #334155; border: 1px solid #475569; color: white; padding: 5px; border-radius: 4px; width: 80px; text-align: center; }
         
-        /* 스크롤바 커스텀 */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #1e293b; border-radius: 4px; }
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
@@ -218,8 +217,8 @@
                 🌩️
             </div>
             
-            <div id="fairy-companion-container" class="hidden absolute left-full ml-4 -top-8 flex flex-wrap w-32 gap-y-4 gap-x-2 z-20">
-            </div>
+            <div id="fairy-companion-container" class="hidden absolute left-full ml-4 -top-8 flex w-48 gap-3 z-20 flex-wrap">
+                </div>
         </div>
 
         <div id="top-bar">
@@ -250,7 +249,7 @@
         <div id="help-modal" class="absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-[70] hidden backdrop-blur-md">
             <h2 class="text-4xl text-yellow-400 title-font mb-6">📖 아이템 효과 도감</h2>
             <div id="help-list" class="w-full max-w-4xl max-h-[60vh] overflow-y-auto bg-gray-800 p-6 rounded-xl border border-gray-600 grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                </div>
+            </div>
             <button id="close-help-btn" class="mt-8 px-8 py-3 bg-gray-600 hover:bg-gray-500 text-white text-2xl rounded-xl font-bold transition">닫기</button>
         </div>
 
@@ -283,6 +282,7 @@
             <p class="text-xl text-gray-300 mb-4 text-center leading-relaxed">
                 사방에서 다가오는 단어를 타이핑하고 <span class="text-yellow-400 font-bold">[스페이스바]</span>로 공격하세요.<br>
                 <span class="text-blue-300">집중 공세(Wave)가 주기적으로 시작되며, 5레벨부터 희귀 단어(파란색)가 등장합니다.</span><br>
+                <span class="text-red-400 font-bold">주의: 10레벨 달성 시 영구적인 무한 집중 공세에 돌입합니다!</span><br>
                 <span class="text-green-400 text-lg font-bold mt-2 block">💡 레벨업 보상은 [ ㅓ, ㅏ, ㅣ ] 로 선택 후 [ 엔터 ]를 눌러 결정합니다.</span><br>
                 <span class="text-gray-400 text-sm mt-1 block">(게임 도중 ESC를 누르면 일시정지 메뉴가 나타납니다)</span>
             </p>
@@ -409,55 +409,42 @@
             knockback: () => playTone(200, 'sine', 0.4, 0.1)
         };
 
-        // 📝 [기본 단어장] 여기에 기존처럼 기본 단어를 채워주시면 됩니다!
-        const wordPool = ["감각", "사물", "표현", "낭송", "실천", "지방", "해양", "문장", "추측", "전통", "공경", "교문", "언어", "출근", "대화", "생신", "외삼촌", "도시", "취직", "중요", "정리", "견학", "과제", "정보", "대표", "능력","외국", "원인", "속담", "기본형", "안전", "사전", "기후", "전학", "전화", "소용", "여유", "분리", "일회용", "일기", "강력", "생략", "안내문", "성공", "서약서", "참가", "채집", "연구", "역할", "종일", "금지", "제안","조건", "방안", "밀접", "주변", "특징", "의도", "다양", "가상", "현실", "주요", "여가", "의료", "교육", "인공위성", "공공기관", "확대", "축소", "영상", "증명", "생태", "답사", "기능", "발급", "개선", "안심", "권리", "의논", "사례","화폐", "이동", "기준", "과거", "신문", "나열", "풍경", "변화", "짐작", "영향", "연도", "연대", "역사", "애장품", "증언", "증거", "건축물", "유적", "과밀", "추억", "지역", "고유", "문헌", "유래", "상징", "편집", "촬영","과정", "개념", "활용", "점검", "평면", "도형", "평면도형", "변", "삼각형", "사각형", "공통", "선분", "직선", "반직선", "이용", "설명", "각", "직각", "표시", "직각삼각형", "칠교판", "직사각형", "점선", "정사각형","합", "수직선", "비교", "횟수", "차", "계산", "시간", "시각", "관계", "소수", "단위분수", "분모", "분자", "측정", "규칙", "분류", "공통점", "도구", "도입", "융합", "정보처리", "추론", "계량","협력", "수평", "탐구", "정확", "용수철", "물체", "관찰", "공유", "소통", "화단", "차이점", "관련", "도감", "균형", "극지방", "사막", "남극", "북극", "모방", "수직", "탐험", "식물", "생활용품","별명", "생활방식", "저장", "보안경", "환경", "생체모방", "창의성", "기기", "생물", "자손", "주의", "계획", "계획서", "사육", "보완", "보호", "곤충", "구분", "온도", "선택", "실험", "보통", "부분","의견", "목적", "전개", "상황", "소감", "사회", "분명", "효율", "채집", "수확", "위조", "차이", "구별", "근거", "정확", "평가", "편집", "묘사", "대비", "생동감", "이해", "파악", "주제", "완주", "회의","전교", "참석", "절차", "참여", "개회", "선정", "토의", "표결", "폐회", "규제", "채택", "활용", "짐작", "관계", "상용", "탐사", "궤도", "제안", "특성", "배경", "표어", "점검", "탁월", "연표", "과장","노선도", "안내도", "방위", "지도", "기호", "자율주행", "방향", "범례", "등고선", "축척", "약도", "지형", "특별시", "특별자치도", "특별자치시", "평야", "행정구역", "면적", "인구", "하천", "산지", "해안", "기온", "기상청", "무형유산","국가유산", "자연유산", "답사", "면담", "기념관", "유적지", "가상현실", "발굴", "경제활동", "자원", "한정", "희소성", "구매", "합리적선택", "품질", "정보", "생산", "소비", "생산지", "교류", "상호의존", "소득", "특산물", "자매결연", "협약","자석", "물체", "극", "나침반", "현상", "작용", "장치", "상태", "변화", "고체", "액체", "기체", "수증기", "증발", "기포", "응결", "침식", "운반", "퇴적", "하류", "상류", "경사", "폭", "화산", "분화구", "분출", "지표면", "용암", "암석", "화성암", "현무암", "화강암", "지진", "규모", "대처", "산사태", "재난", "균사", "균류", "양분", "포자", "번식", "현미경", "배율", "접안", "대물", "회전판", "재물대", "초점조절나사", "원생생물", "세균", "나선", "분해", "생명과학", "각도", "직각", "예각", "둔각", "단위", "방법", "범위", "기부", "금액", "잔액", "수입", "평면도형", "이동", "위치", "모양", "활용", "공간", "예상", "계산", "문제", "규칙", "배열", "등호", "표현", "비교", "완성", "결과", "확인", "자료", "조사", "정리", "해석", "수량", "제목", "수집", "분석", "추측", "항목", "추천", "권장", "공유", "주장", "공감", "홍보", "처지", "고려", "단서", "짐작", "생략", "예상", "기행문", "여정", "견문", "감상", "개요", "유형", "선별", "제안", "의도", "대안", "명료", "매체", "신뢰", "검색", "제공", "적합", "반영", "구성", "상징", "열거", "대조", "대처", "파손", "수집", "공공", "관점", "토의", "보완", "타당", "비판", "방안", "비유적", "은유", "직유", "인상", "대비", "단연", "후환", "주권", "국토", "지형", "산맥", "하천", "평야", "해안", "다도해", "반도", "만", "행정 구역", "영토", "영해", "영공", "영역", "천연기념물", "기후", "등온선", "자연재해", "황사", "호우", "태풍", "폭염", "폭설", "한파", "인구분포", "인구밀도", "인구구조", "수도권", "지방", "규범", "법", "헌법", "준법", "강제성", "의무", "권리", "인권", "보장", "차별", "평등", "자유", "제재", "근로", "분쟁", "인권침해", "편의시설", "사회보장제도", "사회복지사", "자연수", "혼합", "계산식", "차례", "결과", "해당", "조건", "반복", "개념", "배", "배수", "공배수", "최소공배수", "약수", "공약수", "최대공약수", "공통", "각각", "대응", "관계", "양", "배열", "연산", "기준", "분수", "분모", "분자", "약분", "기약분수", "통분", "공통분모", "암호", "해독", "진분수", "대분수", "가분수", "단위분수", "다각형", "정다각형", "변", "모양", "도형", "단위", "대각선", "수직", "평행", "평행선", "개수", "칠교판", "지층", "퇴적물", "수평", "추리", "운반", "암석", "퇴적암", "이암", "사암", "역암", "화석", "표본", "흔적", "삼엽충", "모형", "산지", "전등", "지시기", "직진", "평면", "확산", "반사", "굴절", "통과", "경계", "확대", "장치", "현상", "용해", "용매", "용질", "용액", "요인", "상온", "구조", "기능", "골격", "근육", "지탱", "기관", "영양소", "소화", "경로", "혈액", "순환", "호흡", "노폐물", "배설", "맥박", "질병"]; 
-        const eliteWordPool = ["가치", "방안", "감상", "본론", "개요", "비판적", "객관적", "서론", "견문", "서술어", "견학기록문", "설득력", "결론", "속담", "공식적", "여정", "관용어", "의도", "관점", "교정부호", "인용", "저작권", "근거", "전기문", "논의", "주관적", "다의어", "주어", "대립", "초상권", "대본", "출처", "대사", "타당", "매체", "토론", "목적어", "토의", "묘사", "판정", "문단", "편집", "문맥", "표절", "문장성분", "합리적", "반론", "해설", "발언", "호응" , "간선제", "삼심제도", "경공업", "성명", "경도", "세계지도", "계엄령", "시차", "국경선", "여론", "국무총리", "예산", "국무회의", "위도", "국방비", "유권자", "국정감사", "재판", "국회", "저위도", "권력분립", "적도", "대륙", "정변", "대양", "정상회담", "독재", "정책", "동경", "정치", "민주주의", "중화학 공업", "법원", "지구본", "보통 선거", "지방 자치제", "본초자오선", "직선제", "부정선거", "태평양", "북반구", "항쟁", "북위", "행정부", "분단", "허위", "비무장", "혁명", "산업화", "휴전선" , "개념", "실생활", "거래", "열량", "계산기", "유용", "공간", "이자", "구상", "입금", "구조물", "자연수", "기약분수", "잔액", "기준량", "전개도", "기타", "정보", "기호", "조건", "단위", "중심", "득표수", "직육면체", "밀집", "차이점", "발생량", "축척", "출금", "백분율", "부분", "타율", "통계", "비율", "할인", "빈도", "선분", "합계", "합동", "수직", "항목", "수집", "해결", "습도", "해석", "횟수", "개량", "양분", "개화", "염기성", "경보", "용액", "공전", "운동", "과속", "위성", "관측", "자전", "광학", "재물대", "광합성", "저장", "궤도", "접안", "기공", "제산제", "기관", "조경", "단속", "주입", "대물", "증산", "도감", "지시약", "망원경", "지지", "방위", "천문", "방제", "천체", "병충해", "보행자", "투영", "산성", "표백제", "산성화", "표본", "세포", "흡수", "속력", "핵", "안전수칙", "훼손", "안전장치", "표피","일석이조", "고진감래", "작심삼일", "동문서답", "역지사지", "새옹지마", "유비무환", "이심전심", "십시일반", "개과천선", "금상첨화", "설상가상", "대기만성", "우이독경", "과유불급", "구사일생", "동고동락", "사필귀정", "천고마비", "청출어람", "유유상종", "다재다능", "감언이설", "마이동풍", "아전인수", "오리무중", "학수고대", "각골난망", "형설지공", "칠전팔기"]; 
+        const wordPool = ["감각", "사물", "표현", "낭송", "실천", "지방", "해양", "문장", "추측", "전통", "공경", "교문", "언어", "출근", "대화", "생신", "외삼촌", "도시", "취직", "중요", "정리", "견학", "과제", "정보", "대표", "능력","외국", "원인", "속담", "기본형", "안전", "사전", "기후", "전학", "전화", "소용", "여유", "분리", "일회용", "일기", "강력", "생략", "안내문", "성공", "서약서", "참가", "채집", "연구", "역할", "종일", "금지", "제안","조건", "방안", "밀접", "주변", "특징", "의도", "다양", "가상", "현실", "주요", "여가", "의료", "교육", "인공위성", "공공기관", "확대", "축소", "영상", "증명", "생태", "답사", "기능", "발급", "개선", "안심", "권리", "의논", "사례","화폐", "이동", "기준", "과거", "신문", "나열", "풍경", "변화", "짐작", "영향", "연도", "연대", "역사", "애장품", "증언", "증거", "건축물", "유적", "과밀", "추억", "지역", "고유", "문헌", "유래", "상징", "편집", "촬영","과정", "개념", "활용", "점검", "평면", "도형", "평면도형", "변", "삼각형", "사각형", "공통", "선분", "직선", "반직선", "이용", "설명", "각", "직각", "표시", "직각삼각형", "칠교판", "직사각형", "점선", "정사각형","합", "수직선", "비교", "횟수", "차", "계산", "시간", "시각", "관계", "소수", "단위분수", "분모", "분자", "측정", "규칙", "분류", "공통점", "도구", "도입", "융합", "정보처리", "추론", "계량","협력", "수평", "탐구", "정확", "용수철", "물체", "관찰", "공유", "소통", "화단", "차이점", "관련", "도감", "균형", "극지방", "사막", "남극", "북극", "모방", "수직", "탐험", "식물", "생활용품","별명", "생활방식", "저장", "보안경", "환경", "생체모방", "창의성", "기기", "생물", "자손", "주의", "계획", "계획서", "사육", "보완", "보호", "곤충", "구분", "온도", "선택", "실험", "보통", "부분","의견", "목적", "전개", "상황", "소감", "사회", "분명", "효율", "채집", "수확", "위조", "차이", "구별", "근거", "정확", "평가", "편집", "묘사", "대비", "생동감", "이해", "파악", "주제", "완주", "회의","전교", "참석", "절차", "참여", "개회", "선정", "토의", "표결", "폐회", "규제", "채택", "활용", "짐작", "관계", "상용", "탐사", "궤도", "제안", "특성", "배경", "표어", "점검", "탁월", "연표", "과장","노선도", "안내도", "방위", "지도", "기호", "자율주행", "방향", "범례", "등고선", "축척", "약도", "지형", "특별시", "특별자치도", "특별자치시", "평야", "행정구역", "면적", "인구", "하천", "산지", "해안", "기온", "기상청", "무형유산","국가유산", "자연유산", "답사", "면담", "기념관", "유적지", "가상현실", "발굴", "경제활동", "자원", "한정", "희소성", "구매", "합리적선택", "품질", "정보", "생산", "소비", "생산지", "교류", "상호의존", "소득", "특산물", "자매결연", "협약","자석", "물체", "극", "나침반", "현상", "작용", "장치", "상태", "변화", "고체", "액체", "기체", "수증기", "증발", "기포", "응결", "침식", "운반", "퇴적", "하류", "상류", "경사", "폭", "화산", "분화구", "분출", "지표면", "용암", "암석", "화성암", "현무암", "화강암", "지진", "규모", "대처", "산사태", "재난", "균사", "균류", "양분", "포자", "번식", "현미경", "배율", "접안", "대물", "회전판", "재물대", "초점조절나사", "원생생물", "세균", "나선", "분해", "생명과학", "각도", "직각", "예각", "둔각", "단위", "방법", "범위", "기부", "금액", "잔액", "수입", "평면도형", "이동", "위치", "모양", "활용", "공간", "예상", "계산", "문제", "규칙", "배열", "등호", "표현", "비교", "완성", "결과", "확인", "자료", "조사", "정리", "해석", "수량", "제목", "수집", "분석", "추측", "항목", "추천", "권장", "공유", "주장", "공감", "홍보", "처지", "고려", "단서", "짐작", "생략", "예상", "기행문", "여정", "견문", "감상", "개요", "유형", "선별", "제안", "의도", "대안", "명료", "매체", "신뢰", "검색", "제공", "적합", "반영", "구성", "상징", "열거", "대조", "대처", "파손", "수집", "공공", "관점", "토의", "보완", "타당", "비판", "방안", "비유적", "은유", "직유", "인상", "대비", "단연", "후환", "주권", "국토", "지형", "산맥", "하천", "평야", "해안", "다도해", "반도", "만", "행정 구역", "영토", "영해", "영공", "영역", "천연기념물", "기후", "등온선", "자연재해", "황사", "호우", "태풍", "폭염", "폭설", "한파", "인구분포", "인구밀도", "인구구조", "수도권", "지방", "규범", "법", "헌법", "준법", "강제성", "의무", "권리", "인권", "보장", "차별", "평등", "자유", "제재", "근로", "분쟁", "인권침해", "편의시설", "사회보장제도", "사회복지사", "자연수", "혼합", "계산식", "차례", "결과", "해당", "조건", "반복", "개념", "배", "배수", "공배수", "최소공배수", "약수", "공약수", "최대공약수", "공통", "각각", "대응", "관계", "양", "배열", "연산", "기준", "분수", "분모", "분자", "약분", "기약분수", "통분", "공통분모", "암호", "해독", "진분수", "대분수", "가분수", "단위분수", "다각형", "정다각형", "변", "모양", "도형", "단위", "대각선", "수직", "평행", "평행선", "개수", "칠교판", "지층", "퇴적물", "수평", "추리", "운반", "암석", "퇴적암", "이암", "사암", "역암", "화석", "표본", "흔적", "삼엽충", "모형", "산지", "전등", "지시기", "직진", "평면", "확산", "반사", "굴절", "통과", "경계", "확대", "장치", "현상", "용해", "용매", "용질", "용액", "요인", "상온", "구조", "기능", "골격", "근육", "지탱", "기관", "영양소", "소화", "경로", "혈액", "순환", "호흡", "노폐물", "배설", "맥박", "질병"
+]; 
+        const eliteWordPool = ["가치", "방안", "감상", "본론", "개요", "비판적", "객관적", "서론", "견문", "서술어", "견학기록문", "설득력", "결론", "속담", "공식적", "여정", "관용어", "의도", "관점", "교정부호", "인용", "저작권", "근거", "전기문", "논의", "주관적", "다의어", "주어", "대립", "초상권", "대본", "출처", "대사", "타당", "매체", "토론", "목적어", "토의", "묘사", "판정", "문단", "편집", "문맥", "표절", "문장성분", "합리적", "반론", "해설", "발언", "호응" , "간선제", "삼심제도", "경공업", "성명", "경도", "세계지도", "계엄령", "시차", "국경선", "여론", "국무총리", "예산", "국무회의", "위도", "국방비", "유권자", "국정감사", "재판", "국회", "저위도", "권력분립", "적도", "대륙", "정변", "대양", "정상회담", "독재", "정책", "동경", "정치", "민주주의", "중화학공업", "법원", "지구본", "보통선거", "지방자치제", "본초자오선", "직선제", "부정선거", "태평양", "북반구", "항쟁", "북위", "행정부", "분단", "허위", "비무장", "혁명", "산업화", "휴전선" , "개념", "실생활", "거래", "열량", "계산기", "유용", "공간", "이자", "구상", "입금", "구조물", "자연수", "기약분수", "잔액", "기준량", "전개도", "기타", "정보", "기호", "조건", "단위", "중심", "득표수", "직육면체", "밀집", "차이점", "발생량", "축척", "출금", "백분율", "부분", "타율", "통계", "비율", "할인", "빈도", "선분", "합계", "합동", "수직", "항목", "수집", "해결", "습도", "해석", "횟수", "개량", "양분", "개화", "염기성", "경보", "용액", "공전", "운동", "과속", "위성", "관측", "자전", "광학", "재물대", "광합성", "저장", "궤도", "접안", "기공", "제산제", "기관", "조경", "단속", "주입", "대물", "증산", "도감", "지시약", "망원경", "지지", "방위", "천문", "방제", "천체", "병충해", "보행자", "투영", "산성", "표백제", "산성화", "표본", "세포", "흡수", "속력", "핵", "안전수칙", "훼손", "안전장치", "표피","일석이조", "고진감래", "작심삼일", "동문서답", "역지사지", "새옹지마", "유비무환", "이심전심", "십시일반", "개과천선", "금상첨화", "설상가상", "대기만성", "우이독경", "과유불급", "구사일생", "동고동락", "사필귀정", "천고마비", "청출어람", "유유상종", "다재다능", "감언이설", "마이동풍", "아전인수", "오리무중", "학수고대", "각골난망", "형설지공", "칠전팔기"]; 
 
-        // 🌟 [추가됨] 실제로 게임에 쓰이는(활성화된) 단어장 배열
         let activeWordPool = [];
         let activeEliteWordPool = [];
-
         let currentWordPool = [];
         let currentEliteWordPool = [];
 
-        // 🌟 [추가됨] 커스텀 단어장 파싱 및 적용 로직
         function applyCustomWords() {
             const normalText = document.getElementById('custom-normal-input').value.trim();
             const eliteText = document.getElementById('custom-elite-input').value.trim();
             
-            // 입력칸이 모두 비어있다면 코드의 기본 단어장(wordPool) 사용
             if (!normalText && !eliteText) {
                 activeWordPool = [...wordPool];
                 activeEliteWordPool = [...eliteWordPool];
-                
-                // 만약 코드 단어장마저 비워져 있다면 오류 방지용 임시 단어 삽입
                 if(activeWordPool.length === 0) activeWordPool = ["단어설정필요", "기본단어없음", "타자연습"];
                 if(activeEliteWordPool.length === 0) activeEliteWordPool = ["엘리트단어없음", "희귀단어"];
                 return;
             }
 
-            // 쉼표, 띄어쓰기, 줄바꿈 등으로 단어 분리
             const splitRegex = /[,\s\n]+/;
             const parsedNormal = normalText.split(splitRegex).filter(w => w.length > 0);
             const parsedElite = eliteText.split(splitRegex).filter(w => w.length > 0);
 
-            if (parsedNormal.length > 0) {
-                activeWordPool = parsedNormal;
-            } else {
-                activeWordPool = [...parsedElite]; // 만약 일반칸은 비우고 엘리트칸만 채운 경우 대비
-            }
+            if (parsedNormal.length > 0) activeWordPool = parsedNormal;
+            else activeWordPool = [...parsedElite];
 
-            if (parsedElite.length > 0) {
-                activeEliteWordPool = parsedElite;
-            } else {
-                // 엘리트칸을 비워둔 경우: 일반 단어 풀에서 약 20%를 골라내어 엘리트 단어로 자동 복사(추출)
+            if (parsedElite.length > 0) activeEliteWordPool = parsedElite;
+            else {
                 const shuffled = [...activeWordPool].sort(() => Math.random() - 0.5);
                 const pickCount = Math.max(1, Math.floor(shuffled.length * 0.2)); 
                 activeEliteWordPool = shuffled.slice(0, pickCount);
             }
         }
 
-        // 🌟 [수정됨] 단어 뽑을 때 activeWordPool을 참조하도록 변경
         function getNextWord(isEliteType) {
             if (isEliteType) {
                 if (currentEliteWordPool.length === 0) {
@@ -503,7 +490,7 @@
         };
 
         let spawnRate = 2000;
-        const triggerRadius = 190; // 넉백 발동 범위 190px
+        const triggerRadius = 190; 
         
         const board = document.getElementById('game-board');
         const input = document.getElementById('typing-input');
@@ -519,7 +506,7 @@
         const upgrades = [
             { id: 'shield', name: '🛡️ 수호 방패', desc: () => '적의 공격을 1회 막아주는 방어막을 생성합니다. (누적 가능)', apply: () => player.shield++ },
             { id: 'maxHp', name: '❤️ 생명력 강화', desc: () => '최대 체력이 1 증가하고, 모두 회복합니다.', apply: () => { player.maxHp++; player.hp = player.maxHp; } },
-            { id: 'slow', name: '❄️ 얼음 오라', desc: () => '모든 적의 이동 속도가 10% 감소합니다.', apply: () => player.speedMod *= 0.90 },
+            { id: 'slow', name: '❄️ 얼음 오라', desc: () => '현재 적들의 이동 속도에서 10%를 더 감속시킵니다. (곱연산 적용)', apply: () => player.speedMod *= 0.90 },
             { id: 'splash', name: '⚡ 연쇄 번개', desc: () => '타격 당 번개가 발사될 확률이 20% 상승합니다.', apply: () => player.splashChance += 0.20 },
             { id: 'xpBoost', name: '📚 학구열', desc: () => '획득하는 경험치가 20% 증가합니다.', apply: () => player.xpMultiplier *= 1.2 },
             { id: 'fairy', name: '🧚‍♂️ 마법 요정', desc: () => '7초(최소 3초)마다 적을 자동 처치합니다. 중복 선택 시 시간이 단축됩니다.', apply: () => { 
@@ -527,8 +514,7 @@
                 for (let f of player.fairies) {
                     if (f.cooldown > 3.0) {
                         f.cooldown = Math.max(3.0, f.cooldown - 0.5);
-                        applied = true;
-                        break;
+                        applied = true; break;
                     }
                 }
                 if (!applied) { player.fairies.push({ cooldown: 7.0, timer: 0 }); }
@@ -545,11 +531,10 @@
         function populateHelpMenu() {
             const list = document.getElementById('help-list');
             list.innerHTML = '';
-            
             const staticDescriptions = {
                 'shield': '적의 공격을 1회 막아주는 방어막을 생성합니다. (누적 가능)',
                 'maxHp': '최대 체력이 1 증가하고 체력을 모두 회복합니다.',
-                'slow': '모든 적의 이동 속도를 지속적으로 10% 감소시킵니다.',
+                'slow': '모든 적의 이동 속도를 현재 속도 기준 10% 감속시킵니다. (곱연산이므로 계속 선택해도 0%가 되지 않습니다)',
                 'splash': '타격 시 일정 확률로 연쇄 번개가 발생하여 다른 적을 추가 공격합니다. 100%를 초과하면 다중 발사됩니다.',
                 'xpBoost': '단어 처치 시 획득하는 경험치가 20% 증가하여 레벨업이 빨라집니다.',
                 'fairy': '7초마다 적 1마리를 자동 처치하는 요정을 소환합니다. 추가 강화 시 쿨타임이 최소 3초까지 줄어들고 이후 새 요정이 추가됩니다.',
@@ -562,18 +547,12 @@
             upgrades.forEach(upg => {
                 const item = document.createElement('div');
                 item.className = 'bg-gray-700 p-5 rounded-lg border border-gray-500 shadow-md';
-                item.innerHTML = `
-                    <h3 class="text-2xl font-bold text-yellow-300 mb-3">${upg.name}</h3>
-                    <p class="text-gray-200 text-base break-keep leading-relaxed">${staticDescriptions[upg.id]}</p>
-                `;
+                item.innerHTML = `<h3 class="text-2xl font-bold text-yellow-300 mb-3">${upg.name}</h3><p class="text-gray-200 text-base break-keep leading-relaxed">${staticDescriptions[upg.id]}</p>`;
                 list.appendChild(item);
             });
         }
         
-        window.onload = () => {
-            loadLeaderboard();
-            populateHelpMenu(); 
-        };
+        window.onload = () => { loadLeaderboard(); populateHelpMenu(); };
 
         function loadLeaderboard() {
             let records = JSON.parse(localStorage.getItem('glyphica_records')) || [];
@@ -605,13 +584,8 @@
             });
         });
 
-        // 🌟 내 단어장 설정 메뉴 열기/닫기/초기화 이벤트
-        document.getElementById('custom-word-btn').addEventListener('click', () => {
-            document.getElementById('word-settings-modal').classList.remove('hidden');
-        });
-        document.getElementById('save-words-btn').addEventListener('click', () => {
-            document.getElementById('word-settings-modal').classList.add('hidden');
-        });
+        document.getElementById('custom-word-btn').addEventListener('click', () => { document.getElementById('word-settings-modal').classList.remove('hidden'); });
+        document.getElementById('save-words-btn').addEventListener('click', () => { document.getElementById('word-settings-modal').classList.add('hidden'); });
         document.getElementById('reset-words-btn').addEventListener('click', () => {
             document.getElementById('custom-normal-input').value = '';
             document.getElementById('custom-elite-input').value = '';
@@ -645,13 +619,13 @@
             isPlaying = false;
             cancelAnimationFrame(gameLoopId);
             clearTimeout(spawnIntervalId);
-            if (isWaveActive) pausedWaveTimeLeft = waveEndTime - Date.now();
+            if (isWaveActive && level < 10) pausedWaveTimeLeft = waveEndTime - Date.now();
         }
 
         function resumeGame() {
             isPlaying = true;
             input.disabled = false; input.focus();
-            if (isWaveActive && pausedWaveTimeLeft > 0) {
+            if (isWaveActive && pausedWaveTimeLeft > 0 && level < 10) {
                 waveEndTime = Date.now() + pausedWaveTimeLeft;
                 pausedWaveTimeLeft = 0;
             }
@@ -690,7 +664,7 @@
             container.classList.remove('hidden');
             let html = '';
             player.fairies.forEach((f, i) => {
-                html += `<div id="fairy-${i}" class="relative text-3xl transition-transform duration-150">🧚<div id="fairy-time-${i}" class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-[11px] bg-black/80 text-pink-300 px-1.5 py-0.5 rounded font-mono border border-pink-500/50 leading-none whitespace-nowrap">${f.cooldown.toFixed(1)}</div></div>`;
+                html += `<div id="fairy-${i}" class="relative text-3xl transition-transform duration-150 mx-1 my-1">🧚<div id="fairy-time-${i}" class="absolute -bottom-4 left-1/2 transform -translate-x-1/2 text-[12px] bg-black/80 text-pink-300 px-1 py-0.5 rounded font-mono border border-pink-500/50 leading-none whitespace-nowrap">${f.cooldown.toFixed(1)}</div></div>`;
             });
             container.innerHTML = html;
         }
@@ -704,11 +678,11 @@
             isTimeStopped = false; timeStopRemaining = 0; selectedUpgradeIndex = -1;
             spawnRate = 2000; isWaveActive = false; lastWaveLevel = 0; pausedWaveTimeLeft = 0;
             
-            // 🌟 커스텀 단어장 파싱 후 적용
             applyCustomWords();
             
             currentWordPool = []; currentEliteWordPool = [];
             board.classList.remove('wave-active-bg', 'time-stop-bg'); waveAlert.classList.add('hidden');
+            waveTimeLeft.classList.replace('text-red-500', 'text-yellow-400');
             document.getElementById('lightning-companion').classList.add('hidden');
             kbGuide.classList.add('hidden');
             updateFairyDOM(); updateUI();
@@ -745,9 +719,18 @@
         function scheduleSpawn() {
             if (!isPlaying) return;
             
-            const waveInterval = (currentDifficulty === 'easy') ? 3 : 2; 
-            if (level > 1 && level % waveInterval === 0 && lastWaveLevel !== level && !isWaveActive) {
-                startWave();
+            // 🚨 Lv.10부터는 영구적인 웨이브 모드
+            if (level >= 10 && !isWaveActive) {
+                isWaveActive = true;
+                waveAlert.classList.remove('hidden');
+                board.classList.add('wave-active-bg');
+                waveTimeLeft.textContent = "∞";
+                waveTimeLeft.classList.replace('text-yellow-400', 'text-red-500');
+            } else if (level < 10) {
+                const waveInterval = (currentDifficulty === 'easy') ? 3 : 2; 
+                if (level > 1 && level % waveInterval === 0 && lastWaveLevel !== level && !isWaveActive) {
+                    startWave();
+                }
             }
 
             spawnEnemy();
@@ -760,10 +743,13 @@
                 currentSpawnRate = Math.max(450, spawnRate - (level * 40) - (elapsedSec * 5));
             }
 
+            // 🔥 후반 난이도 스케일링 극대화
             if (level >= 9) {
-                const lateGameBonus = (level - 8) * 50; 
+                let lateGameBonus = (level - 8) * 50; 
+                if (currentDifficulty === 'normal') lateGameBonus *= 1.5;
+                if (currentDifficulty === 'hard') lateGameBonus *= 2.5;
                 currentSpawnRate -= lateGameBonus;
-                currentSpawnRate = Math.max(200, currentSpawnRate); 
+                currentSpawnRate = Math.max(150, currentSpawnRate); // 150ms 하드 캡
             }
 
             let diffSpawnMul = currentDifficulty === 'easy' ? 2.5 : (currentDifficulty === 'normal' ? 1.6 : 1.0);
@@ -787,7 +773,12 @@
             let isElite = false;
             const hasEliteOnScreen = enemies.some(e => e.isElite);
             
-            if (level >= 5 && !isWaveActive && !hasEliteOnScreen && Math.random() < 0.14) {
+            // 🚨 10레벨 이후 엘리트 확률 대폭 감소 (14% -> 5%) 및 무한 웨이브 중에도 등장 허용
+            let eliteChance = (level >= 10) ? 0.05 : 0.14;
+            let canSpawnElite = (level >= 5 && !hasEliteOnScreen);
+            if (level < 10 && isWaveActive) canSpawnElite = false; // 10렙 이전 웨이브에서는 엘리트 등장 X
+
+            if (canSpawnElite && Math.random() < eliteChance) {
                 isElite = true;
                 text = getNextWord(true);
                 el.className = 'enemy-word elite-word';
@@ -805,10 +796,13 @@
             
             let framesToReach = Math.max(200, 600 - (level * 12) - (elapsedSec * 1.5)); 
             
+            // 🔥 이동속도 후반 스케일링 극대화
             if (level >= 9) {
-                const lateGameSpeedBonus = (level - 8) * 20;
+                let lateGameSpeedBonus = (level - 8) * 20;
+                if (currentDifficulty === 'normal') lateGameSpeedBonus *= 1.5;
+                if (currentDifficulty === 'hard') lateGameSpeedBonus *= 2.5;
                 framesToReach -= lateGameSpeedBonus;
-                framesToReach = Math.max(80, framesToReach); 
+                framesToReach = Math.max(30, framesToReach); // 30프레임 하드 캡
             }
 
             if (isWaveActive) {
@@ -861,9 +855,13 @@
             }
 
             if (isWaveActive) {
-                const remainMs = waveEndTime - Date.now();
-                if (remainMs <= 0) { endWave(); } 
-                else { waveTimeLeft.textContent = Math.ceil(remainMs / 1000); }
+                if (level >= 10) {
+                    waveTimeLeft.textContent = "∞";
+                } else {
+                    const remainMs = waveEndTime - Date.now();
+                    if (remainMs <= 0) { endWave(); } 
+                    else { waveTimeLeft.textContent = Math.ceil(remainMs / 1000); }
+                }
             }
 
             const center = getCenter();
@@ -968,7 +966,6 @@
         });
 
         document.addEventListener('keydown', (e) => { 
-            // 단어장 모달 닫기
             if (e.key === 'Escape') {
                 if (!document.getElementById('word-settings-modal').classList.contains('hidden')) {
                     document.getElementById('word-settings-modal').classList.add('hidden');
@@ -1226,13 +1223,14 @@
             if (player.shield > 0) html += `<div class="text-blue-300 font-bold">🛡️ 방패: ${player.shield}개</div>`;
             else html += `<div class="text-gray-500">🛡️ 방패: 없음</div>`;
             
-            html += `<div class="text-gray-300">❄️ 감속: ${Math.round((1 - player.speedMod)*100)}%</div>`;
+            // ❄️ 감속 수치 표기 직관적으로 수정 (곱연산 배율 자체 표시)
+            html += `<div class="text-cyan-300">❄️ 적 이동속도: ${Math.round(player.speedMod*100)}%</div>`;
             html += `<div class="text-gray-300">📚 경험치: +${Math.round((player.xpMultiplier - 1)*100)}%</div>`;
             if (player.splashChance > 0) html += `<div class="text-gray-300">🌩️ 연쇄 번개: 발동률 ${Math.round(player.splashChance*100)}%</div>`;
             
             if (player.fairies.length > 0) {
                 const minCd = Math.min(...player.fairies.map(f => f.cooldown)).toFixed(1);
-                html += `<div class="text-pink-300">🧚 요정: ${player.fairies.length}마리 (${minCd}초)</div>`;
+                html += `<div class="text-pink-300">🧚 요정: ${player.fairies.length}마리 (최소 ${minCd}초)</div>`;
             }
             if (player.explosionChance > 0) html += `<div class="text-gray-300">💣 폭발: ${Math.round(player.explosionChance*100)}%</div>`;
             
