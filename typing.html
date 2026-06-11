@@ -154,7 +154,9 @@
 
         #status-panel {
             position: absolute; left: 30px; top: 100px;
-            background: rgba(15, 23, 42, 0.8); border: 1px solid #475569;
+            background: rgba(15, 23, 42, 0.25); 
+            backdrop-filter: blur(1px); 
+            border: 1px solid rgba(71, 85, 105, 0.6);
             padding: 15px; border-radius: 8px; z-index: 15; pointer-events: none;
             display: grid; grid-template-columns: 1fr 1fr; gap-x: 20px; gap-y: 6px;
         }
@@ -201,6 +203,9 @@
 
     <div id="game-board">
         <div id="damage-overlay" class="damage-overlay"></div>
+        
+        <div id="knockback-guide" class="hidden absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-dashed border-purple-400/30 pointer-events-none z-[5] transition-opacity duration-300"></div>
+
         <div id="player-core">
             💎
             <div id="lightning-companion" class="hidden absolute right-full mr-4 -top-8 text-5xl transition-transform duration-150 z-20" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.8));">
@@ -229,19 +234,36 @@
             <span class="text-white font-bold"><span id="wave-time-left" class="text-2xl text-yellow-400">10</span>초</span>
         </div>
 
+        <div id="pause-modal" class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-[60] hidden backdrop-blur-sm">
+            <h2 class="text-6xl text-white title-font mb-10">일시 정지</h2>
+            <button id="resume-btn" class="px-10 py-4 bg-blue-600 hover:bg-blue-500 text-white text-3xl rounded-xl font-bold mb-4 w-80 transition shadow-[0_0_15px_rgba(59,130,246,0.5)]">계속하기</button>
+            <button id="pause-help-btn" class="px-10 py-4 bg-purple-600 hover:bg-purple-500 text-white text-2xl rounded-xl font-bold mb-4 w-80 transition">📖 아이템 도감</button>
+            <button id="pause-return-main-btn" class="px-10 py-4 bg-gray-600 hover:bg-gray-500 text-white text-2xl rounded-xl font-bold w-80 transition">메인 화면으로</button>
+        </div>
+
+        <div id="help-modal" class="absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-[70] hidden backdrop-blur-md">
+            <h2 class="text-4xl text-yellow-400 title-font mb-6">📖 아이템 효과 도감</h2>
+            <div id="help-list" class="w-full max-w-4xl max-h-[60vh] overflow-y-auto bg-gray-800 p-6 rounded-xl border border-gray-600 grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                </div>
+            <button id="close-help-btn" class="mt-8 px-8 py-3 bg-gray-600 hover:bg-gray-500 text-white text-2xl rounded-xl font-bold transition">닫기</button>
+        </div>
+
         <div id="start-screen" class="absolute inset-0 bg-gray-900/95 flex flex-col items-center justify-center z-50 overflow-y-auto py-10">
             <h1 class="text-6xl text-blue-400 title-font mb-4 text-center mt-auto">타자연습 에듀</h1>
-            <p class="text-xl text-gray-300 mb-6 text-center leading-relaxed">
+            <p class="text-xl text-gray-300 mb-4 text-center leading-relaxed">
                 사방에서 다가오는 단어를 타이핑하고 <span class="text-yellow-400 font-bold">[스페이스바]</span>로 공격하세요.<br>
-                <span class="text-blue-300">3레벨 단위로 집중 공세(Wave)가 시작되며, 5레벨부터 희귀 단어(파란색)가 등장합니다.</span><br>
-                <span class="text-green-400 text-lg font-bold mt-2 block">💡 레벨업 보상은 [ ㅓ, ㅏ, ㅣ ] 로 선택 후 [ 엔터 ]를 눌러 결정합니다.</span>
+                <span class="text-blue-300">집중 공세(Wave)가 주기적으로 시작되며, 5레벨부터 희귀 단어(파란색)가 등장합니다.</span><br>
+                <span class="text-green-400 text-lg font-bold mt-2 block">💡 레벨업 보상은 [ ㅓ, ㅏ, ㅣ ] 로 선택 후 [ 엔터 ]를 눌러 결정합니다.</span><br>
+                <span class="text-gray-400 text-sm mt-1 block">(게임 도중 ESC를 누르면 일시정지 메뉴가 나타납니다)</span>
             </p>
             
-            <div class="flex gap-4 mb-6" id="difficulty-selector">
+            <div class="flex gap-4 mb-4" id="difficulty-selector">
                 <button class="diff-btn px-6 py-2 bg-gray-700 text-gray-300 rounded-lg text-xl font-bold transition hover:bg-green-600" data-diff="easy">쉬움</button>
                 <button class="diff-btn px-6 py-2 bg-gray-700 text-gray-300 rounded-lg text-xl font-bold transition hover:bg-yellow-600" data-diff="normal">보통</button>
                 <button class="diff-btn px-6 py-2 bg-red-600 text-white rounded-lg text-xl font-bold transition border-2 border-white" data-diff="hard">어려움</button>
             </div>
+            
+            <button id="main-help-btn" class="px-6 py-2 bg-purple-700 hover:bg-purple-600 text-white text-lg rounded-lg font-bold transition mb-6 border border-purple-400">📖 아이템 도감 확인</button>
 
             <button id="start-btn" class="px-12 py-4 bg-blue-600 hover:bg-blue-500 text-white text-3xl rounded-xl font-bold title-font shadow-[0_0_20px_rgba(59,130,246,0.6)] mb-8 transition">
                 전투 시작
@@ -304,7 +326,6 @@
     </div>
 
     <script>
-        // 자체 오디오 합성 객체 (SFX)
         let audioCtx;
         function initAudio() {
             if (!audioCtx) {
@@ -355,56 +376,28 @@
             knockback: () => playTone(200, 'sine', 0.4, 0.1)
         };
 
-        // 완벽히 정리된 거대 단어장
-        const wordPool = [
-            "강아지", "고양이", "사자", "호랑이", "코끼리", "기린", "원숭이", "토끼", "다람쥐", "펭귄", "돌고래", "독수리", "올빼미", "고슴도치", "거북이", "캥거루", "판다", "알파카", "치타", "얼룩말", "코뿔소", "하마", "낙타", "물개", "바다표범", "수달", "해달", "침팬지", "고릴라", "앵무새", "참새", "비둘기", "까마귀", "백조", "너구리", "코알라", "북극곰", "여우", "늑대", "악어", "이구아나", "카멜레온", "플라밍고", "수리부엉이", "타조", "공작새", "사슴", "멧돼지", "두꺼비",
-            "오징어", "문어", "상어", "고래", "해파리", "불가사리", "새우", "꽃게", "가오리", "해마", "나비", "벌", "잠자리", "무당벌레", "사슴벌레", "장수풍뎅이", "매미", "귀뚜라미", "개미", "달팽이", "장어", "거머리", "아나콘다", "사마귀", "방아깨비", "메뚜기", "소라", "조개", "전복",
-            "사과", "바나나", "포도", "딸기", "수박", "복숭아", "파인애플", "오렌지", "레몬", "체리", "자두", "키위", "망고", "멜론", "참외", "토마토", "오이", "당근", "감자", "고구마", "양파", "마늘", "배추", "무", "햄버거", "피자", "김치찌개", "떡볶이", "초콜릿", "아이스크림", "스파게티", "마카롱", "샌드위치", "볶음밥", "돈까스", "비빔밥", "치킨", "라면", "칼국수", "짜장면", "탕수육", "초밥", "김밥", "된장찌개", "스테이크", "샐러드", "와플", "팬케이크", "핫도그", "팝콘", "만두", "튀김", "떡국", "불고기", "갈비",
-            "연필", "지우개", "공책", "필통", "볼펜", "가위", "풀", "자", "크레파스", "물감", "책상", "의자", "칠판", "분필", "컴퓨터", "마우스", "키보드", "모니터", "스마트폰", "텔레비전", "냉장고", "세탁기", "청소기", "침대", "소파", "옷장", "선풍기", "에어컨", "우산", "안경", "모자", "신발", "가방", "시계", "돋보기", "카메라", "이어폰", "헤드폰", "거울", "빗", "칫솔", "치약", "비누", "수건", "텀블러", "다이어리", "달력", "지갑", "마스크", "장갑", "목도리", "양말",
-            "선생님", "의사", "간호사", "경찰관", "소방관", "요리사", "과학자", "우주비행사", "프로게이머", "마술사", "탐정", "가수", "배우", "작가", "화가", "음악가", "운동선수", "건축가", "디자이너", "프로그래머", "농부", "어부", "미용사", "비행기조종사", "사진작가", "기자", "판사", "변호사", "은행원", "승무원", "아나운서",
-            "축구", "야구", "농구", "배구", "탁구", "수영", "태권도", "피겨스케이팅", "마라톤", "체조", "테니스", "배드민턴", "골프", "스키", "스노보드", "등산", "낚시", "독서", "영화감상", "요리", "캠핑",
-            "피아노", "바이올린", "첼로", "플루트", "클라리넷", "드럼", "기타", "트럼펫", "하프", "오카리나", "단소", "리코더", "하모니카", "실로폰",
-            "태양", "달", "별", "구름", "비", "눈", "바람", "무지개", "번개", "천둥", "안개", "이슬", "서리", "우박", "산", "바다", "강", "호수", "계곡", "숲", "들판", "사막", "화산", "섬", "우주", "은하수", "블랙홀", "지구", "수성", "금성", "화성", "목성", "토성", "천왕성", "해왕성", "혜성", "소행성", "동굴", "빙하", "폭포", "온천", "갯벌",
-            "대한민국", "미국", "영국", "프랑스", "독일", "호주", "캐나다", "브라질", "이집트", "멕시코", "중국", "일본", "인도", "러시아", "이탈리아", "스페인", "스위스", "스웨덴", "뉴질랜드", "베트남", "서울", "도쿄", "뉴욕", "파리", "런던", "로마", "베이징", "워싱턴", "오타와", "캔버라", "베를린", "마드리드",
-            "행복", "기쁨", "슬픔", "분노", "놀람", "긴장", "설렘", "뿌듯함", "우울함", "즐거움", "평온함", "따뜻함", "차가움", "사랑", "우정", "평화", "희망", "용기", "믿음", "기억", "추억", "미래", "과거", "현재", "약속", "도전", "열정", "노력", "성공", "실패", "지혜", "진실", "거짓", "자유", "책임", "배려", "존중", "감사", "위로", "칭찬", "사과",
-            "별빛", "달빛", "산들바람", "솜사탕", "도깨비", "보물상자", "해바라기", "민들레", "여우비", "소나기", "노을", "새벽", "마법사", "요정", "유니콘", "오로라", "그림자", "메아리", "종소리", "꽃잎", "나비", "반딧불이", "은빛", "금빛", "마법지팡이", "비밀의문", "시간여행", "밤하늘", "눈송이", "봄바람", "가을낙엽", "파도소리", "인어공주", "피터팬", "신데렐라", "백설공주", "이상한나라의앨리스", "어린왕자", "피노키오", "흥부와놀부", "별주부전",
-            "미리내", "가람", "다솜", "아리아", "시나브로", "윤슬", "늘품", "온새미로", "안다미로", "아라", "가온", "라온", "미르",
-            "고조선", "삼국통일", "고구려", "백제", "신라", "발해", "고려", "조선", "거북선", "훈민정음", "임진왜란", "광복절", "삼일운동", "유관순", "안중근", "이순신", "세종대왕", "장영실",
-            "광합성", "생태계", "지구온난화", "탄소중립", "만유인력", "수증기", "화산", "지진", "세포", "먹이사슬", "신재생에너지",
-            "민주주의", "인권", "평등", "지방자치", "국회", "선거", "투표", "소비자", "생산자",
-            "알고리즘", "인공지능", "메타버스", "빅데이터", "소프트웨어", "하드웨어", "인터넷", "코딩", "디버깅", "창의성", "문제해결", "리더십", "블록체인",
-            "교실", "운동장", "방학", "소풍", "급식", "짝꿍", "쉬는시간", "숙제", "일기", "발표",
-"놀이터", "도서관", "박물관", "우체국", "병원", "약국", "자전거", "버스", "지하철", "기차",
-"헬리콥터", "비행기", "트럭", "택시", "한복", "태극기", "윷놀이", "제기차기", "연날리기", "양치질",
-"비타민", "정직", "건강", "예절", "규칙", "습관", "줄넘기", "숨바꼭질", "팽이", "그림책",
-"머리", "어깨", "무릎", "손가락", "발가락", "개나리", "진달래", "소나무", "미소", "눈물",
-"배", "등", "팔", "다리", "목", "손바닥", "발바닥", "코", "입", "귀",
-"할아버지", "할머니", "아빠", "엄마", "형", "누나", "오빠", "언니", "동생", "아기",
-"봄", "여름", "가을", "겨울", "아침", "점심", "저녁", "밤", "어제", "오늘",
-"내일", "빨강", "노랑", "파랑", "초록", "보라", "하양", "까망", "분홍", "하늘색",
-"동그라미", "세모", "네모", "육각형", "하트", "장미", "튤립", "선인장", "창문", "거실",
-"경청", "공감", "설득", "갈등", "화해", "사춘기", "성취감", "진로", "적성", "꿈",
-"독립", "유적지", "문화유산", "시민의식", "기부", "홍보", "방송", "사이버예절", "편견", "다문화사회",
-"미세먼지", "기후변화", "멸종위기", "분리배출", "천연자원", "현미경", "별자리", "오목렌즈", "자기장", "전기회로",
-"소화기관", "심장박동", "호흡", "근육", "신경", "영양성분", "탄수화물", "단백질", "지방", "생활습관",
-"합리적소비", "저축", "예산", "광고", "수출", "용돈기입장", "일기예보", "열전도", "기압", "무게중심"
-        ];
+        const wordPool = ["감각", "사물", "표현", "낭송", "실천", "지방", "해양", "문장", "추측", "전통", "공경", "교문", "언어", "출근", "대화", "생신", "외삼촌", "도시", "취직", "중요", "정리", "견학", "과제", "정보", "대표", "능력","외국", "원인", "속담", "기본형", "안전", "사전", "기후", "전학", "전화", "소용", "여유", "분리", "일회용", "일기", "강력", "생략", "안내문", "성공", "서약서", "참가", "채집", "연구", "역할", "종일", "금지", "제안","조건", "방안", "밀접", "주변", "특징", "의도", "다양", "가상", "현실", "주요", "여가", "의료", "교육", "인공위성", "공공 기관", "확대", "축소", "영상", "증명", "생태", "답사", "기능", "발급", "개선", "안심", "권리", "의논", "사례","화폐", "이동", "기준", "과거", "신문", "나열", "풍경", "변화", "짐작", "영향", "연도", "연대", "역사", "애장품", "증언", "증거", "건축물", "유적", "과밀", "추억", "지역", "고유", "문헌", "유래", "상징", "편집", "촬영","과정", "개념", "활용", "점검", "평면", "도형", "평면도형", "변", "삼각형", "사각형", "공통", "선분", "직선", "반직선", "이용", "설명", "각", "직각", "표시", "직각삼각형", "칠교판", "직사각형", "점선", "정사각형","합", "수직선", "비교", "횟수", "차", "계산", "시간", "시각", "관계", "소수", "단위분수", "분모", "분자", "측정", "규칙", "분류", "공통점", "도구", "도입", "융합", "정보처리", "추론", "계량","협력", "수평", "탐구", "정확", "용수철", "물체", "관찰", "공유", "소통", "화단", "차이점", "관련", "도감", "균형", "극지방", "사막", "남극", "북극", "모방", "수직", "탐험", "식물", "생활용품","별명", "생활방식", "저장", "보안경", "환경", "생체모방", "창의성", "기기", "생물", "자손", "주의", "계획", "계획서", "사육", "보완", "보호", "곤충", "구분", "온도", "선택", "실험", "보통", "부분","의견", "목적", "전개", "상황", "소감", "사회", "분명", "효율", "채집", "수확", "위조", "차이", "구별", "근거", "정확", "평가", "편집", "묘사", "대비", "생동감", "이해", "파악", "주제", "완주", "회의","전교", "참석", "절차", "참여", "개회", "선정", "토의", "표결", "폐회", "규제", "채택", "활용", "짐작", "관계", "상용", "탐사", "궤도", "제안", "특성", "배경", "표어", "점검", "탁월", "연표", "과장","노선도", "안내도", "방위", "지도", "기호", "자율주행", "방향", "범례", "등고선", "축척", "약도", "지형", "특별시", "특별자치도", "특별자치시", "평야", "행정구역", "면적", "인구", "하천", "산지", "해안", "기온", "기상청", "무형유산","국가유산", "자연유산", "답사", "면담", "기념관", "유적지", "가상현실", "발굴", "경제활동", "자원", "한정", "희소성", "구매", "합리적선택", "품질", "정보", "생산", "소비", "생산지", "교류", "상호의존", "소득", "특산물", "자매결연", "협약","자석", "물체", "극", "나침반", "현상", "작용", "장치", "상태", "변화", "고체", "액체", "기체", "수증기", "증발", "기포", "응결", "침식", "운반", "퇴적", "하류", "상류", "경사", "폭", "화산", "분화구", "분출", "지표면", "용암", "암석", "화성암", "현무암", "화강암", "지진", "규모", "대처", "산사태", "재난", "균사", "균류", "양분", "포자", "번식", "현미경", "배율", "접안", "대물", "회전판", "재물대", "초점조절나사", "원생생물", "세균", "나선", "분해", "생명과학", "각도", "직각", "예각", "둔각", "단위", "방법", "범위", "기부", "금액", "잔액", "수입", "평면도형", "이동", "위치", "모양", "활용", "공간", "예상", "계산", "문제", "규칙", "배열", "등호", "표현", "비교", "완성", "결과", "확인", "자료", "조사", "정리", "해석", "수량", "제목", "수집", "분석", "추측", "항목", "추천", "권장", "공유", "주장", "공감", "홍보", "처지", "고려", "단서", "짐작", "생략", "예상", "기행문", "여정", "견문", "감상", "개요", "유형", "선별", "제안", "의도", "대안", "명료", "매체", "신뢰", "검색", "제공", "적합", "반영", "구성", "상징", "열거", "대조", "대처", "파손", "수집", "공공", "관점", "토의", "보완", "타당", "비판", "방안", "비유적", "은유", "직유", "인상", "대비", "단연", "후환", "주권", "국토", "지형", "산맥", "하천", "평야", "해안", "다도해", "반도", "만", "행정 구역", "영토", "영해", "영공", "영역", "천연기념물", "기후", "등온선", "자연재해", "황사", "호우", "태풍", "폭염", "폭설", "한파", "인구분포", "인구밀도", "인구구조", "수도권", "지방", "규범", "법", "헌법", "준법", "강제성", "의무", "권리", "인권", "보장", "차별", "평등", "자유", "제재", "근로", "분쟁", "인권침해", "편의시설", "사회보장제도", "사회복지사", "자연수", "혼합", "계산식", "차례", "결과", "해당", "조건", "반복", "개념", "배", "배수", "공배수", "최소공배수", "약수", "공약수", "최대공약수", "공통", "각각", "대응", "관계", "양", "배열", "연산", "기준", "분수", "분모", "분자", "약분", "기약분수", "통분", "공통분모", "암호", "해독", "진분수", "대분수", "가분수", "단위분수", "다각형", "정다각형", "변", "모양", "도형", "단위", "대각선", "수직", "평행", "평행선", "개수", "칠교판", "지층", "퇴적물", "수평", "추리", "운반", "암석", "퇴적암", "이암", "사암", "역암", "화석", "표본", "흔적", "삼엽충", "모형", "산지", "전등", "지시기", "직진", "평면", "확산", "반사", "굴절", "통과", "경계", "확대", "장치", "현상", "용해", "용매", "용질", "용액", "요인", "상온", "구조", "기능", "골격", "근육", "지탱", "기관", "영양소", "소화", "경로", "혈액", "순환", "호흡", "노폐물", "배설", "맥박", "질병"];
 
-        const eliteWordPool = [
-            "백과사전", "불가사의", "자급자족", "환골탈태", "동분서주", "초근목피", "안하무인", "군계일학", "다사다난", "자업자득", "유비무환", "천진난만", "호가호위", "감언이설", "새옹지마", "어부지리", "오리무중", "결초보은", "수수방관", "일취월장", "프로크루스테스", "데우스엑스마키나", "미시시피강", "안드로메다은하", "슈뢰딩거의고양이",
-            "임전무퇴", "사면초가", "다기망양", "토사구팽", "화룡점정", "대기만성", "구사일생", "금상첨화", "설상가상", "동병상련", "오비이락", "갑론을박", "우공이산", "온고지신", "괄목상대", "일거양득", "동문서답", "막상막하", "백발백중", "작심삼일",
-            "갈라파고스제도", "마다가스카르", "메소포타미아", "오스트랄로피테쿠스", "스테고사우루스", "트리케라톱스", "브라키오사우루스", "티라노사우루스", "벨로키랍토르",
-            "아메리카노", "카페라떼", "카라멜마끼아또", "프라푸치노", "크로와상", "마르게리타피자",
-            "임시정부수립일", "대한독립만세", "직지심체요절", "팔만대장경", "무령왕릉", "빗살무늬토기", "청동기시대",
-            "이산화탄소", "일산화탄소", "산화환원반응", "아보가드로의법칙", "오펜하이머", "만유인력의법칙", "관성의법칙",
-            "인터넷익스플로러", "하이퍼텍스트마크업언어", "객체지향프로그래밍", "블록체인네트워크", "가상현실기기", "증강현실기술",
-"인플레이션", "자본주의", "헌법", "삼권분립", "국무회의", "가상현실", "증강현실", "사물인터넷", "자율주행", "기후위기",
-"생물다양성", "탄소발자국", "고정관념", "다양성", "정체성", "자존감", "비판적사고", "논리적분석", "협동학습", "상호작용",
-"민주공화국", "대법원", "헌법재판소", "국제연합", "비정부기구", "무역수지", "개발도상국", "선진국", "에너지효율", "업사이클링",
-"지속가능성", "사회공헌", "유비쿼터스", "사이버범죄", "개인정보보호", "저작권", "인공지능윤리", "로봇공학", "우주망원경", "미생물",
-"유전자변형", "원자구조", "화학반응", "전자기파", "생태통로", "경제성장률", "기본권", "지방의회", "시민참여", "문화상대주의"
-        ];
+        const eliteWordPool = ["가치", "방안", "감상", "본론", "개요", "비판적", "객관적", "서론", "견문", "서술어", "견학기록문", "설득력", "결론", "속담", "공식적", "여정", "관용어", "의도", "관점", "교정부호", "인용", "저작권", "근거", "전기문", "논의", "주관적", "다의어", "주어", "대립", "초상권", "대본", "출처", "대사", "타당", "매체", "토론", "목적어", "토의", "묘사", "판정", "문단", "편집", "문맥", "표절", "문장성분", "합리적", "반론", "해설", "발언", "호응" , "간선제", "삼심제도", "경공업", "성명", "경도", "세계지도", "계엄령", "시차", "국경선", "여론", "국무총리", "예산", "국무회의", "위도", "국방비", "유권자", "국정감사", "재판", "국회", "저위도", "권력분립", "적도", "대륙", "정변", "대양", "정상회담", "독재", "정책", "동경", "정치", "민주주의", "중화학 공업", "법원", "지구본", "보통 선거", "지방 자치제", "본초자오선", "직선제", "부정선거", "태평양", "북반구", "항쟁", "북위", "행정부", "분단", "허위", "비무장", "혁명", "산업화", "휴전선" , "개념", "실생활", "거래", "열량", "계산기", "유용", "공간", "이자", "구상", "입금", "구조물", "자연수", "기약분수", "잔액", "기준량", "전개도", "기타", "정보", "기호", "조건", "단위", "중심", "득표수", "직육면체", "밀집", "차이점", "발생량", "축척", "출금", "백분율", "부분", "타율", "통계", "비율", "할인", "빈도", "선분", "합계", "합동", "수직", "항목", "수집", "해결", "습도", "해석", "횟수", "개량", "양분", "개화", "염기성", "경보", "용액", "공전", "운동", "과속", "위성", "관측", "자전", "광학", "재물대", "광합성", "저장", "궤도", "접안", "기공", "제산제", "기관", "조경", "단속", "주입", "대물", "증산", "도감", "지시약", "망원경", "지지", "방위", "천문", "방제", "천체", "병충해", "보행자", "투영", "산성", "표백제", "산성화", "표본", "세포", "흡수", "속력", "핵", "안전수칙", "훼손", "안전장치", "표피","일석이조", "고진감래", "작심삼일", "동문서답", "역지사지", "새옹지마", "유비무환", "이심전심", "십시일반", "개과천선", "금상첨화", "설상가상", "대기만성", "우이독경", "과유불급", "구사일생", "동고동락", "사필귀정", "천고마비", "청출어람", "유유상종", "다재다능", "감언이설", "마이동풍", "아전인수", "오리무중", "학수고대", "각골난망", "형설지공", "칠전팔기"];
 
+        let currentWordPool = [];
+        let currentEliteWordPool = [];
+
+        function getNextWord(isEliteType) {
+            if (isEliteType) {
+                if (currentEliteWordPool.length === 0) {
+                    if (eliteWordPool.length === 0) return "희귀단어없음"; 
+                    currentEliteWordPool = [...eliteWordPool].sort(() => Math.random() - 0.5);
+                }
+                return currentEliteWordPool.pop();
+            } else {
+                if (currentWordPool.length === 0) {
+                    if (wordPool.length === 0) return "일반단어없음";
+                    currentWordPool = [...wordPool].sort(() => Math.random() - 0.5);
+                }
+                return currentWordPool.pop();
+            }
+        }
 
         let enemies = [];
         let score = 0;
@@ -426,22 +419,17 @@
 
         let selectedUpgradeIndex = -1;
         let currentUpgrades = [];
-
         let currentDifficulty = 'hard';
 
         const player = { 
             maxHp: 5, hp: 5, shield: 0, speedMod: 1.0, splashChance: 0.0, xpMultiplier: 1.0,
-            fairies: [],             
-            explosionChance: 0.0,    
-            knockbackLevel: 0,       
-            knockbackCharges: 0,     
-            vampireGoal: 0,          
-            vampireCount: 0,         
-            timeStopDuration: 0.0,   
-            timeStopCooldown: 0      
+            fairies: [], explosionChance: 0.0, knockbackLevel: 0, knockbackCharges: 0,     
+            vampireGoal: 0, vampireCount: 0, timeStopDuration: 0.0, timeStopCooldown: 0      
         };
 
         let spawnRate = 2000;
+        const triggerRadius = 190; // 🌟 넉백 발동 범위 190px 적용
+        
         const board = document.getElementById('game-board');
         const input = document.getElementById('typing-input');
         const scoreDisplay = document.getElementById('score-display');
@@ -451,14 +439,15 @@
         const damageOverlay = document.getElementById('damage-overlay');
         const waveAlert = document.getElementById('wave-alert');
         const waveTimeLeft = document.getElementById('wave-time-left');
+        const kbGuide = document.getElementById('knockback-guide');
 
         const upgrades = [
             { id: 'shield', name: '🛡️ 수호 방패', desc: () => '적의 공격을 1회 막아주는 방어막을 생성합니다. (누적 가능)', apply: () => player.shield++ },
             { id: 'maxHp', name: '❤️ 생명력 강화', desc: () => '최대 체력이 1 증가하고, 모두 회복합니다.', apply: () => { player.maxHp++; player.hp = player.maxHp; } },
             { id: 'slow', name: '❄️ 얼음 오라', desc: () => '모든 적의 이동 속도가 10% 감소합니다.', apply: () => player.speedMod *= 0.90 },
-            { id: 'splash', name: '⚡ 연쇄 번개', desc: () => '타격 당 번개가 발사될 확률이 20% 상승합니다. (100% 초과 시 다중 발사)', apply: () => player.splashChance += 0.20 },
+            { id: 'splash', name: '⚡ 연쇄 번개', desc: () => '타격 당 번개가 발사될 확률이 20% 상승합니다.', apply: () => player.splashChance += 0.20 },
             { id: 'xpBoost', name: '📚 학구열', desc: () => '획득하는 경험치가 20% 증가합니다.', apply: () => player.xpMultiplier *= 1.2 },
-            { id: 'fairy', name: '🧚‍♂️ 마법 요정', desc: () => '7초(최소 3초)마다 적을 자동 처치합니다. 한계 도달 시 새 요정이 추가됩니다.', apply: () => { 
+            { id: 'fairy', name: '🧚‍♂️ 마법 요정', desc: () => '7초(최소 3초)마다 적을 자동 처치합니다. 중복 선택 시 시간이 단축됩니다.', apply: () => { 
                 let applied = false;
                 for (let f of player.fairies) {
                     if (f.cooldown > 3.0) {
@@ -467,39 +456,64 @@
                         break;
                     }
                 }
-                if (!applied) {
-                    player.fairies.push({ cooldown: 7.0, timer: 0 }); 
-                }
+                if (!applied) { player.fairies.push({ cooldown: 7.0, timer: 0 }); }
                 updateFairyDOM();
             }},
             { id: 'explosion', name: '💣 폭발성 타격', desc: () => player.explosionChance === 0 ? '단어 처치 시 15% 확률로 대폭발을 일으킵니다.' : '폭발 확률이 5% 증가합니다.', apply: () => player.explosionChance = player.explosionChance === 0 ? 0.15 : player.explosionChance + 0.05 },
-            { id: 'knockback', name: '💨 공간 왜곡', desc: () => player.knockbackLevel === 0 ? '단어 처치 시 모든 적을 밀쳐냅니다. (2회 충전)' : `전체 밀쳐내기 횟수를 ${player.knockbackLevel + 2}회 충전합니다.`, apply: () => { player.knockbackLevel++; player.knockbackCharges += player.knockbackLevel + 1; } },
+            { id: 'knockback', name: '💨 공간 왜곡', desc: () => player.knockbackLevel === 0 ? '적이 일정 거리로 다가오면 모두 밀쳐내고 잠시 기절시킵니다. (2회 충전)' : '전체 밀쳐내기 횟수를 2회 충전합니다.', apply: () => { player.knockbackLevel++; player.knockbackCharges += 2; } },
             { id: 'vampire', name: '🩸 흡혈귀의 룬', desc: () => player.vampireGoal === 0 ? '단어를 20개 처치할 때마다 체력을 1 회복합니다.' : '체력 회복에 필요한 처치 수가 2개 감소합니다.', apply: () => player.vampireGoal = player.vampireGoal === 0 ? 20 : Math.max(5, player.vampireGoal - 2) },
-            { id: 'timeStop', name: '⏳ 시간 정지', desc: () => player.timeStopDuration === 0 ? '피격 시 3초간 적들의 시간을 멈춥니다. (쿨타임 30초)' : '시간 정지 지속 시간이 1초 증가합니다.', apply: () => player.timeStopDuration = player.timeStopDuration === 0 ? 3.0 : player.timeStopDuration + 1.0 }
+            { id: 'timeStop', name: '⏳ 시간 정지', desc: () => player.timeStopDuration === 0 ? '피격 시 3초간 적들의 시간을 멈춥니다. (쿨타임 15초)' : '시간 정지 지속 시간이 1초 증가합니다.', apply: () => player.timeStopDuration = player.timeStopDuration === 0 ? 3.0 : player.timeStopDuration + 1.0 }
         ];
 
         function getCenter() { return { x: board.clientWidth / 2, y: board.clientHeight / 2 }; }
+
+        function populateHelpMenu() {
+            const list = document.getElementById('help-list');
+            list.innerHTML = '';
+            
+            const staticDescriptions = {
+                'shield': '적의 공격을 1회 막아주는 방어막을 생성합니다. (누적 가능)',
+                'maxHp': '최대 체력이 1 증가하고 체력을 모두 회복합니다.',
+                'slow': '모든 적의 이동 속도를 지속적으로 10% 감소시킵니다.',
+                'splash': '타격 시 일정 확률로 연쇄 번개가 발생하여 다른 적을 추가 공격합니다. 100%를 초과하면 다중 발사됩니다.',
+                'xpBoost': '단어 처치 시 획득하는 경험치가 20% 증가하여 레벨업이 빨라집니다.',
+                'fairy': '7초마다 적 1마리를 자동 처치하는 요정을 소환합니다. 추가 강화 시 쿨타임이 최소 3초까지 줄어들고 이후 새 요정이 추가됩니다.',
+                'explosion': '단어 처치 시 15% 확률로 폭발을 일으켜 주변(넓은 범위)의 다른 적들까지 한 번에 처치합니다.',
+                'knockback': '적이 코어에 근접하면 자동으로 발동하여 모든 적을 화면 끝으로 밀쳐내고 약 1.5초간 기절(Stun)시킵니다.',
+                'vampire': '일정 수의 단어를 처치할 때마다 체력을 1 회복합니다. (초기 20마리, 강화 시 조건 완화)',
+                'timeStop': '단어와 충돌해 피격당했을 때, 잠시 동안 적들의 시간을 완전히 멈춰 생존 시간을 벌어줍니다. (쿨타임 15초)'
+            };
+
+            upgrades.forEach(upg => {
+                const item = document.createElement('div');
+                item.className = 'bg-gray-700 p-5 rounded-lg border border-gray-500 shadow-md';
+                item.innerHTML = `
+                    <h3 class="text-2xl font-bold text-yellow-300 mb-3">${upg.name}</h3>
+                    <p class="text-gray-200 text-base break-keep leading-relaxed">${staticDescriptions[upg.id]}</p>
+                `;
+                list.appendChild(item);
+            });
+        }
+        
+        window.onload = () => {
+            loadLeaderboard();
+            populateHelpMenu(); 
+        };
 
         function loadLeaderboard() {
             let records = JSON.parse(localStorage.getItem('glyphica_records')) || [];
             const tbody = document.getElementById('main-leaderboard-body');
             tbody.innerHTML = '';
-            
             if (records.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="3" class="text-gray-500 py-4">기록이 없습니다. 첫 기록을 세워보세요!</td></tr>';
                 return;
             }
             records.forEach((record, index) => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="font-bold text-yellow-400">${index + 1}위</td>
-                    <td class="text-white">${record.name}</td>
-                    <td class="text-blue-300 font-bold">${record.score}</td>
-                `;
+                tr.innerHTML = `<td class="font-bold text-yellow-400">${index + 1}위</td><td class="text-white">${record.name}</td><td class="text-blue-300 font-bold">${record.score}</td>`;
                 tbody.appendChild(tr);
             });
         }
-        window.onload = loadLeaderboard;
 
         document.querySelectorAll('.diff-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -528,6 +542,17 @@
             loadLeaderboard(); 
         });
 
+        document.getElementById('resume-btn').addEventListener('click', closePauseMenu);
+        document.getElementById('pause-return-main-btn').addEventListener('click', () => {
+            document.getElementById('pause-modal').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+            resetGame(); loadLeaderboard();
+        });
+
+        document.getElementById('main-help-btn').addEventListener('click', () => document.getElementById('help-modal').classList.remove('hidden'));
+        document.getElementById('pause-help-btn').addEventListener('click', () => document.getElementById('help-modal').classList.remove('hidden'));
+        document.getElementById('close-help-btn').addEventListener('click', () => document.getElementById('help-modal').classList.add('hidden'));
+
         function pauseGame() {
             isPlaying = false;
             cancelAnimationFrame(gameLoopId);
@@ -546,7 +571,26 @@
             scheduleSpawn();
         }
 
-        // 요정 UI 개별 생성 함수
+        function openPauseMenu() {
+            if (!isPlaying) return;
+            pauseGame();
+            document.getElementById('pause-modal').classList.remove('hidden');
+        }
+
+        function closePauseMenu() {
+            document.getElementById('pause-modal').classList.add('hidden');
+            document.getElementById('help-modal').classList.add('hidden');
+            resumeGame();
+        }
+
+        window.addEventListener('blur', () => {
+            if (isPlaying && 
+                document.getElementById('levelup-modal').classList.contains('hidden') && 
+                document.getElementById('cheat-modal').classList.contains('hidden')) {
+                openPauseMenu();
+            }
+        });
+
         function updateFairyDOM() {
             const container = document.getElementById('fairy-companion-container');
             if (player.fairies.length === 0) {
@@ -557,13 +601,7 @@
             container.classList.remove('hidden');
             let html = '';
             player.fairies.forEach((f, i) => {
-                html += `
-                <div id="fairy-${i}" class="relative text-3xl transition-transform duration-150">
-                    🧚
-                    <div id="fairy-time-${i}" class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-[11px] bg-black/80 text-pink-300 px-1.5 py-0.5 rounded font-mono border border-pink-500/50 leading-none whitespace-nowrap">
-                        ${f.cooldown.toFixed(1)}
-                    </div>
-                </div>`;
+                html += `<div id="fairy-${i}" class="relative text-3xl transition-transform duration-150">🧚<div id="fairy-time-${i}" class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-[11px] bg-black/80 text-pink-300 px-1.5 py-0.5 rounded font-mono border border-pink-500/50 leading-none whitespace-nowrap">${f.cooldown.toFixed(1)}</div></div>`;
             });
             container.innerHTML = html;
         }
@@ -577,18 +615,23 @@
             isTimeStopped = false; timeStopRemaining = 0; selectedUpgradeIndex = -1;
             spawnRate = 2000; isWaveActive = false; lastWaveLevel = 0; pausedWaveTimeLeft = 0;
             
+            currentWordPool = []; currentEliteWordPool = [];
             board.classList.remove('wave-active-bg', 'time-stop-bg'); waveAlert.classList.add('hidden');
             document.getElementById('lightning-companion').classList.add('hidden');
-            updateFairyDOM();
-            updateUI();
+            kbGuide.classList.add('hidden');
+            updateFairyDOM(); updateUI();
         }
 
         function startGame() { resumeGame(); }
 
         function startWave() {
             isWaveActive = true; lastWaveLevel = level;
-            const waveIndex = Math.floor(level / 3); 
-            const waveDurationSec = 10 + (waveIndex - 1) * 2;
+            const waveInterval = (currentDifficulty === 'easy') ? 3 : 2; 
+            const waveIndex = Math.floor(level / waveInterval);
+            
+            let baseDuration = (currentDifficulty === 'hard') ? 20 : 10;
+            const waveDurationSec = baseDuration + (waveIndex - 1) * 2;
+            
             waveEndTime = Date.now() + (waveDurationSec * 1000); 
             pausedWaveTimeLeft = 0;
             waveAlert.classList.remove('hidden'); board.classList.add('wave-active-bg');
@@ -609,7 +652,9 @@
 
         function scheduleSpawn() {
             if (!isPlaying) return;
-            if (level > 1 && level % 3 === 0 && lastWaveLevel !== level && !isWaveActive) {
+            
+            const waveInterval = (currentDifficulty === 'easy') ? 3 : 2; 
+            if (level > 1 && level % waveInterval === 0 && lastWaveLevel !== level && !isWaveActive) {
                 startWave();
             }
 
@@ -617,17 +662,22 @@
             
             let currentSpawnRate;
             if (isWaveActive) {
-                // 어려움 상향: 웨이브 집중 포화
                 currentSpawnRate = Math.max(400, 900 - (level * 25));
             } else {
-                // 어려움 상향: 평상시 가속
                 const elapsedSec = gameTime / 60;
                 currentSpawnRate = Math.max(450, spawnRate - (level * 40) - (elapsedSec * 5));
+            }
+
+            if (level >= 9) {
+                const lateGameBonus = (level - 8) * 50; 
+                currentSpawnRate -= lateGameBonus;
+                currentSpawnRate = Math.max(200, currentSpawnRate); 
             }
 
             let diffSpawnMul = currentDifficulty === 'easy' ? 2.5 : (currentDifficulty === 'normal' ? 1.6 : 1.0);
             currentSpawnRate *= diffSpawnMul;
 
+            clearTimeout(spawnIntervalId);
             spawnIntervalId = setTimeout(scheduleSpawn, currentSpawnRate);
         }
 
@@ -642,16 +692,15 @@
 
             const el = document.createElement('div');
             let text = "";
-            
-            const hasEliteOnScreen = enemies.some(e => e.isElite);
             let isElite = false;
+            const hasEliteOnScreen = enemies.some(e => e.isElite);
             
-            if (level >= 5 && !isWaveActive && !hasEliteOnScreen && Math.random() < 0.04) {
+            if (level >= 5 && !isWaveActive && !hasEliteOnScreen && Math.random() < 0.14) {
                 isElite = true;
-                text = eliteWordPool[Math.floor(Math.random() * eliteWordPool.length)];
+                text = getNextWord(true);
                 el.className = 'enemy-word elite-word';
             } else {
-                text = wordPool[Math.floor(Math.random() * wordPool.length)];
+                text = getNextWord(false);
                 el.className = 'enemy-word';
             }
             
@@ -662,9 +711,14 @@
             const distance = Math.hypot(center.x - startX, center.y - startY);
             const elapsedSec = gameTime / 60;
             
-            // 어려움 상향: 한계 속도를 더 빠르게
             let framesToReach = Math.max(200, 600 - (level * 12) - (elapsedSec * 1.5)); 
             
+            if (level >= 9) {
+                const lateGameSpeedBonus = (level - 8) * 20;
+                framesToReach -= lateGameSpeedBonus;
+                framesToReach = Math.max(80, framesToReach); 
+            }
+
             if (isWaveActive) {
                 const speedMultiplier = Math.max(0.70, 0.90 - (level * 0.015));
                 framesToReach *= speedMultiplier; 
@@ -675,7 +729,8 @@
             framesToReach *= diffSpeedMul;
 
             const speed = distance / framesToReach;
-            enemies.push({ id: Date.now()+Math.random(), el, text, x: startX, y: startY, speed, isElite });
+            
+            enemies.push({ id: Date.now()+Math.random(), el, text, x: startX, y: startY, speed, isElite, stunTimer: 0 });
         }
 
         function update() {
@@ -683,12 +738,8 @@
             gameTime++; 
 
             if (player.timeStopCooldown > 0) player.timeStopCooldown--;
-            
-            if (player.splashChance > 0) {
-                document.getElementById('lightning-companion').classList.remove('hidden');
-            }
+            if (player.splashChance > 0) document.getElementById('lightning-companion').classList.remove('hidden');
 
-            // 개별 요정 로직
             if (player.fairies.length > 0) {
                 player.fairies.forEach((fairy, i) => {
                     if (!isTimeStopped) {
@@ -705,7 +756,6 @@
                                     fairyEl.style.transform = 'translateY(-15px)';
                                     setTimeout(() => fairyEl.style.transform = 'translateY(0)', 150);
                                 }
-
                                 drawFairyLaser(getCenter().x + 20, getCenter().y - 20, target.x, target.y);
                                 destroyEnemy(targetIndex, true); 
                                 sfx.fairy();
@@ -724,6 +774,58 @@
                 else { waveTimeLeft.textContent = Math.ceil(remainMs / 1000); }
             }
 
+            const center = getCenter();
+            
+            if (player.knockbackCharges > 0 && !isTimeStopped) {
+                kbGuide.style.width = `${triggerRadius * 2}px`;
+                kbGuide.style.height = `${triggerRadius * 2}px`;
+                kbGuide.classList.remove('hidden');
+                
+                let trigger = false;
+                for (let i = 0; i < enemies.length; i++) {
+                    const e = enemies[i];
+                    if (!e.isElite && Math.hypot(center.x - e.x, center.y - e.y) < triggerRadius) {
+                        trigger = true; break;
+                    }
+                }
+                
+                if (trigger) {
+                    player.knockbackCharges--;
+                    sfx.knockback();
+                    enemies.forEach(t => {
+                        const dx = t.x - center.x; const dy = t.y - center.y;
+                        const len = Math.hypot(dx, dy);
+                        if (len > 0) {
+                            t.x += (dx / len) * 350; 
+                            t.y += (dy / len) * 350; 
+                            t.stunTimer = 90;
+                            
+                            t.el.style.transform = 'translate(-50%, -50%) scale(1.3)';
+                            t.el.style.borderColor = '#c084fc'; 
+                            setTimeout(() => {
+                                if(t.el) { t.el.style.transform = 'translate(-50%, -50%) scale(1)'; t.el.style.borderColor = ''; }
+                            }, 300);
+                        }
+                    });
+                    
+                    const shockwave = document.createElement('div');
+                    shockwave.style.position = 'absolute'; shockwave.style.left = `${center.x}px`; shockwave.style.top = `${center.y}px`;
+                    shockwave.style.width = '100px'; shockwave.style.height = '100px'; shockwave.style.borderRadius = '50%';
+                    shockwave.style.background = 'radial-gradient(circle, transparent 20%, rgba(192, 132, 252, 0.5) 80%, transparent 100%)';
+                    shockwave.style.transform = 'translate(-50%, -50%) scale(0.1)'; shockwave.style.pointerEvents = 'none'; shockwave.style.zIndex = '15';
+                    shockwave.style.transition = 'transform 0.4s ease-out, opacity 0.4s ease-out';
+                    board.appendChild(shockwave);
+                    
+                    requestAnimationFrame(() => {
+                        shockwave.style.transform = 'translate(-50%, -50%) scale(20)'; shockwave.style.opacity = '0';
+                    });
+                    setTimeout(() => shockwave.remove(), 400);
+                    updateUI();
+                }
+            } else {
+                kbGuide.classList.add('hidden');
+            }
+
             if (isTimeStopped) {
                 timeStopRemaining--;
                 if (timeStopRemaining <= 0) {
@@ -731,17 +833,21 @@
                     board.classList.remove('time-stop-bg');
                 }
             } else {
-                const center = getCenter(); const hitRadius = 30; 
+                const hitRadius = 30; 
                 for (let i = enemies.length - 1; i >= 0; i--) {
                     const e = enemies[i];
+                    
+                    if (e.stunTimer && e.stunTimer > 0) {
+                        e.stunTimer--;
+                        e.el.style.left = `${e.x}px`; e.el.style.top = `${e.y}px`;
+                        continue;
+                    }
+
                     const dx = center.x - e.x; const dy = center.y - e.y;
                     const distance = Math.hypot(dx, dy);
 
                     if (distance < hitRadius) {
-                        if (!e.isElite) {
-                            takeDamage(1); 
-                        }
-                        // 엘리트(아이템 단어)는 데미지를 주지 않고 사라짐
+                        if (!e.isElite) takeDamage(1); 
                         e.el.remove(); enemies.splice(i, 1); continue;
                     }
 
@@ -759,19 +865,25 @@
             if (e.key === ' ' || e.key === 'Enter') {
                 e.preventDefault(); 
                 const typed = input.value.trim();
-                
                 if (typed === '코끼리기린') {
                     input.value = '';
                     setTimeout(() => openCheatModal(), 50);
                     return;
                 }
-
                 if (typed.length > 0) checkWord(typed);
                 input.value = ''; 
             }
         });
 
         document.addEventListener('keydown', (e) => { 
+            if (e.key === 'Escape') {
+                if (isPlaying) { openPauseMenu(); } 
+                else if (!document.getElementById('pause-modal').classList.contains('hidden') || !document.getElementById('help-modal').classList.contains('hidden')) { 
+                    closePauseMenu(); 
+                }
+                return;
+            }
+
             const modal = document.getElementById('levelup-modal');
             if (!modal.classList.contains('hidden')) {
                 const key = e.key.toLowerCase();
@@ -790,13 +902,13 @@
                         updateUI(); resumeGame();
                     }
                 }
-            } else if(isPlaying && !document.getElementById('cheat-modal').classList.contains('hidden') === false) {
+            } else if(isPlaying && document.getElementById('cheat-modal').classList.contains('hidden') && document.getElementById('pause-modal').classList.contains('hidden') && document.getElementById('help-modal').classList.contains('hidden')) {
                 input.focus(); 
             }
         });
 
         document.addEventListener('click', (e) => { 
-            if(isPlaying && !document.getElementById('cheat-modal').classList.contains('hidden') === false) {
+            if(isPlaying && document.getElementById('cheat-modal').classList.contains('hidden') && document.getElementById('pause-modal').classList.contains('hidden') && document.getElementById('help-modal').classList.contains('hidden')) {
                 input.focus(); 
             }
         });
@@ -838,42 +950,8 @@
             }
 
             enemies.splice(index, 1); updateUI();
-
             if (isChain) return; 
 
-            // 1. 공간 왜곡 (넉백)
-            if (player.knockbackCharges > 0) {
-                player.knockbackCharges--;
-                sfx.knockback();
-                enemies.forEach(t => {
-                    const dx = t.x - center.x; const dy = t.y - center.y;
-                    const len = Math.hypot(dx, dy);
-                    if (len > 0) {
-                        t.x += (dx / len) * 150; t.y += (dy / len) * 150; 
-                        t.el.style.transform = 'translate(-50%, -50%) scale(1.3)';
-                        t.el.style.borderColor = '#c084fc'; 
-                        setTimeout(() => {
-                            if(t.el) { t.el.style.transform = 'translate(-50%, -50%) scale(1)'; t.el.style.borderColor = ''; }
-                        }, 300);
-                    }
-                });
-                
-                const shockwave = document.createElement('div');
-                shockwave.style.position = 'absolute'; shockwave.style.left = `${center.x}px`; shockwave.style.top = `${center.y}px`;
-                shockwave.style.width = '100px'; shockwave.style.height = '100px'; shockwave.style.borderRadius = '50%';
-                shockwave.style.background = 'radial-gradient(circle, transparent 20%, rgba(192, 132, 252, 0.5) 80%, transparent 100%)';
-                shockwave.style.transform = 'translate(-50%, -50%) scale(0.1)'; shockwave.style.pointerEvents = 'none'; shockwave.style.zIndex = '15';
-                shockwave.style.transition = 'transform 0.4s ease-out, opacity 0.4s ease-out';
-                board.appendChild(shockwave);
-                
-                requestAnimationFrame(() => {
-                    shockwave.style.transform = 'translate(-50%, -50%) scale(15)'; shockwave.style.opacity = '0';
-                });
-                setTimeout(() => shockwave.remove(), 400);
-                updateUI();
-            }
-
-            // 2. 폭발성 타격
             if (player.explosionChance > 0 && Math.random() < player.explosionChance) {
                 sfx.explode();
                 const explosionEl = document.createElement('div');
@@ -892,7 +970,6 @@
                 });
             }
 
-            // 3. 연쇄 번개 (진짜 번개 이모티콘 날아가기)
             if (player.splashChance > 0 && enemies.length > 0) {
                 let splashCount = Math.floor(player.splashChance);
                 if (Math.random() < (player.splashChance % 1)) splashCount++;
@@ -948,7 +1025,7 @@
             if (player.timeStopDuration > 0 && player.timeStopCooldown <= 0) {
                 isTimeStopped = true;
                 timeStopRemaining = player.timeStopDuration * 60;
-                player.timeStopCooldown = 30 * 60; 
+                player.timeStopCooldown = 15 * 60; 
                 board.classList.add('time-stop-bg');
             }
 
@@ -957,8 +1034,7 @@
                 damageOverlay.classList.remove('flash-damage', 'flash-shield');
                 void damageOverlay.offsetWidth; 
                 damageOverlay.classList.add('flash-shield');
-                sfx.shield();
-                updateUI();
+                sfx.shield(); updateUI();
                 return;
             }
             
@@ -997,14 +1073,11 @@
 
         function showUpgradeModal(titleText) {
             const modal = document.getElementById('levelup-modal');
-            const titleElement = document.getElementById('modal-title');
+            document.getElementById('modal-title').textContent = titleText || "LEVEL UP!";
             const container = document.getElementById('upgrade-options');
             const confirmBtn = document.getElementById('confirm-upgrade-btn');
             
-            titleElement.textContent = titleText || "LEVEL UP!";
-            container.innerHTML = '';
-            selectedUpgradeIndex = -1; 
-            
+            container.innerHTML = ''; selectedUpgradeIndex = -1; 
             confirmBtn.classList.add('pointer-events-none', 'opacity-50');
             confirmBtn.classList.remove('bg-yellow-600', 'text-white', 'hover:bg-yellow-500');
 
@@ -1015,15 +1088,10 @@
             shuffled.forEach((upg, index) => {
                 const card = document.createElement('div');
                 card.className = 'upgrade-card flex-1 text-center';
-                
                 card.innerHTML = `
-                    <div class="absolute top-[-15px] left-1/2 transform -translate-x-1/2 bg-yellow-600 text-white font-bold px-4 py-1 rounded-full text-sm shadow-md border border-yellow-400">
-                        [ ${keys[index]} ] 키
-                    </div>
+                    <div class="absolute top-[-15px] left-1/2 transform -translate-x-1/2 bg-yellow-600 text-white font-bold px-4 py-1 rounded-full text-sm shadow-md border border-yellow-400">[ ${keys[index]} ] 키</div>
                     <h3 class="text-3xl font-bold mb-4 text-white mt-4">${upg.name}</h3>
-                    <p class="text-lg text-gray-400 break-keep">${upg.desc()}</p>
-                `;
-                
+                    <p class="text-lg text-gray-400 break-keep">${upg.desc()}</p>`;
                 card.addEventListener('click', () => { selectUpgradeCard(index); });
                 container.appendChild(card);
             });
@@ -1032,17 +1100,14 @@
                 if (selectedUpgradeIndex !== -1 && currentUpgrades[selectedUpgradeIndex]) {
                     currentUpgrades[selectedUpgradeIndex].apply();
                     modal.classList.add('hidden');
-                    sfx.levelUp(); 
-                    updateUI(); resumeGame();
+                    sfx.levelUp(); updateUI(); resumeGame();
                 }
             };
-
             modal.classList.remove('hidden');
         }
 
         function updateUI() {
             scoreDisplay.textContent = score; levelDisplay.textContent = level;
-            
             let hpStr = '';
             for(let i=0; i<player.maxHp; i++) { hpStr += (i < player.hp) ? '♥' : '♡'; }
             hpDisplay.textContent = hpStr; hpDisplay.style.color = (player.hp <= 2) ? '#ef4444' : '#4ade80';
@@ -1059,8 +1124,10 @@
             html += `<div class="text-gray-300">❄️ 감속: ${Math.round((1 - player.speedMod)*100)}%</div>`;
             html += `<div class="text-gray-300">📚 경험치: +${Math.round((player.xpMultiplier - 1)*100)}%</div>`;
             if (player.splashChance > 0) html += `<div class="text-gray-300">🌩️ 연쇄 번개: 발동률 ${Math.round(player.splashChance*100)}%</div>`;
+            
             if (player.fairies.length > 0) {
-                html += `<div class="text-pink-300">🧚 요정: ${player.fairies.length}마리</div>`;
+                const minCd = Math.min(...player.fairies.map(f => f.cooldown)).toFixed(1);
+                html += `<div class="text-pink-300">🧚 요정: ${player.fairies.length}마리 (${minCd}초)</div>`;
             }
             if (player.explosionChance > 0) html += `<div class="text-gray-300">💣 폭발: ${Math.round(player.explosionChance*100)}%</div>`;
             
@@ -1080,31 +1147,35 @@
         function gameOver() {
             pauseGame(); input.disabled = true;
             document.getElementById('final-score').textContent = score;
-            
             const recordForm = document.getElementById('record-form');
             recordForm.classList.remove('hidden', 'opacity-50', 'pointer-events-none');
-            
             document.getElementById('player-name').value = '';
-            const saveBtn = document.getElementById('save-score-btn');
-            saveBtn.disabled = false;
-            saveBtn.textContent = "기록 저장";
             
+            const saveBtn = document.getElementById('save-score-btn');
+            saveBtn.disabled = false; saveBtn.textContent = "기록 저장";
             document.getElementById('game-over-screen').classList.remove('hidden');
         }
 
+        // 🌟 [추가됨] 기록 저장 시 닉네임 옆에 플레이 난이도 자동 표기 로직
         document.getElementById('save-score-btn').addEventListener('click', () => {
             const nameInput = document.getElementById('player-name').value.trim();
-            const name = nameInput.length > 0 ? nameInput : '익명';
+            const baseName = nameInput.length > 0 ? nameInput : '익명';
             
+            // 난이도별 한글명 매핑
+            const diffMap = { 'easy': '쉬움', 'normal': '보통', 'hard': '어려움' };
+            const diffText = diffMap[currentDifficulty] || '알수없음';
+            
+            // 최종 이름 생성 (예: 익명 (어려움))
+            const finalName = `${baseName} (${diffText})`;
+
             let records = JSON.parse(localStorage.getItem('glyphica_records')) || [];
-            records.push({ name: name, score: score });
+            records.push({ name: finalName, score: score });
             records.sort((a, b) => b.score - a.score);
             records = records.slice(0, 5); 
             localStorage.setItem('glyphica_records', JSON.stringify(records));
             
             const saveBtn = document.getElementById('save-score-btn');
-            saveBtn.disabled = true;
-            saveBtn.textContent = "저장 완료!";
+            saveBtn.disabled = true; saveBtn.textContent = "저장 완료!";
             document.getElementById('record-form').classList.add('opacity-50', 'pointer-events-none');
         });
 
@@ -1119,26 +1190,21 @@
         document.getElementById('apply-cheat-btn').addEventListener('click', () => {
             const newLevel = parseInt(document.getElementById('cheat-level').value);
             if (!isNaN(newLevel) && newLevel > 0) level = newLevel;
-            
             const newHp = parseInt(document.getElementById('cheat-hp').value);
             if (!isNaN(newHp) && newHp > 0) { player.maxHp = newHp; player.hp = newHp; }
-            
             const newSplash = parseInt(document.getElementById('cheat-splash').value);
             if (!isNaN(newSplash)) player.splashChance = newSplash / 100;
-            
             const addScore = parseInt(document.getElementById('cheat-score').value);
             if (!isNaN(addScore)) score += addScore;
 
             document.getElementById('cheat-modal').classList.add('hidden');
-            updateUI();
-            resumeGame();
+            updateUI(); resumeGame();
         });
 
         document.getElementById('cancel-cheat-btn').addEventListener('click', () => {
             document.getElementById('cheat-modal').classList.add('hidden');
             resumeGame();
         });
-
     </script>
 </body>
 </html>
