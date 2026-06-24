@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스마트 클래스 타이머 Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --danger: #EF4444;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --bg-color: #F3F4F6;
+            --panel-bg: #FFFFFF;
+            --text-main: #1F2937;
+            --text-muted: #6B7280;
+            --border-color: #E5E7EB;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* 레이아웃 & 드래그 리사이저 */
+        .left-panel {
+            flex: 0 0 50%;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, #F9FAFB 0%, #EFF6FF 100%);
+            padding: 30px;
+            min-width: 300px;
+        }
+
+        .resizer {
+            width: 8px;
+            background-color: #D1D5DB;
+            cursor: col-resize;
+            transition: background-color 0.2s;
+            z-index: 10;
+        }
+        .resizer:hover, .resizer:active { background-color: var(--primary); }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--panel-bg);
+            padding: 30px;
+            min-width: 300px;
+            overflow-y: auto;
+        }
+
+        /* 공통 버튼 디자인 */
+        button {
+            font-family: 'Jua', sans-serif;
+            padding: 12px 20px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        button:active { transform: translateY(2px); box-shadow: none; }
+        button:hover { filter: brightness(1.1); }
+        
+        .btn-outline { background: white; color: var(--text-main); border: 2px solid var(--border-color); }
+        .btn-outline:hover { background: #F9FAFB; }
+        .btn-active { background: var(--primary); color: white; border-color: var(--primary); }
+        
+        .btn-start { background-color: var(--success); font-size: 1.5rem; padding: 15px 40px; }
+        .btn-reset { background-color: var(--danger); font-size: 1.5rem; padding: 15px 30px; }
+        .btn-action { background-color: var(--primary); }
+        .btn-secondary { background-color: #6B7280; }
+
+        /* 왼쪽: 타이머 영역 */
+        .mode-selectors {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: auto;
+        }
+
+        .timer-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 40vh;
+        }
+
+        .timer-display {
+            font-size: clamp(5rem, 15vw, 20rem); 
+            font-variant-numeric: tabular-nums; 
+            letter-spacing: 2px;
+            color: var(--text-main);
+            text-shadow: 2px 4px 10px rgba(0,0,0,0.1);
+            white-space: nowrap;
+        }
+
+        .controls-bottom {
+            margin-top: auto;
+            background: rgba(255,255,255,0.8);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .main-controls { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
+        .bgm-controls { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        
+        .bgm-btn { background: white; color: var(--text-main); border: 2px solid #E5E7EB; }
+        .bgm-btn.playing { border-color: #8B5CF6; background: #EDE9FE; color: #6D28D9; transform: scale(1.05); }
+
+        .tts-settings {
+            display: flex; justify-content: center; gap: 15px; align-items: center; flex-wrap: wrap;
+            font-size: 1.2rem; background: #F3F4F6; padding: 15px; border-radius: 12px;
+        }
+        .tts-settings input[type="checkbox"] { transform: scale(1.5); margin-right: 5px; cursor: pointer; }
+
+        /* 오른쪽: 명단 및 기록 영역 */
+        .setup-section {
+            background: #F9FAFB; border-radius: 15px; padding: 20px; margin-bottom: 20px;
+            border: 1px solid var(--border-color); flex-shrink: 0;
+        }
+        
+        textarea {
+            font-family: 'Jua', sans-serif;
+            width: 100%; height: 80px; padding: 15px; font-size: 1.2rem;
+            border: 2px solid var(--border-color); border-radius: 10px;
+            resize: none; margin-bottom: 10px; outline: none; transition: border-color 0.2s;
+        }
+        textarea:focus { border-color: var(--primary); }
+
+        .action-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
+        .action-group { display: flex; gap: 10px; }
+
+        /* 명단 없을 때 뜨는 대형 전체 기록 배지 영역 */
+        .global-records {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .global-badge {
+            background: #E0E7FF; color: #3730A3;
+            padding: 15px 30px; border-radius: 15px;
+            font-size: 2.5rem; font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            cursor: pointer; transition: transform 0.2s, background 0.2s;
+            text-align: center; border: 3px solid #818CF8;
+        }
+        .global-badge:hover { transform: scale(1.05); background: #C7D2FE; }
+
+        /* 학생 리스트 (Grid 배열) */
+        .student-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            overflow-y: auto;
+            padding: 5px;
+            align-content: start;
+        }
+        
+        .student-row {
+            display: flex; flex-direction: column; align-items: stretch;
+            background: white; padding: 15px; border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-top: 5px solid #ccc; 
+        }
+
+        .student-name-btn {
+            background: white; border: 2px solid #ccc; color: var(--text-main);
+            font-size: 1.4rem; padding: 8px 10px; border-radius: 10px;
+            width: 100%; transition: transform 0.1s, background 0.2s;
+            margin-bottom: 10px;
+        }
+        .student-name-btn:hover { background: #F3F4F6; transform: scale(1.02); }
+
+        /* 기록 배지 딱 맞게 2열 정렬 */
+        .record-badges {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%;
+        }
+        
+        .badge {
+            background: #E0E7FF; color: #3730A3; padding: 8px 0;
+            border-radius: 8px; font-size: 1.1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            cursor: pointer; transition: background 0.2s; text-align: center; width: 100%;
+        }
+        .badge:hover { background: #C7D2FE; text-decoration: underline; }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* 모달 공통 스타일 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(3px);
+            display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-content {
+            background: white; padding: 30px; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+        }
+
+        .countdown-modal { width: 400px; text-align: center; }
+        .edit-modal { width: 350px; text-align: center; }
+        
+        .time-inputs { display: flex; justify-content: center; gap: 10px; margin: 25px 0; font-size: 1.5rem; align-items: center; }
+        .time-inputs input {
+            width: 70px; height: 50px; font-size: 1.8rem; text-align: center;
+            border: 2px solid var(--border-color); border-radius: 10px; font-family: 'Jua';
+        }
+        
+        .edit-input {
+            width: 100%; height: 50px; font-size: 1.8rem; text-align: center;
+            border: 2px solid var(--border-color); border-radius: 10px; font-family: 'Jua';
+            margin: 20px 0; outline: none;
+        }
+        .edit-input:focus { border-color: var(--primary); }
+
+        .records-modal { width: 90%; max-width: 1000px; height: 85vh; display: flex; flex-direction: column; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h2 { font-size: 2rem; color: var(--text-main); }
+        .tabs { display: flex; gap: 10px; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        .tab-btn { background: none; color: var(--text-muted); border-radius: 10px 10px 0 0; box-shadow: none; padding: 10px 20px; font-size: 1.3rem; }
+        .tab-btn.active { color: var(--primary); border-bottom: 4px solid var(--primary); font-weight: bold; }
+        .records-body { overflow-y: auto; flex-grow: 1; padding-right: 10px; }
+        .record-table { width: 100%; border-collapse: collapse; font-size: 1.3rem; }
+        .record-table th, .record-table td { padding: 15px; border-bottom: 1px solid var(--border-color); text-align: left; }
+        .record-table th { background: #F9FAFB; position: sticky; top: 0; }
+        .person-group { margin-bottom: 30px; }
+        .person-name { font-size: 1.8rem; color: var(--primary); border-bottom: 2px solid var(--border-color); padding-bottom: 5px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+    <div class="left-panel" id="left-panel">
+        <div class="mode-selectors">
+            <button class="btn-outline btn-active" id="btn-mode-up" onclick="setMode('up')">시간 쌓기 (상향식)</button>
+            <button class="btn-outline" id="btn-mode-down" onclick="openCountdownModal()">목표 달성 (하향식)</button>
+        </div>
+
+        <div class="timer-container">
+            <div class="timer-display" id="timer-display">00:00</div>
+        </div>
+
+        <div class="controls-bottom">
+            <div class="main-controls">
+                <button class="btn-start" id="btn-start" onclick="toggleTimer()">시작</button>
+                <button class="btn-reset" onclick="resetTimer()">초기화</button>
+            </div>
+            
+            <div class="bgm-controls">
+                <button class="bgm-btn" id="btn-bgm-calm" onclick="toggleBGM('calm')">🎵 평화로운 BGM</button>
+                <button class="bgm-btn" id="btn-bgm-urgent" onclick="toggleBGM('urgent')">🔥 긴박한 BGM</button>
+            </div>
+
+            <div class="tts-settings">
+                <strong>음성 알림:</strong>
+                <label><input type="checkbox" class="tts-chk" value="1" checked> 1분마다</label>
+                <label><input type="checkbox" class="tts-chk" value="3"> 3분마다</label>
+                <label><input type="checkbox" class="tts-chk" value="5"> 5분마다</label>
+                <label><input type="checkbox" class="tts-chk" value="10"> 10분마다</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="resizer" id="resizer"></div>
+
+    <div class="right-panel">
+        <div class="setup-section">
+            <textarea id="name-input" placeholder="학생 이름을 입력하세요 (쉼표, 띄어쓰기, 엔터로 구분)"></textarea>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-action" style="flex: 1;" onclick="generateNames()">명단 적용하기</button>
+                <button class="btn-secondary" onclick="clearAllStudents()">명단 초기화</button>
+            </div>
+        </div>
+
+        <div class="action-row">
+            <div class="action-group">
+                <button class="btn-action" style="background-color: #059669;" onclick="recordTime('전체')">전체 기록 남기기</button>
+                <button class="btn-secondary" onclick="clearRecordsOnly()">기록만 비우기</button>
+            </div>
+            <button class="btn-action" style="background-color: #4F46E5;" onclick="openRecordsModal()">📊 전체 기록 보기</button>
+        </div>
+
+        <div id="global-records" class="global-records"></div>
+
+        <div class="student-list" id="student-list"></div>
+    </div>
+
+    <div class="modal-overlay" id="countdown-modal">
+        <div class="modal-content countdown-modal">
+            <h2>목표 시간 설정</h2>
+            <div class="time-inputs">
+                <input type="number" id="cd-h" min="0" max="99" value="0"> 시
+                <input type="number" id="cd-m" min="0" max="59" value="10"> 분
+                <input type="number" id="cd-s" min="0" max="59" value="0"> 초
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="btn-action" onclick="applyCountdown()">설정 완료</button>
+                <button class="btn-secondary" onclick="closeCountdownModal()">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal-content edit-modal">
+            <h2>기록 수정 / 삭제</h2>
+            <input type="text" id="edit-time-val" class="edit-input" placeholder="예: 01:23">
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="btn-action" onclick="saveEdit()">저장</button>
+                <button class="btn-reset" onclick="deleteBadge()">삭제</button>
+                <button class="btn-secondary" onclick="closeEditModal()">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="records-modal">
+        <div class="modal-content records-modal">
+            <div class="modal-header">
+                <h2>📊 종합 기록 보기</h2>
+                <button class="btn-secondary" onclick="closeRecordsModal()">닫기</button>
+            </div>
+            <div class="tabs">
+                <button class="tab-btn active" id="tab-chrono" onclick="switchTab('chrono')">시간 순서별 (전체)</button>
+                <button class="tab-btn" id="tab-person" onclick="switchTab('person')">개인별 모아보기</button>
+            </div>
+            <div class="records-body" id="records-body"></div>
+        </div>
+    </div>
+
+    <script>
+        const resizer = document.getElementById('resizer');
+        const leftPanel = document.getElementById('left-panel');
+        let isResizing = false;
+
+        resizer.addEventListener('mousedown', () => {
+            isResizing = true;
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none'; 
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            const minWidth = 300;
+            const maxWidth = window.innerWidth - 300;
+            let newWidth = e.clientX;
+            if(newWidth < minWidth) newWidth = minWidth;
+            if(newWidth > maxWidth) newWidth = maxWidth;
+            leftPanel.style.flex = `0 0 ${newWidth}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.cursor = 'default';
+                document.body.style.userSelect = 'auto';
+            }
+        });
+
+        let timerInterval;
+        let isRunning = false;
+        let mode = 'up'; 
+        let currentTime = 0;
+        let targetTime = 0;
+        let records = []; 
+        let currentTab = 'chrono';
+
+        const display = document.getElementById('timer-display');
+        const btnStart = document.getElementById('btn-start');
+
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            if (h > 0) return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function updateDisplay() {
+            display.innerText = formatTime(currentTime);
+            display.style.color = (mode === 'down' && currentTime <= 10 && currentTime > 0) ? 'var(--warning)' : 
+                                  (mode === 'down' && currentTime === 0 && targetTime > 0) ? 'var(--danger)' : 'var(--text-main)';
+        }
+
+        function toggleTimer() {
+            if (isRunning) {
+                clearInterval(timerInterval);
+                btnStart.innerText = "시작";
+                btnStart.style.backgroundColor = "var(--success)";
+            } else {
+                if (mode === 'down' && currentTime === 0) return; 
+                timerInterval = setInterval(tick, 1000);
+                btnStart.innerText = "일시정지";
+                btnStart.style.backgroundColor = "var(--warning)";
+            }
+            isRunning = !isRunning;
+        }
+
+        function resetTimer() {
+            if (isRunning) toggleTimer(); 
+            currentTime = 0; 
+            targetTime = 0; 
+            updateDisplay();
+            window.speechSynthesis.cancel(); 
+        }
+
+        function tick() {
+            if (mode === 'up') {
+                currentTime++;
+            } else {
+                currentTime--;
+                
+                if (currentTime <= 10 && currentTime > 0) {
+                    playBeep(); 
+                }
+
+                if (currentTime <= 0) {
+                    currentTime = 0;
+                    if(isRunning) toggleTimer(); 
+                    updateDisplay();
+                    
+                    window.speechSynthesis.cancel(); 
+                    playSpeak("시간이 모두 다 되었습니다.");
+                    
+                    setTimeout(() => { 
+                        playSpeak("시간이 모두 다 되었습니다."); 
+                    }, 2500); 
+                    
+                    return; 
+                }
+            }
+            updateDisplay();
+            checkTTS();
+        }
+
+        function setMode(newMode) {
+            mode = newMode;
+            document.getElementById('btn-mode-up').classList.toggle('btn-active', mode === 'up');
+            document.getElementById('btn-mode-up').classList.toggle('btn-outline', mode !== 'up');
+            document.getElementById('btn-mode-down').classList.toggle('btn-active', mode === 'down');
+            document.getElementById('btn-mode-down').classList.toggle('btn-outline', mode !== 'down');
+            
+            if (isRunning) toggleTimer();
+            if (mode === 'up') {
+                currentTime = 0;
+                targetTime = 0;
+                updateDisplay();
+            }
+        }
+
+        function openCountdownModal() { document.getElementById('countdown-modal').style.display = 'flex'; }
+        function closeCountdownModal() { 
+            document.getElementById('countdown-modal').style.display = 'none';
+            if (targetTime === 0) setMode('up'); 
+        }
+        function applyCountdown() {
+            const h = parseInt(document.getElementById('cd-h').value) || 0;
+            const m = parseInt(document.getElementById('cd-m').value) || 0;
+            const s = parseInt(document.getElementById('cd-s').value) || 0;
+            
+            targetTime = (h * 3600) + (m * 60) + s;
+            if (targetTime > 0) {
+                currentTime = targetTime;
+                setMode('down');
+                document.getElementById('countdown-modal').style.display = 'none';
+                updateDisplay();
+            } else {
+                alert("시간을 설정해주세요.");
+            }
+        }
+
+        // BGM 볼륨 대폭 조정
+        const audioCalm = new Audio('https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3');
+        audioCalm.loop = true;
+        audioCalm.volume = 0.2; 
+
+        const audioUrgent = new Audio('https://cdn.pixabay.com/audio/2022/01/18/audio_d0a13f69d2.mp3');
+        audioUrgent.loop = true;
+        audioUrgent.volume = 0.08; // 긴박한 소리가 너무 커서 0.08로 줄임
+
+        let activeBGM = null;
+
+        function toggleBGM(type) {
+            const btnCalm = document.getElementById('btn-bgm-calm');
+            const btnUrgent = document.getElementById('btn-bgm-urgent');
+            
+            audioCalm.pause(); audioCalm.currentTime = 0;
+            audioUrgent.pause(); audioUrgent.currentTime = 0;
+            btnCalm.classList.remove('playing');
+            btnUrgent.classList.remove('playing');
+
+            if (activeBGM === type) {
+                activeBGM = null;
+            } else {
+                if (type === 'calm') {
+                    audioCalm.play().catch(e => alert("음원을 불러오는 데 실패했습니다. 화면을 한 번 클릭해 주세요."));
+                    btnCalm.classList.add('playing');
+                } else if (type === 'urgent') {
+                    audioUrgent.play().catch(e => alert("음원을 불러오는 데 실패했습니다. 화면을 한 번 클릭해 주세요."));
+                    btnUrgent.classList.add('playing');
+                }
+                activeBGM = type;
+            }
+        }
+
+        function playBeep() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.type = 'sine'; osc.frequency.value = 800; 
+            gain.gain.value = 0.5; 
+            osc.start();
+            setTimeout(() => osc.stop(), 200); 
+        }
+
+        function playSpeak(text) {
+            const utt = new SpeechSynthesisUtterance(text);
+            utt.lang = 'ko-KR';
+            utt.volume = 1.0; 
+            window.speechSynthesis.speak(utt);
+        }
+
+        function checkTTS() {
+            const chkBoxes = document.querySelectorAll('.tts-chk:checked');
+            if (chkBoxes.length === 0) return;
+            const currentMin = Math.floor(currentTime / 60);
+            const currentSec = currentTime % 60;
+
+            if (currentSec === 0 && currentMin > 0) {
+                let shouldSpeak = false;
+                chkBoxes.forEach(chk => {
+                    if (currentMin % parseInt(chk.value) === 0) shouldSpeak = true;
+                });
+                if (shouldSpeak) {
+                    playBeep();
+                    setTimeout(() => {
+                        playSpeak(mode === 'up' ? `${currentMin}분 지났습니다.` : `${currentMin}분 남았습니다.`);
+                    }, 300);
+                }
+            }
+        }
+
+        function getRandomColor() {
+            const colors = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6'];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        function generateNames() {
+            const input = document.getElementById('name-input').value;
+            const names = input.split(/[\s,]+/).filter(n => n.trim() !== "");
+            const listDiv = document.getElementById('student-list');
+            
+            names.forEach(name => {
+                if (!document.getElementById(`row-${name}`)) {
+                    createStudentRow(name, listDiv);
+                }
+            });
+            document.getElementById('name-input').value = '';
+        }
+
+        function createStudentRow(name, container) {
+            const row = document.createElement('div');
+            row.className = 'student-row';
+            row.id = `row-${name}`;
+            const color = getRandomColor();
+            row.style.borderTopColor = color;
+
+            const btn = document.createElement('button');
+            btn.className = 'student-name-btn';
+            btn.style.borderColor = color;
+            btn.innerText = name;
+            btn.onclick = () => recordTime(name);
+
+            const badgesDiv = document.createElement('div');
+            badgesDiv.className = 'record-badges';
+            badgesDiv.id = `badges-${name}`;
+
+            row.appendChild(btn);
+            row.appendChild(badgesDiv);
+            container.appendChild(row);
+        }
+
+        function recordTime(name) {
+            const timeStr = formatTime(currentTime);
+            
+            if (name === '전체') {
+                const allRows = document.querySelectorAll('.student-row');
+                
+                // 명단이 비어있을 경우: 거대한 전체 기록 배지를 상단에 추가
+                if (allRows.length === 0) {
+                    const recId = Date.now() + Math.random();
+                    records.push({ id: recId, name: '전체 기록', timeStr: timeStr, raw: currentTime });
+                    addGlobalBadge(timeStr, recId);
+                } else {
+                    allRows.forEach(row => {
+                        const sName = row.id.replace('row-', '');
+                        const recId = Date.now() + Math.random();
+                        records.push({ id: recId, name: sName, timeStr: timeStr, raw: currentTime });
+                        addBadge(sName, timeStr, recId);
+                    });
+                }
+            } else {
+                const recId = Date.now();
+                records.push({ id: recId, name: name, timeStr: timeStr, raw: currentTime });
+                addBadge(name, timeStr, recId);
+            }
+        }
+
+        function addGlobalBadge(timeStr, recordId) {
+            const container = document.getElementById('global-records');
+            const badge = document.createElement('div');
+            badge.className = 'global-badge';
+            badge.innerText = timeStr;
+            badge.title = "클릭하여 수정 또는 삭제";
+            
+            badge.onclick = () => openEditModal(badge, recordId, badge.innerText);
+            container.appendChild(badge);
+        }
+
+        let editingRecordId = null;
+        let editingBadge = null;
+
+        function addBadge(name, timeStr, recordId) {
+            const container = document.getElementById(`badges-${name}`);
+            if (container) {
+                const badge = document.createElement('span');
+                badge.className = 'badge';
+                badge.innerText = timeStr;
+                badge.title = "클릭하여 수정 또는 삭제";
+                
+                badge.onclick = () => openEditModal(badge, recordId, badge.innerText);
+                container.appendChild(badge);
+            }
+        }
+
+        function openEditModal(badgeElement, recordId, currentTimeStr) {
+            editingBadge = badgeElement;
+            editingRecordId = recordId;
+            document.getElementById('edit-time-val').value = currentTimeStr;
+            document.getElementById('edit-modal').style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+            editingBadge = null;
+            editingRecordId = null;
+        }
+
+        function saveEdit() {
+            const newTime = document.getElementById('edit-time-val').value.trim();
+            if (newTime === '') {
+                deleteBadge(); 
+                return;
+            }
+            editingBadge.innerText = newTime;
+            const target = records.find(r => r.id === editingRecordId);
+            if (target) target.timeStr = newTime;
+            
+            closeEditModal();
+        }
+
+        function deleteBadge() {
+            editingBadge.remove();
+            records = records.filter(r => r.id !== editingRecordId);
+            closeEditModal();
+        }
+
+        function clearAllStudents() {
+            if(confirm("명단과 기록을 모두 삭제하시겠습니까?")) {
+                document.getElementById('student-list').innerHTML = '';
+                document.getElementById('global-records').innerHTML = ''; // 거대 배지도 삭제
+                records = [];
+            }
+        }
+
+        function clearRecordsOnly() {
+            if(confirm("학생 명단은 유지하고 시간 기록만 모두 지우시겠습니까?")) {
+                document.querySelectorAll('.record-badges').forEach(div => div.innerHTML = '');
+                document.getElementById('global-records').innerHTML = ''; // 거대 배지도 삭제
+                records = [];
+            }
+        }
+
+        function openRecordsModal() {
+            document.getElementById('records-modal').style.display = 'flex';
+            renderRecords();
+        }
+        function closeRecordsModal() {
+            document.getElementById('records-modal').style.display = 'none';
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tab-chrono').classList.toggle('active', tab === 'chrono');
+            document.getElementById('tab-person').classList.toggle('active', tab === 'person');
+            renderRecords();
+        }
+
+        function renderRecords() {
+            const body = document.getElementById('records-body');
+            body.innerHTML = "";
+
+            if (records.length === 0) {
+                body.innerHTML = "<p style='text-align:center; padding: 50px; font-size:1.5rem; color:#9CA3AF;'>아직 기록된 시간이 없습니다.</p>";
+                return;
+            }
+
+            if (currentTab === 'chrono') {
+                let tableHTML = `<table class="record-table">
+                    <thead><tr><th>번호</th><th>이름</th><th>기록된 시간</th><th>관리</th></tr></thead><tbody>`;
+                
+                records.forEach((rec, idx) => {
+                    tableHTML += `<tr>
+                        <td>${idx + 1}</td>
+                        <td><strong>${rec.name}</strong></td>
+                        <td style="color:var(--primary); font-weight:bold;">${rec.timeStr}</td>
+                        <td><button class="btn-reset" style="padding: 5px 15px; font-size:1rem;" onclick="deleteModalRecord(${rec.id})">삭제</button></td>
+                    </tr>`;
+                });
+                tableHTML += `</tbody></table>`;
+                body.innerHTML = tableHTML;
+            } else {
+                const grouped = records.reduce((acc, obj) => {
+                    if (!acc[obj.name]) acc[obj.name] = [];
+                    acc[obj.name].push(obj);
+                    return acc;
+                }, {});
+
+                for (const name in grouped) {
+                    const groupDiv = document.createElement('div');
+                    groupDiv.className = 'person-group';
+                    groupDiv.innerHTML = `<div class="person-name">👤 ${name}</div>`;
+                    
+                    let tableHTML = `<table class="record-table"><tbody>`;
+                    grouped[name].forEach((rec, idx) => {
+                        tableHTML += `<tr>
+                            <td width="50px">${idx + 1}</td>
+                            <td style="color:var(--primary); font-weight:bold;">${rec.timeStr}</td>
+                            <td width="100px"><button class="btn-reset" style="padding: 5px 15px; font-size:1rem;" onclick="deleteModalRecord(${rec.id})">삭제</button></td>
+                        </tr>`;
+                    });
+                    tableHTML += `</tbody></table>`;
+                    groupDiv.innerHTML += tableHTML;
+                    body.appendChild(groupDiv);
+                }
+            }
+        }
+
+        function deleteModalRecord(id) {
+            if(confirm("이 기록을 삭제하시겠습니까?")) {
+                records = records.filter(r => r.id !== id);
+                renderRecords(); 
+                
+                // 모달 밖 화면도 갱신
+                document.querySelectorAll('.record-badges').forEach(div => div.innerHTML = '');
+                document.getElementById('global-records').innerHTML = '';
+                
+                records.forEach(rec => {
+                    if (rec.name === '전체 기록') {
+                        addGlobalBadge(rec.timeStr, rec.id);
+                    } else {
+                        addBadge(rec.name, rec.timeStr, rec.id);
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
