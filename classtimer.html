@@ -41,13 +41,38 @@
         }
 
         .resizer {
-            width: 8px;
-            background-color: #D1D5DB;
+            width: 12px;
+            background-color: var(--border-color);
             cursor: col-resize;
             transition: background-color 0.2s;
             z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .resizer:hover, .resizer:active { background-color: var(--primary); }
+        
+        .resizer::after {
+            content: '◂▸';
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            color: var(--text-muted);
+            width: 26px;
+            height: 50px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 18px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+        .resizer:hover::after, .resizer:active::after {
+            color: var(--primary);
+            border-color: var(--primary);
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(79, 70, 229, 0.3);
+        }
 
         .right-panel {
             flex: 1;
@@ -110,6 +135,7 @@
             color: var(--text-main);
             text-shadow: 2px 4px 10px rgba(0,0,0,0.1);
             white-space: nowrap;
+            transition: color 0.3s ease; /* 색상 전환 부드럽게 */
         }
 
         .controls-bottom {
@@ -122,16 +148,25 @@
         }
 
         .main-controls { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
-        .bgm-controls { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .bgm-controls { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         
         .bgm-btn { background: white; color: var(--text-main); border: 2px solid #E5E7EB; }
         .bgm-btn.playing { border-color: #8B5CF6; background: #EDE9FE; color: #6D28D9; transform: scale(1.05); }
+
+        .attention-btn { background: white; color: var(--text-main); border: 2px solid #E5E7EB; }
+        .attention-btn.active { border-color: #EC4899; background: #FDF2F8; color: #BE185D; transform: scale(1.05); animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(236, 72, 153, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
+        }
 
         .tts-settings {
             display: flex; justify-content: center; gap: 15px; align-items: center; flex-wrap: wrap;
             font-size: 1.2rem; background: #F3F4F6; padding: 15px; border-radius: 12px;
         }
-        .tts-settings input[type="checkbox"] { transform: scale(1.5); margin-right: 5px; cursor: pointer; }
+        .tts-settings input[type="radio"] { transform: scale(1.3); margin-right: 5px; cursor: pointer; accent-color: var(--primary); }
 
         /* 오른쪽: 명단 및 기록 영역 */
         .setup-section {
@@ -150,58 +185,44 @@
         .action-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
         .action-group { display: flex; gap: 10px; }
 
-        /* 명단 없을 때 뜨는 대형 전체 기록 배지 영역 */
         .global-records {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 20px;
+            display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;
         }
         
         .global-badge {
-            background: #E0E7FF; color: #3730A3;
-            padding: 15px 30px; border-radius: 15px;
-            font-size: 2.5rem; font-weight: bold;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: #E0E7FF; color: #3730A3; padding: 15px 30px; border-radius: 15px;
+            font-size: 2.5rem; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
             cursor: pointer; transition: transform 0.2s, background 0.2s;
             text-align: center; border: 3px solid #818CF8;
         }
         .global-badge:hover { transform: scale(1.05); background: #C7D2FE; }
 
-        /* 학생 리스트 (Grid 배열) */
         .student-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-            overflow-y: auto;
-            padding: 5px;
-            align-content: start;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;
+            overflow-y: auto; padding: 5px; align-content: start;
         }
         
         .student-row {
             display: flex; flex-direction: column; align-items: stretch;
             background: white; padding: 15px; border-radius: 12px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            border-top: 5px solid #ccc; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-top: 5px solid #ccc; 
         }
 
         .student-name-btn {
             background: white; border: 2px solid #ccc; color: var(--text-main);
             font-size: 1.4rem; padding: 8px 10px; border-radius: 10px;
-            width: 100%; transition: transform 0.1s, background 0.2s;
-            margin-bottom: 10px;
+            width: 100%; transition: transform 0.1s, background 0.2s; margin-bottom: 10px;
         }
         .student-name-btn:hover { background: #F3F4F6; transform: scale(1.02); }
 
-        /* 기록 배지 딱 맞게 2열 정렬 */
         .record-badges {
             display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%;
         }
         
         .badge {
-            background: #E0E7FF; color: #3730A3; padding: 8px 0;
-            border-radius: 8px; font-size: 1.1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            background: #E0E7FF; color: #3730A3; padding: 8px 0; border-radius: 8px; font-size: 1.1rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
             cursor: pointer; transition: background 0.2s; text-align: center; width: 100%;
         }
@@ -220,6 +241,7 @@
         }
         .modal-content {
             background: white; padding: 30px; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+            word-break: keep-all; 
         }
 
         .countdown-modal { width: 400px; text-align: center; }
@@ -273,14 +295,16 @@
             <div class="bgm-controls">
                 <button class="bgm-btn" id="btn-bgm-calm" onclick="toggleBGM('calm')">🎵 평화로운 BGM</button>
                 <button class="bgm-btn" id="btn-bgm-urgent" onclick="toggleBGM('urgent')">🔥 긴박한 BGM</button>
+                <button class="attention-btn" id="btn-attention" onclick="toggleAttentionMode()">✨ 시선 집중 모드</button>
             </div>
 
             <div class="tts-settings">
-                <strong>음성 알림:</strong>
-                <label><input type="checkbox" class="tts-chk" value="1" checked> 1분마다</label>
-                <label><input type="checkbox" class="tts-chk" value="3"> 3분마다</label>
-                <label><input type="checkbox" class="tts-chk" value="5"> 5분마다</label>
-                <label><input type="checkbox" class="tts-chk" value="10"> 10분마다</label>
+                <strong>음성 알림 간격:</strong>
+                <label><input type="radio" name="tts-opt" class="tts-radio" value="0"> 끔</label>
+                <label><input type="radio" name="tts-opt" class="tts-radio" value="1" checked> 1분</label>
+                <label><input type="radio" name="tts-opt" class="tts-radio" value="3"> 3분</label>
+                <label><input type="radio" name="tts-opt" class="tts-radio" value="5"> 5분</label>
+                <label><input type="radio" name="tts-opt" class="tts-radio" value="10"> 10분</label>
             </div>
         </div>
     </div>
@@ -305,7 +329,6 @@
         </div>
 
         <div id="global-records" class="global-records"></div>
-
         <div class="student-list" id="student-list"></div>
     </div>
 
@@ -350,7 +373,50 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="custom-alert-modal" style="z-index: 2000;">
+        <div class="modal-content text-center" style="width: 350px; text-align: center;">
+            <h3 id="alert-msg" style="margin-bottom: 20px; font-size: 1.5rem; color: var(--text-main); line-height: 1.4;"></h3>
+            <button class="btn-action" style="width: 100%;" onclick="closeAlert()">확인</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="custom-confirm-modal" style="z-index: 2000;">
+        <div class="modal-content text-center" style="width: 400px; text-align: center;">
+            <h3 id="confirm-msg" style="margin-bottom: 20px; font-size: 1.5rem; color: var(--text-main); line-height: 1.4;"></h3>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="btn-reset" id="confirm-yes-btn">예</button>
+                <button class="btn-secondary" onclick="closeConfirm()">아니오</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // --- 커스텀 모달 기능 ---
+        let confirmCallback = null;
+
+        function showAlert(msg) {
+            document.getElementById('alert-msg').innerText = msg;
+            document.getElementById('custom-alert-modal').style.display = 'flex';
+        }
+        function closeAlert() {
+            document.getElementById('custom-alert-modal').style.display = 'none';
+        }
+
+        function showConfirm(msg, callback) {
+            document.getElementById('confirm-msg').innerText = msg;
+            confirmCallback = callback;
+            document.getElementById('custom-confirm-modal').style.display = 'flex';
+        }
+        function closeConfirm() {
+            document.getElementById('custom-confirm-modal').style.display = 'none';
+            confirmCallback = null;
+        }
+        document.getElementById('confirm-yes-btn').addEventListener('click', () => {
+            if (confirmCallback) confirmCallback();
+            closeConfirm();
+        });
+
+        // --- 리사이저 로직 ---
         const resizer = document.getElementById('resizer');
         const leftPanel = document.getElementById('left-panel');
         let isResizing = false;
@@ -379,6 +445,48 @@
             }
         });
 
+        // --- 시선 집중 모드 (Party Mode) 로직 ---
+        let isAttentionMode = false;
+        let attentionInterval = null;
+
+        // 20개 이상의 화려한 색상
+        const attentionColors = [
+            '#FF0000', '#00FF00', '#0000FF', '#FF00FF', '#00FFFF', '#FFA500', 
+            '#800080', '#008000', '#000080', '#FFC0CB', '#FF4500', '#2E8B57', 
+            '#DAA520', '#DC143C', '#4B0082', '#FF1493', '#00CED1', '#9400D3', 
+            '#FF8C00', '#32CD32', '#8B0000', '#4682B4', '#D2691E', '#C71585'
+        ];
+        
+        // 20개 이상의 다양한 폰트 (시스템 폰트 및 범용 폰트 혼합)
+        const attentionFonts = [
+            'Arial', 'Courier New', 'Georgia', 'Times New Roman', 'Verdana', 
+            'Impact', 'Comic Sans MS', 'Trebuchet MS', 'Lucida Console', 'Tahoma', 
+            'Palatino Linotype', 'Garamond', 'Bookman', 'Helvetica', 'Arial Black', 
+            'Century Gothic', 'Geneva', 'Optima', 'Candara', 'Futura', 
+            'Monaco', 'Consolas', 'Brush Script MT', 'Papyrus'
+        ];
+
+        function toggleAttentionMode() {
+            const btn = document.getElementById('btn-attention');
+            isAttentionMode = !isAttentionMode;
+            
+            if (isAttentionMode) {
+                btn.classList.add('active');
+                attentionInterval = setInterval(() => {
+                    const randomColor = attentionColors[Math.floor(Math.random() * attentionColors.length)];
+                    const randomFont = attentionFonts[Math.floor(Math.random() * attentionFonts.length)];
+                    display.style.color = randomColor;
+                    display.style.fontFamily = `"${randomFont}", sans-serif`;
+                }, 1000); // 1초마다 변경
+            } else {
+                btn.classList.remove('active');
+                clearInterval(attentionInterval);
+                display.style.fontFamily = "'Jua', sans-serif";
+                updateDisplay(); // 원래 색상으로 복구
+            }
+        }
+
+        // --- 타이머 핵심 로직 ---
         let timerInterval;
         let isRunning = false;
         let mode = 'up'; 
@@ -400,8 +508,12 @@
 
         function updateDisplay() {
             display.innerText = formatTime(currentTime);
-            display.style.color = (mode === 'down' && currentTime <= 10 && currentTime > 0) ? 'var(--warning)' : 
-                                  (mode === 'down' && currentTime === 0 && targetTime > 0) ? 'var(--danger)' : 'var(--text-main)';
+            
+            // 시선 집중 모드가 아닐 때만 기본 색상 로직 적용
+            if (!isAttentionMode) {
+                display.style.color = (mode === 'down' && currentTime <= 10 && currentTime > 0) ? 'var(--warning)' : 
+                                      (mode === 'down' && currentTime === 0 && targetTime > 0) ? 'var(--danger)' : 'var(--text-main)';
+            }
         }
 
         function toggleTimer() {
@@ -444,15 +556,12 @@
                     window.speechSynthesis.cancel(); 
                     playSpeak("시간이 모두 다 되었습니다.");
                     
-                    setTimeout(() => { 
-                        playSpeak("시간이 모두 다 되었습니다."); 
-                    }, 2500); 
-                    
+                    setTimeout(() => { playSpeak("시간이 모두 다 되었습니다."); }, 2500); 
                     return; 
                 }
             }
             updateDisplay();
-            checkTTS();
+            checkTTS(); 
         }
 
         function setMode(newMode) {
@@ -487,18 +596,16 @@
                 document.getElementById('countdown-modal').style.display = 'none';
                 updateDisplay();
             } else {
-                alert("시간을 설정해주세요.");
+                showAlert("시간을 올바르게 설정해주세요."); 
             }
         }
 
-        // BGM 볼륨 대폭 조정
+        // --- BGM 로직 ---
         const audioCalm = new Audio('https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3');
-        audioCalm.loop = true;
-        audioCalm.volume = 0.2; 
+        audioCalm.loop = true; audioCalm.volume = 0.2; 
 
         const audioUrgent = new Audio('https://cdn.pixabay.com/audio/2022/01/18/audio_d0a13f69d2.mp3');
-        audioUrgent.loop = true;
-        audioUrgent.volume = 0.08; // 긴박한 소리가 너무 커서 0.08로 줄임
+        audioUrgent.loop = true; audioUrgent.volume = 0.08;
 
         let activeBGM = null;
 
@@ -515,16 +622,17 @@
                 activeBGM = null;
             } else {
                 if (type === 'calm') {
-                    audioCalm.play().catch(e => alert("음원을 불러오는 데 실패했습니다. 화면을 한 번 클릭해 주세요."));
+                    audioCalm.play().catch(e => showAlert("음원을 불러오는 데 실패했습니다. 화면을 한 번 클릭해 주세요."));
                     btnCalm.classList.add('playing');
                 } else if (type === 'urgent') {
-                    audioUrgent.play().catch(e => alert("음원을 불러오는 데 실패했습니다. 화면을 한 번 클릭해 주세요."));
+                    audioUrgent.play().catch(e => showAlert("음원을 불러오는 데 실패했습니다. 화면을 한 번 클릭해 주세요."));
                     btnUrgent.classList.add('playing');
                 }
                 activeBGM = type;
             }
         }
 
+        // --- 효과음 & 라디오 버튼 반영 TTS ---
         function playBeep() {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
             const osc = ctx.createOscillator();
@@ -544,25 +652,22 @@
         }
 
         function checkTTS() {
-            const chkBoxes = document.querySelectorAll('.tts-chk:checked');
-            if (chkBoxes.length === 0) return;
+            const checkedRadio = document.querySelector('.tts-radio:checked');
+            if (!checkedRadio || checkedRadio.value === "0") return;
+            
+            const interval = parseInt(checkedRadio.value);
             const currentMin = Math.floor(currentTime / 60);
             const currentSec = currentTime % 60;
 
-            if (currentSec === 0 && currentMin > 0) {
-                let shouldSpeak = false;
-                chkBoxes.forEach(chk => {
-                    if (currentMin % parseInt(chk.value) === 0) shouldSpeak = true;
-                });
-                if (shouldSpeak) {
-                    playBeep();
-                    setTimeout(() => {
-                        playSpeak(mode === 'up' ? `${currentMin}분 지났습니다.` : `${currentMin}분 남았습니다.`);
-                    }, 300);
-                }
+            if (currentSec === 0 && currentMin > 0 && currentMin % interval === 0) {
+                playBeep();
+                setTimeout(() => {
+                    playSpeak(mode === 'up' ? `${currentMin}분 지났습니다.` : `${currentMin}분 남았습니다.`);
+                }, 300);
             }
         }
 
+        // --- 명단 및 기록 로직 ---
         function getRandomColor() {
             const colors = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6'];
             return colors[Math.floor(Math.random() * colors.length)];
@@ -609,7 +714,6 @@
             if (name === '전체') {
                 const allRows = document.querySelectorAll('.student-row');
                 
-                // 명단이 비어있을 경우: 거대한 전체 기록 배지를 상단에 추가
                 if (allRows.length === 0) {
                     const recId = Date.now() + Math.random();
                     records.push({ id: recId, name: '전체 기록', timeStr: timeStr, raw: currentTime });
@@ -669,6 +773,17 @@
             editingRecordId = null;
         }
 
+        function parseTimeToSeconds(timeStr) {
+            const parts = timeStr.split(':').map(Number);
+            if (parts.some(isNaN)) return 0;
+            if (parts.length === 3) {
+                return parts[0] * 3600 + parts[1] * 60 + parts[2];
+            } else if (parts.length === 2) {
+                return parts[0] * 60 + parts[1];
+            }
+            return parts[0] || 0;
+        }
+
         function saveEdit() {
             const newTime = document.getElementById('edit-time-val').value.trim();
             if (newTime === '') {
@@ -677,7 +792,10 @@
             }
             editingBadge.innerText = newTime;
             const target = records.find(r => r.id === editingRecordId);
-            if (target) target.timeStr = newTime;
+            if (target) {
+                target.timeStr = newTime;
+                target.raw = parseTimeToSeconds(newTime); 
+            }
             
             closeEditModal();
         }
@@ -689,19 +807,37 @@
         }
 
         function clearAllStudents() {
-            if(confirm("명단과 기록을 모두 삭제하시겠습니까?")) {
+            showConfirm("명단과 기록을 모두 삭제하시겠습니까?", () => {
                 document.getElementById('student-list').innerHTML = '';
-                document.getElementById('global-records').innerHTML = ''; // 거대 배지도 삭제
+                document.getElementById('global-records').innerHTML = ''; 
                 records = [];
-            }
+            });
         }
 
         function clearRecordsOnly() {
-            if(confirm("학생 명단은 유지하고 시간 기록만 모두 지우시겠습니까?")) {
+            showConfirm("학생 명단은 유지하고 시간 기록만 모두 지우시겠습니까?", () => {
                 document.querySelectorAll('.record-badges').forEach(div => div.innerHTML = '');
-                document.getElementById('global-records').innerHTML = ''; // 거대 배지도 삭제
+                document.getElementById('global-records').innerHTML = ''; 
                 records = [];
-            }
+            });
+        }
+
+        function deleteModalRecord(id) {
+            showConfirm("이 기록을 완전히 삭제하시겠습니까?", () => {
+                records = records.filter(r => r.id !== id);
+                renderRecords(); 
+                
+                document.querySelectorAll('.record-badges').forEach(div => div.innerHTML = '');
+                document.getElementById('global-records').innerHTML = '';
+                
+                records.forEach(rec => {
+                    if (rec.name === '전체 기록') {
+                        addGlobalBadge(rec.timeStr, rec.id);
+                    } else {
+                        addBadge(rec.name, rec.timeStr, rec.id);
+                    }
+                });
+            });
         }
 
         function openRecordsModal() {
@@ -727,6 +863,15 @@
                 body.innerHTML = "<p style='text-align:center; padding: 50px; font-size:1.5rem; color:#9CA3AF;'>아직 기록된 시간이 없습니다.</p>";
                 return;
             }
+
+            // [요청 반영] 상향식일 땐 오름차순, 하향식일 땐 내림차순 정렬
+            records.sort((a, b) => {
+                if (mode === 'up') {
+                    return a.raw - b.raw; // 오름차순
+                } else {
+                    return b.raw - a.raw; // 내림차순
+                }
+            });
 
             if (currentTab === 'chrono') {
                 let tableHTML = `<table class="record-table">
@@ -766,25 +911,6 @@
                     groupDiv.innerHTML += tableHTML;
                     body.appendChild(groupDiv);
                 }
-            }
-        }
-
-        function deleteModalRecord(id) {
-            if(confirm("이 기록을 삭제하시겠습니까?")) {
-                records = records.filter(r => r.id !== id);
-                renderRecords(); 
-                
-                // 모달 밖 화면도 갱신
-                document.querySelectorAll('.record-badges').forEach(div => div.innerHTML = '');
-                document.getElementById('global-records').innerHTML = '';
-                
-                records.forEach(rec => {
-                    if (rec.name === '전체 기록') {
-                        addGlobalBadge(rec.timeStr, rec.id);
-                    } else {
-                        addBadge(rec.name, rec.timeStr, rec.id);
-                    }
-                });
             }
         }
     </script>
