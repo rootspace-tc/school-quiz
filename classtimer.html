@@ -487,7 +487,9 @@
         }
 
         // --- 타이머 핵심 로직 ---
-        let timerInterval;
+        // 브라우저가 백그라운드 탭/최소화 상태에서 setInterval을 늦추더라도
+        // "실제 시각 차이"로 시간을 계산하므로 타이머가 느려지거나 멈추지 않습니다.
+        let timerInterval = null;
         let isRunning = false;
         let mode = 'up'; 
         let currentTime = 0;
@@ -495,13 +497,20 @@
         let records = []; 
         let currentTab = 'chrono';
 
+        // timerValueMs: 타이머가 멈춰 있거나 시작되는 순간의 정확한 값(ms)
+        // 상향식에서는 경과시간, 하향식에서는 남은시간을 뜻합니다.
+        let timerValueMs = 0;
+        let timerStartedAtMs = 0;
+        let countdownFinished = false;
+
         const display = document.getElementById('timer-display');
         const btnStart = document.getElementById('btn-start');
 
         function formatTime(seconds) {
-            const h = Math.floor(seconds / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            const s = seconds % 60;
+            const safeSeconds = Math.max(0, Math.floor(seconds));
+            const h = Math.floor(safeSeconds / 3600);
+            const m = Math.floor((safeSeconds % 3600) / 60);
+            const s = safeSeconds % 60;
             if (h > 0) return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
             return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
         }
@@ -516,65 +525,156 @@
             }
         }
 
-        function toggleTimer() {
-            if (isRunning) {
-                clearInterval(timerInterval);
-                btnStart.innerText = "시작";
-                btnStart.style.backgroundColor = "var(--success)";
-            } else {
-                if (mode === 'down' && currentTime === 0) return; 
-                timerInterval = setInterval(tick, 1000);
+        // 현재 실제 타이머 값을 ms 단위로 계산합니다.
+        // setInterval 호출 횟수와 무관하므로 창을 최소화해도 시간이 정확합니다.
+        function getAccurateTimerMs(now = Date.now()) {
+            if (!isRunning) return Math.max(0, timerValueMs);
+
+            const elapsedMs = Math.max(0, now - timerStartedAtMs);
+            if (mode === 'up') {
+                return timerValueMs + elapsedMs;
+            }
+            return Math.max(0, timerValueMs - elapsedMs);
+        }
+
+        function timerMsToSeconds(ms) {
+            // 카운트다운은 10.9초가 남았으면 11초로 보여야 자연스럽습니다.
+            // 상향식은 10.9초가 지났으면 10초로 보여줍니다.
+            return mode === 'down'
+                ? Math.max(0, Math.ceil(ms / 1000))
+                : Math.max(0, Math.floor(ms / 1000));
+        }
+
+        function setStartButtonRunning(running) {
+            if (running) {
                 btnStart.innerText = "일시정지";
                 btnStart.style.backgroundColor = "var(--warning)";
+            } else {
+                btnStart.innerText = "시작";
+                btnStart.style.backgroundColor = "var(--success)";
             }
-            isRunning = !isRunning;
+        }
+
+        function startTimer() {
+            if (mode === 'down' && timerValueMs <= 0) return;
+
+            timerStartedAtMs = Date.now();
+            countdownFinished = false;
+            isRunning = true;
+            setStartButtonRunning(true);
+
+            clearInterval(timerInterval);
+            // 이 interval은 화면을 갱신하는 용도일 뿐, 시간 계산 자체에는 사용하지 않습니다.
+            timerInterval = setInterval(tick, 250);
+            tick();
+        }
+
+        function pauseTimer() {
+            if (!isRunning) return;
+
+            const exactMs = getAccurateTimerMs();
+            timerValueMs = exactMs;
+            currentTime = timerMsToSeconds(exactMs);
+
+            isRunning = false;
+            clearInterval(timerInterval);
+            timerInterval = null;
+            setStartButtonRunning(false);
+            updateDisplay();
+        }
+
+        function toggleTimer() {
+            if (isRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
         }
 
         function resetTimer() {
-            if (isRunning) toggleTimer(); 
+            if (isRunning) {
+                isRunning = false;
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+
+            timerValueMs = 0;
+            timerStartedAtMs = 0;
             currentTime = 0; 
-            targetTime = 0; 
+            targetTime = 0;
+            countdownFinished = false;
+            setStartButtonRunning(false);
             updateDisplay();
             window.speechSynthesis.cancel(); 
         }
 
-        function tick() {
-            if (mode === 'up') {
-                currentTime++;
-            } else {
-                currentTime--;
-                
-                if (currentTime <= 10 && currentTime > 0) {
-                    playBeep(); 
-                }
+        function finishCountdown() {
+            if (countdownFinished) return;
+            countdownFinished = true;
 
-                if (currentTime <= 0) {
-                    currentTime = 0;
-                    if(isRunning) toggleTimer(); 
-                    updateDisplay();
-                    
-                    window.speechSynthesis.cancel(); 
-                    playSpeak("시간이 모두 다 되었습니다.");
-                    
-                    setTimeout(() => { playSpeak("시간이 모두 다 되었습니다."); }, 2500); 
-                    return; 
-                }
-            }
+            timerValueMs = 0;
+            currentTime = 0;
+            isRunning = false;
+            clearInterval(timerInterval);
+            timerInterval = null;
+            setStartButtonRunning(false);
             updateDisplay();
-            checkTTS(); 
+
+            window.speechSynthesis.cancel(); 
+            playSpeak("시간이 모두 다 되었습니다.");
+            setTimeout(() => { playSpeak("시간이 모두 다 되었습니다."); }, 2500);
         }
 
+        function tick() {
+            if (!isRunning) return;
+
+            const previousTime = currentTime;
+            const exactMs = getAccurateTimerMs();
+            const newTime = timerMsToSeconds(exactMs);
+
+            currentTime = newTime;
+
+            // 하향식 마지막 10초 효과음.
+            // 백그라운드에서 여러 초가 한꺼번에 지나간 경우에는 효과음을 몰아서 재생하지 않습니다.
+            if (mode === 'down' && currentTime < previousTime && currentTime <= 10 && currentTime > 0) {
+                playBeep();
+            }
+
+            updateDisplay();
+            checkTTS(previousTime, currentTime);
+
+            if (mode === 'down' && exactMs <= 0) {
+                finishCountdown();
+            }
+        }
+
+        // 탭 전환, 창 최소화 후 복귀, 다른 프로그램 사용 후 복귀 시 즉시 실제 시간으로 동기화합니다.
+        function syncTimerAfterBackground() {
+            if (!isRunning) return;
+            tick();
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) syncTimerAfterBackground();
+        });
+        window.addEventListener('focus', syncTimerAfterBackground);
+        window.addEventListener('pageshow', syncTimerAfterBackground);
+
         function setMode(newMode) {
+            if (isRunning) pauseTimer();
+
             mode = newMode;
             document.getElementById('btn-mode-up').classList.toggle('btn-active', mode === 'up');
             document.getElementById('btn-mode-up').classList.toggle('btn-outline', mode !== 'up');
             document.getElementById('btn-mode-down').classList.toggle('btn-active', mode === 'down');
             document.getElementById('btn-mode-down').classList.toggle('btn-outline', mode !== 'down');
             
-            if (isRunning) toggleTimer();
             if (mode === 'up') {
+                timerValueMs = 0;
+                timerStartedAtMs = 0;
                 currentTime = 0;
                 targetTime = 0;
+                countdownFinished = false;
                 updateDisplay();
             }
         }
@@ -591,9 +691,20 @@
             
             targetTime = (h * 3600) + (m * 60) + s;
             if (targetTime > 0) {
+                if (isRunning) pauseTimer();
+                mode = 'down';
+                timerValueMs = targetTime * 1000;
+                timerStartedAtMs = 0;
                 currentTime = targetTime;
-                setMode('down');
+                countdownFinished = false;
+
+                document.getElementById('btn-mode-up').classList.remove('btn-active');
+                document.getElementById('btn-mode-up').classList.add('btn-outline');
+                document.getElementById('btn-mode-down').classList.add('btn-active');
+                document.getElementById('btn-mode-down').classList.remove('btn-outline');
+
                 document.getElementById('countdown-modal').style.display = 'none';
+                setStartButtonRunning(false);
                 updateDisplay();
             } else {
                 showAlert("시간을 올바르게 설정해주세요."); 
@@ -651,18 +762,40 @@
             window.speechSynthesis.speak(utt);
         }
 
-        function checkTTS() {
+        function checkTTS(previousTime, newTime) {
             const checkedRadio = document.querySelector('.tts-radio:checked');
             if (!checkedRadio || checkedRadio.value === "0") return;
-            
-            const interval = parseInt(checkedRadio.value);
-            const currentMin = Math.floor(currentTime / 60);
-            const currentSec = currentTime % 60;
+            if (previousTime === newTime) return;
 
-            if (currentSec === 0 && currentMin > 0 && currentMin % interval === 0) {
+            const intervalMin = parseInt(checkedRadio.value);
+            const intervalSec = intervalMin * 60;
+            let announceSeconds = null;
+
+            if (mode === 'up') {
+                // 예: 59초 -> 60초뿐 아니라, 59초 -> 61초처럼 갱신이 조금 건너뛰어도 감지합니다.
+                const previousBucket = Math.floor(previousTime / intervalSec);
+                const newBucket = Math.floor(newTime / intervalSec);
+                if (newBucket > previousBucket) {
+                    announceSeconds = newBucket * intervalSec;
+                }
+            } else {
+                // 카운트다운에서 해당 간격의 경계(예: 5분, 3분, 1분)를 통과했는지 확인합니다.
+                const highestCrossedBoundary = Math.floor((previousTime - 1) / intervalSec) * intervalSec;
+                if (highestCrossedBoundary > 0 && newTime <= highestCrossedBoundary) {
+                    // 아주 오래 백그라운드에 있었다면 과거 알림을 여러 개 몰아서 읽지 않고
+                    // 현재 시점에 가장 가까운 경계 하나만 사용합니다.
+                    const nearestBoundary = Math.ceil(newTime / intervalSec) * intervalSec;
+                    announceSeconds = (nearestBoundary > 0 && nearestBoundary <= highestCrossedBoundary)
+                        ? nearestBoundary
+                        : highestCrossedBoundary;
+                }
+            }
+
+            if (announceSeconds !== null && announceSeconds > 0) {
+                const announceMin = Math.floor(announceSeconds / 60);
                 playBeep();
                 setTimeout(() => {
-                    playSpeak(mode === 'up' ? `${currentMin}분 지났습니다.` : `${currentMin}분 남았습니다.`);
+                    playSpeak(mode === 'up' ? `${announceMin}분 지났습니다.` : `${announceMin}분 남았습니다.`);
                 }, 300);
             }
         }
