@@ -18,7 +18,9 @@
             flex-direction: column;
             align-items: center;
             color: #333;
-            min-width: 1200px;
+            width: 100%;
+            min-width: 0;
+            overflow-x: hidden;
         }
 
         h1 { margin-bottom: 20px; font-size: 36px; color: #2c3e50; }
@@ -103,7 +105,10 @@
             width: 45px; height: 45px; border-radius: 8px; cursor: grab;
             display: flex; justify-content: center; align-items: center;
             font-size: 22px; color: white; box-shadow: 0 3px 6px rgba(0,0,0,0.15);
-            user-select: none; transition: transform 0.2s, background-color 0.4s; flex-shrink: 0; position: relative;
+            user-select: none; -webkit-user-select: none;
+            touch-action: none; -webkit-touch-callout: none;
+            transition: transform 0.2s, background-color 0.4s, box-shadow 0.25s, opacity 0.2s;
+            flex-shrink: 0; position: relative;
         }
         .math-block:active { cursor: grabbing; transform: scale(1.1); }
         .math-block.hide-text { color: transparent !important; }
@@ -189,6 +194,117 @@
         .anim-upgrade { animation: upgrade 0.6s ease-in-out forwards; }
         .anim-drop { animation: dropDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         .anim-pulse-fast { animation: pulseFast 0.3s; }
+
+        /* --- 태블릿/스마트폰 터치 조작 --- */
+        .touch-drag-ghost {
+            position: fixed !important;
+            z-index: 99999 !important;
+            pointer-events: none !important;
+            margin: 0 !important;
+            opacity: 0.92 !important;
+            transform: scale(1.12);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.28) !important;
+        }
+        .touch-drop-over {
+            outline: 4px solid rgba(77,150,255,0.45) !important;
+            outline-offset: 2px;
+            background-color: rgba(77,150,255,0.08) !important;
+        }
+        .math-block.touch-source-dragging { opacity: 0.28 !important; }
+
+        /* --- 곱셈(세로식): 자릿값이 커지는 과정을 천천히 보여주기 --- */
+        .mul2-step-row {
+            display: grid;
+            grid-template-columns: minmax(170px, auto) 1fr;
+            gap: 12px;
+            align-items: center;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .mul2-visual-wrap { min-width: 0; }
+        .mul2-step-caption {
+            min-height: 26px;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 15px;
+            text-align: center;
+            line-height: 1.35;
+        }
+        .mini-source.mul2-upgrade-stage {
+            position: relative;
+            border-color: #f39c12;
+            background: #fffdf2;
+            box-shadow: inset 0 0 0 3px rgba(243,156,18,0.08);
+        }
+        .mul2-scale-badge {
+            position: absolute;
+            left: 50%; top: 50%;
+            transform: translate(-50%, -50%) scale(0.65);
+            z-index: 30;
+            pointer-events: none;
+            padding: 7px 15px;
+            border-radius: 999px;
+            color: #fff;
+            background: rgba(44,62,80,0.93);
+            box-shadow: 0 5px 16px rgba(0,0,0,0.22);
+            font-size: 24px;
+            opacity: 0;
+            animation: mul2Badge 1.05s ease-in-out forwards;
+        }
+        .math-block.place-shift-prep {
+            transform: scale(1.22) translateY(-5px);
+            box-shadow: 0 0 0 5px rgba(255,217,61,0.35), 0 8px 18px rgba(0,0,0,0.22);
+        }
+        .math-block.place-shift-done {
+            animation: placeShiftDone 0.62s ease-out;
+        }
+        @keyframes mul2Badge {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.65); }
+            18% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+            68% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.12); }
+        }
+        @keyframes placeShiftDone {
+            0% { transform: scale(1.22) translateY(-5px); filter: brightness(1.35); }
+            45% { transform: scale(1.3) translateY(-8px); filter: brightness(1.55); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+
+        /* --- 반응형 화면 --- */
+        @media (max-width: 900px) {
+            body { padding: 10px; align-items: stretch; }
+            h1 { font-size: 28px; text-align: center; margin: 8px 0 14px; }
+            .tab-menu { gap: 4px; margin-bottom: 10px; }
+            .tab-btn { font-size: 15px; padding: 9px 11px; border-radius: 10px; }
+            .tab-content { padding: 12px; max-width: none; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .control-panel { padding: 10px; gap: 8px; }
+            input[type="number"], select { font-size: 18px; min-height: 44px; width: 118px; }
+            button { min-height: 44px; font-size: 16px; padding: 8px 12px; }
+            .current-total { font-size: 24px; padding: 10px 18px; border-radius: 14px; }
+            .equation-row { padding: 10px; min-width: 650px; }
+            .eq-number { font-size: 32px; width: 90px; margin-right: 10px; }
+            .board { min-width: 780px; gap: 10px; }
+            .drop-zone { min-height: 210px; }
+            .math-block { width: 48px; height: 48px; }
+            .vertical-math { min-width: 220px; margin-right: 0; font-size: 36px; padding: 14px; }
+            .mul2-step-row { grid-template-columns: 1fr; }
+            .mul2-step-caption { text-align: left; }
+            .mini-source { justify-content: flex-start; min-width: 0; }
+            .area-grid { min-width: 680px; }
+            .basket-container-wrap { min-width: 180px; }
+        }
+
+        @media (max-width: 520px) {
+            body { padding: 6px; }
+            h1 { font-size: 24px; }
+            .tab-btn { font-size: 14px; padding: 8px 9px; }
+            .tab-content { padding: 9px; border-radius: 9px; }
+            .control-panel { padding: 8px; }
+            input[type="number"], select { width: 108px; }
+            .current-total { font-size: 21px; }
+            .math-block { width: 50px; height: 50px; }
+        }
+
     </style>
 </head>
 <body>
@@ -196,15 +312,15 @@
     <h1>✨ 수학 종이 칠판 ✨</h1>
 
     <div class="tab-menu">
-        <button class="tab-btn active" onclick="switchTab('basic')">수의 기본</button>
-        <button class="tab-btn" onclick="switchTab('add')">덧셈</button>
-        <button class="tab-btn" onclick="switchTab('sub')">뺄셈</button>
-        <button class="tab-btn" onclick="switchTab('mul1')">곱셈(복사)</button>
-        <button class="tab-btn" onclick="switchTab('mul2')">곱셈(세로식)</button>
-        <button class="tab-btn" onclick="switchTab('mul3')">곱셈(분할)</button>
-        <button class="tab-btn" onclick="switchTab('mul4')">곱셈(면적)</button>
-        <button class="tab-btn" onclick="switchTab('div1')">나눗셈(등분)</button>
-        <button class="tab-btn" onclick="switchTab('div2')">나눗셈(포함)</button>
+        <button class="tab-btn active" onclick="switchTab('basic', this)">수의 기본</button>
+        <button class="tab-btn" onclick="switchTab('add', this)">덧셈</button>
+        <button class="tab-btn" onclick="switchTab('sub', this)">뺄셈</button>
+        <button class="tab-btn" onclick="switchTab('mul1', this)">곱셈(복사)</button>
+        <button class="tab-btn" onclick="switchTab('mul2', this)">곱셈(세로식)</button>
+        <button class="tab-btn" onclick="switchTab('mul3', this)">곱셈(분할)</button>
+        <button class="tab-btn" onclick="switchTab('mul4', this)">곱셈(면적)</button>
+        <button class="tab-btn" onclick="switchTab('div1', this)">나눗셈(등분)</button>
+        <button class="tab-btn" onclick="switchTab('div2', this)">나눗셈(포함)</button>
     </div>
 
     <div id="tab-basic" class="tab-content active">
@@ -440,7 +556,7 @@
 
     <script>
         let blockIdCounter = 0;
-        let isTextHidden = false;
+        let isTextHidden = true;
 
         const nextValMap = { 1: 10, 10: 100, 100: 1000, 1000: 10000, 10000: 100000 };
         const prevValMap = { 10: 1, 100: 10, 1000: 100, 10000: 1000, 100000: 10000 };
@@ -451,6 +567,7 @@
                 if(container) container.innerHTML = generateBoardHTML(prefix);
             });
             updateDisplays();
+            updateTextToggleLabels();
         };
 
         function generateBoardHTML(prefix) {
@@ -495,11 +612,16 @@
             });
         }
 
-        function switchTab(tabName) {
+        function switchTab(tabName, clickedBtn = null) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            event.target.classList.add('active');
+            if (clickedBtn) clickedBtn.classList.add('active');
             document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
+
+        function updateTextToggleLabels() {
+            document.querySelectorAll('button[onclick="toggleText()"]')
+                .forEach(btn => btn.textContent = isTextHidden ? '숫자 켜기' : '숫자 끄기');
         }
 
         function toggleText() {
@@ -508,6 +630,7 @@
                 if (isTextHidden) b.classList.add('hide-text');
                 else b.classList.remove('hide-text');
             });
+            updateTextToggleLabels();
         }
 
         // --- 기본 탭 추가 기능 (표현, 보관함 추가) ---
@@ -545,6 +668,7 @@
             block.addEventListener('dragstart', dragStart);
             block.addEventListener('dragend', dragEnd);
             block.addEventListener('dblclick', () => splitBlock(block));
+            block.addEventListener('pointerdown', startPointerDrag);
             setTimeout(() => block.classList.remove('anim-pop'), 400);
             return block;
         }
@@ -651,58 +775,191 @@
         }
 
         let draggedBlockId = null;
+        let activeTouchDrag = null;
+        let lastTouchTap = { blockId: null, time: 0 };
+
+        function isFixedSourceBlock(block) {
+            return !!(block && block.parentElement &&
+                (block.parentElement.classList.contains('mini-source') || block.parentElement.id === 'div2-standard'));
+        }
 
         function dragStart(e) {
-            if (e.target.parentElement.classList.contains('mini-source') || e.target.parentElement.id === 'div2-standard') { e.preventDefault(); return; }
+            if (isFixedSourceBlock(e.target)) { e.preventDefault(); return; }
             draggedBlockId = e.target.id;
             e.dataTransfer.setData('text/plain', draggedBlockId);
             setTimeout(() => e.target.style.opacity = '0.5', 0);
         }
 
         function dragEnd(e) {
-            e.target.style.opacity = '1'; checkAllCombineButtons(); updateDisplays();
+            e.target.style.opacity = '1';
+            document.querySelectorAll('.touch-drop-over').forEach(el => el.classList.remove('touch-drop-over'));
+            checkAllCombineButtons(); updateDisplays();
         }
         function allowDrop(e) { e.preventDefault(); }
+
+        function inferAllowedZoneVal(target) {
+            const zone = target && target.closest ? target.closest('.drop-zone, .pool-container, .eq-blocks, .area-cell') : null;
+            if (!zone) return null;
+            if (zone.dataset.val) return parseInt(zone.dataset.val);
+            if (zone.dataset.allowed) return zone.dataset.allowed;
+            return 'any';
+        }
+
+        function performDrop(block, rawTarget, allowedZoneVal) {
+            if (!block || !rawTarget) return false;
+
+            let dropTargetBlock = rawTarget.closest ? rawTarget.closest('.math-block') : null;
+            if (dropTargetBlock === block) dropTargetBlock = null;
+
+            if (dropTargetBlock && block.dataset.sign && dropTargetBlock.dataset.sign && block.dataset.sign !== dropTargetBlock.dataset.sign) {
+                if (block.dataset.val === dropTargetBlock.dataset.val) {
+                    block.classList.add('anim-vanish'); dropTargetBlock.classList.add('anim-vanish');
+                    block.style.pointerEvents = 'none'; dropTargetBlock.style.pointerEvents = 'none';
+                    dropTargetBlock.parentNode.appendChild(block);
+                    setTimeout(() => { block.remove(); dropTargetBlock.remove(); updateDisplays(); checkAllCombineButtons(); }, 400);
+                    return true;
+                }
+                block.classList.add('anim-shake');
+                setTimeout(() => block.classList.remove('anim-shake'), 300);
+                return false;
+            }
+
+            let zoneTarget = rawTarget.closest ? rawTarget.closest('.drop-zone, .pool-container, .eq-blocks, .area-cell') : null;
+            if (!zoneTarget) return false;
+
+            if (zoneTarget.id.includes('source') || zoneTarget.id.includes('area') || zoneTarget.id.includes('basket') || zoneTarget.id.includes('staging') || zoneTarget.id.includes('pool')) {
+                const originalContainer = block.parentElement;
+                if (zoneTarget === originalContainer) {
+                    zoneTarget.appendChild(block); updateDisplays(); return true;
+                }
+            }
+
+            if (block.dataset.sign === 'minus' && zoneTarget.id.includes('z')) {
+                block.classList.add('anim-shake'); setTimeout(() => block.classList.remove('anim-shake'), 300);
+                return false;
+            }
+
+            const blockVal = parseInt(block.dataset.val);
+            if (allowedZoneVal === 'any' || parseInt(allowedZoneVal) === blockVal) {
+                zoneTarget.appendChild(block); updateDisplays();
+                return true;
+            }
+
+            block.classList.add('anim-shake'); setTimeout(() => block.classList.remove('anim-shake'), 300);
+            return false;
+        }
 
         function drop(e, allowedZoneVal) {
             e.preventDefault();
             const block = document.getElementById(draggedBlockId);
             if (!block) return;
+            performDrop(block, e.target, allowedZoneVal);
+            checkAllCombineButtons(); updateDisplays();
+        }
 
-            let dropTargetBlock = e.target.closest('.math-block');
-            if (dropTargetBlock && block.dataset.sign && dropTargetBlock.dataset.sign && block.dataset.sign !== dropTargetBlock.dataset.sign) {
-                if (block.dataset.val === dropTargetBlock.dataset.val) {
-                    block.classList.add('anim-vanish'); dropTargetBlock.classList.add('anim-vanish');
-                    block.style.pointerEvents = 'none'; dropTargetBlock.style.pointerEvents = 'none';
-                    dropTargetBlock.parentNode.appendChild(block); 
-                    setTimeout(() => { block.remove(); dropTargetBlock.remove(); updateDisplays(); checkAllCombineButtons(); }, 400);
-                    return; 
-                } else {
-                    block.classList.add('anim-shake'); setTimeout(() => block.classList.remove('anim-shake'), 300); return; 
-                }
+        function startPointerDrag(e) {
+            if (e.pointerType === 'mouse') return; // 마우스는 기존 HTML5 drag 사용
+            const block = e.currentTarget;
+            if (isFixedSourceBlock(block)) return;
+            if (activeTouchDrag) return;
+
+            e.preventDefault();
+            const rect = block.getBoundingClientRect();
+            const ghost = block.cloneNode(true);
+            ghost.removeAttribute('id');
+            ghost.classList.remove('anim-pop', 'anim-drop', 'anim-upgrade', 'anim-shake', 'anim-vanish');
+            ghost.classList.add('touch-drag-ghost');
+            ghost.style.width = `${rect.width}px`;
+            ghost.style.height = `${rect.height}px`;
+            ghost.style.left = `${rect.left}px`;
+            ghost.style.top = `${rect.top}px`;
+            document.body.appendChild(ghost);
+
+            block.classList.add('touch-source-dragging');
+            try { block.setPointerCapture(e.pointerId); } catch (_) {}
+
+            activeTouchDrag = {
+                block,
+                ghost,
+                pointerId: e.pointerId,
+                offsetX: e.clientX - rect.left,
+                offsetY: e.clientY - rect.top,
+                startX: e.clientX,
+                startY: e.clientY,
+                moved: false,
+                overEl: null
+            };
+
+            block.addEventListener('pointermove', movePointerDrag);
+            block.addEventListener('pointerup', endPointerDrag);
+            block.addEventListener('pointercancel', cancelPointerDrag);
+        }
+
+        function movePointerDrag(e) {
+            const st = activeTouchDrag;
+            if (!st || e.pointerId !== st.pointerId) return;
+            e.preventDefault();
+
+            if (Math.hypot(e.clientX - st.startX, e.clientY - st.startY) > 6) st.moved = true;
+            st.ghost.style.left = `${e.clientX - st.offsetX}px`;
+            st.ghost.style.top = `${e.clientY - st.offsetY}px`;
+
+            // 작은 화면에서 목표 지점이 화면 밖에 있어도 끌어갈 수 있도록 가장자리 자동 스크롤
+            const edge = 70;
+            const vSpeed = 18;
+            if (e.clientY < edge) window.scrollBy(0, -vSpeed);
+            else if (e.clientY > window.innerHeight - edge) window.scrollBy(0, vSpeed);
+
+            const activeTab = st.block.closest('.tab-content');
+            if (activeTab && activeTab.scrollWidth > activeTab.clientWidth) {
+                const hSpeed = 18;
+                if (e.clientX < edge) activeTab.scrollLeft -= hSpeed;
+                else if (e.clientX > window.innerWidth - edge) activeTab.scrollLeft += hSpeed;
             }
 
-            let zoneTarget = e.target.closest('.drop-zone, .pool-container, .eq-blocks, .area-cell');
-            if (!zoneTarget) return;
-
-            if (zoneTarget.id.includes('source') || zoneTarget.id.includes('area') || zoneTarget.id.includes('basket') || zoneTarget.id.includes('staging') || zoneTarget.id.includes('pool')) {
-                const originalContainer = block.parentElement;
-                if (zoneTarget === originalContainer) {
-                    zoneTarget.appendChild(block); updateDisplays(); return;
-                }
-            }
-
-            if (block.dataset.sign === 'minus' && zoneTarget.id.includes('z')) {
-                block.classList.add('anim-shake'); setTimeout(() => block.classList.remove('anim-shake'), 300); return;
-            }
-
-            const blockVal = parseInt(block.dataset.val);
-            if (allowedZoneVal === 'any' || allowedZoneVal === blockVal) {
-                zoneTarget.appendChild(block); updateDisplays();
+            document.querySelectorAll('.touch-drop-over').forEach(el => el.classList.remove('touch-drop-over'));
+            const under = document.elementFromPoint(e.clientX, e.clientY);
+            const highlight = under && under.closest ? under.closest('.math-block, .drop-zone, .pool-container, .eq-blocks, .area-cell') : null;
+            if (highlight && highlight !== st.block) {
+                highlight.classList.add('touch-drop-over');
+                st.overEl = highlight;
             } else {
-                block.classList.add('anim-shake'); setTimeout(() => block.classList.remove('anim-shake'), 300);
+                st.overEl = null;
             }
         }
+
+        function finishPointerDrag(e, cancelled = false) {
+            const st = activeTouchDrag;
+            if (!st || e.pointerId !== st.pointerId) return;
+
+            st.block.removeEventListener('pointermove', movePointerDrag);
+            st.block.removeEventListener('pointerup', endPointerDrag);
+            st.block.removeEventListener('pointercancel', cancelPointerDrag);
+            try { st.block.releasePointerCapture(e.pointerId); } catch (_) {}
+
+            st.ghost.remove();
+            st.block.classList.remove('touch-source-dragging');
+            document.querySelectorAll('.touch-drop-over').forEach(el => el.classList.remove('touch-drop-over'));
+
+            if (!cancelled && st.moved) {
+                const under = document.elementFromPoint(e.clientX, e.clientY);
+                if (under) performDrop(st.block, under, inferAllowedZoneVal(under));
+                checkAllCombineButtons(); updateDisplays();
+            } else if (!cancelled && !st.moved) {
+                // 스마트폰/태블릿에서는 더블 탭으로 10개로 쪼개기
+                const now = Date.now();
+                if (lastTouchTap.blockId === st.block.id && now - lastTouchTap.time < 380) {
+                    lastTouchTap = { blockId: null, time: 0 };
+                    splitBlock(st.block);
+                } else {
+                    lastTouchTap = { blockId: st.block.id, time: now };
+                }
+            }
+            activeTouchDrag = null;
+        }
+
+        function endPointerDrag(e) { finishPointerDrag(e, false); }
+        function cancelPointerDrag(e) { finishPointerDrag(e, true); }
 
         function moveSubToBoard() {
             ['sub-source-1'].forEach(id => {
@@ -823,47 +1080,150 @@
         }
 
         function setupMul2() {
-            const num1 = parseInt(document.getElementById('mul2-input-1').value); 
+            const num1 = parseInt(document.getElementById('mul2-input-1').value);
             const num2 = parseInt(document.getElementById('mul2-input-2').value);
             if(!num1 || !num2) return; clearAll('mul2', false);
-            document.getElementById('v-num1').innerHTML = formatColoredNumberHTML(num1); 
+            document.getElementById('v-num1').innerHTML = formatColoredNumberHTML(num1);
             document.getElementById('v-num2').innerHTML = formatColoredNumberHTML(num2);
             const container = document.getElementById('mul2-dynamic-rows'); container.innerHTML = '';
             let temp = num2; let place = 1; let digits = [];
             while(temp > 0) { digits.push({ val: temp % 10, place: place }); temp = Math.floor(temp / 10); place *= 10; }
             digits.forEach(d => {
                 if(d.val > 0) {
-                    const row = document.createElement('div'); row.style = 'display:flex; justify-content:space-between; align-items:center; width: 100%; margin-top: 10px;';
-                    let btnClass = 'btn-primary'; if(d.place === 10) btnClass = 'btn-danger'; else if(d.place === 100) btnClass = 'btn-success';
-                    row.innerHTML = `<div id="btn-wrap-${d.place}"><button class="${btnClass} v-btn" id="v-btn-${d.place}" onclick="stepMul2(${d.place}, ${d.val})">${d.place}의 자리 (${d.val * d.place}) 곱하기</button></div><div id="mul2-mini-${d.place}" class="mini-source"></div>`;
-                    container.appendChild(row); appendBlocksForNumber(num1, `mul2-mini-${d.place}`);
+                    const row = document.createElement('div');
+                    row.className = 'mul2-step-row';
+                    let btnClass = 'btn-primary';
+                    if(d.place === 10) btnClass = 'btn-danger';
+                    else if(d.place === 100) btnClass = 'btn-success';
+                    else if(d.place >= 1000) btnClass = 'btn-purple';
+
+                    const placeText = d.place === 1 ? '1의 자리' : `${d.place}의 자리`;
+                    const firstCaption = d.place === 1
+                        ? '1의 자리는 수학 종이의 크기를 바꾸지 않고 그대로 곱합니다.'
+                        : `${placeText}: 먼저 ×${d.place}만큼 자릿값을 키우는 과정을 봅니다.`;
+
+                    row.innerHTML = `
+                        <div id="btn-wrap-${d.place}">
+                            <button class="${btnClass} v-btn" id="v-btn-${d.place}" onclick="stepMul2(${d.place}, ${d.val})">${placeText} (${d.val * d.place}) 곱하기</button>
+                        </div>
+                        <div class="mul2-visual-wrap">
+                            <div id="mul2-status-${d.place}" class="mul2-step-caption">${firstCaption}</div>
+                            <div id="mul2-mini-${d.place}" class="mini-source"></div>
+                        </div>`;
+                    container.appendChild(row);
+                    appendBlocksForNumber(num1, `mul2-mini-${d.place}`);
                 }
             });
         }
-        function stepMul2(place, times) {
-            const btn = document.getElementById(`v-btn-${place}`); const wrap = document.getElementById(`btn-wrap-${place}`); const miniContainer = document.getElementById(`mul2-mini-${place}`);
+
+        const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+        function getPlaceStageCount(place) {
+            let count = 0, p = place;
+            while (p > 1 && p % 10 === 0) { count++; p /= 10; }
+            return count;
+        }
+
+        async function animateOnePlaceShift(miniContainer, statusEl, stageIndex, totalStages, place) {
+            const blocks = Array.from(miniContainer.querySelectorAll('.math-block'));
+            if (!blocks.length) return;
+
+            miniContainer.classList.add('mul2-upgrade-stage');
+            const badge = document.createElement('div');
+            badge.className = 'mul2-scale-badge';
+            badge.textContent = '×10';
+            miniContainer.appendChild(badge);
+
+            if (totalStages === 1) {
+                statusEl.textContent = `×${place} = ×10 : 모든 수학 종이가 한 단계 큰 종이로 바뀝니다.`;
+            } else {
+                statusEl.textContent = `×${place} = ×10을 ${totalStages}번. 지금 ${stageIndex + 1}번째 단계입니다.`;
+            }
+
+            // 먼저 “곧 한 단계 커진다”는 상태를 충분히 보여줍니다.
+            blocks.forEach(b => b.classList.add('place-shift-prep'));
+            await sleep(650);
+
+            // 한꺼번에 번쩍 바뀌지 않도록, 앞쪽 종이부터 짧은 간격을 두고 색과 자릿값을 바꿉니다.
+            blocks.forEach((block, index) => {
+                const delay = Math.min(index, 8) * 70;
+                setTimeout(() => {
+                    const currentVal = parseInt(block.dataset.val);
+                    const nextVal = nextValMap[currentVal] || currentVal * 10;
+                    block.dataset.val = nextVal;
+                    block.className = `math-block bg-${nextVal}${isTextHidden ? ' hide-text' : ''} place-shift-done`;
+                    // 새 className에서도 터치 조작/마우스 이벤트는 addEventListener로 그대로 유지됩니다.
+                    setTimeout(() => block.classList.remove('place-shift-done'), 650);
+                }, delay);
+            });
+
+            await sleep(900 + Math.min(blocks.length, 9) * 55);
+            badge.remove();
+            miniContainer.classList.remove('mul2-upgrade-stage');
+            statusEl.textContent = `한 단계 완료: 1→10, 10→100, 100→1000처럼 모든 종이가 한 자리씩 커졌습니다.`;
+            await sleep(700);
+        }
+
+        async function stepMul2(place, times) {
+            const btn = document.getElementById(`v-btn-${place}`);
+            const wrap = document.getElementById(`btn-wrap-${place}`);
+            const miniContainer = document.getElementById(`mul2-mini-${place}`);
+            const statusEl = document.getElementById(`mul2-status-${place}`);
+            if (!btn || !miniContainer) return;
+            if (btn.dataset.busy === 'true') return;
+            btn.dataset.busy = 'true';
+            btn.disabled = true;
+
             const executeDrop = () => {
                 let currentIteration = 0;
                 function animateNext() {
-                    if(currentIteration >= times) return;
+                    if(currentIteration >= times) {
+                        if (statusEl) statusEl.textContent = `${times}배 내려놓기가 끝났습니다. 아래 자리값 보드에서 합쳐 보세요.`;
+                        return;
+                    }
                     miniContainer.classList.remove('anim-pulse-fast'); void miniContainer.offsetWidth; miniContainer.classList.add('anim-pulse-fast');
-                    Array.from(miniContainer.children).forEach(b => {
-                        const val = parseInt(b.dataset.val); const zone = document.getElementById(`mul2-z${val}`);
-                        if(zone) { const newBlock = createSingleBlock(val); newBlock.classList.add('anim-drop'); zone.appendChild(newBlock); }
+                    Array.from(miniContainer.querySelectorAll('.math-block')).forEach(b => {
+                        const val = parseInt(b.dataset.val);
+                        const zone = document.getElementById(`mul2-z${val}`);
+                        if(zone) {
+                            const newBlock = createSingleBlock(val);
+                            newBlock.classList.add('anim-drop');
+                            zone.appendChild(newBlock);
+                        }
                     });
-                    updateDisplays(); checkAllCombineButtons(); currentIteration++; setTimeout(animateNext, 400);
+                    updateDisplays(); checkAllCombineButtons();
+                    currentIteration++;
+                    if (statusEl) statusEl.textContent = `${times}번 중 ${currentIteration}번 내려놓았습니다.`;
+                    setTimeout(animateNext, 650);
                 }
                 animateNext();
             };
+
             if (place > 1) {
-                Array.from(miniContainer.children).forEach(block => {
-                    let currentVal = parseInt(block.dataset.val); let newVal = currentVal * place;
-                    block.className = `math-block bg-${newVal} anim-upgrade`; block.dataset.val = newVal;
-                });
+                btn.style.visibility = 'hidden';
+                const stages = getPlaceStageCount(place);
+                if (statusEl) statusEl.textContent = `먼저 ×${place}의 뜻을 색 변화로 확인합니다.`;
+                await sleep(350);
+
+                for (let stage = 0; stage < stages; stage++) {
+                    await animateOnePlaceShift(miniContainer, statusEl, stage, stages, place);
+                }
+
+                if (statusEl) statusEl.textContent = `×${place} 변환 완료. 이제 바뀐 수학 종이를 ${times}번 내려놓습니다.`;
+                let nextBtn = document.createElement('button');
+                nextBtn.className = 'btn-success v-btn anim-pop';
+                nextBtn.innerText = `변환 완료 → 이제 ${times}배 내려보기`;
+                nextBtn.onclick = () => {
+                    nextBtn.disabled = true;
+                    nextBtn.style.display = 'none';
+                    executeDrop();
+                };
+                wrap.appendChild(nextBtn);
+            } else {
                 btn.style.display = 'none';
-                let nextBtn = document.createElement('button'); nextBtn.className = 'btn-success v-btn anim-pop'; nextBtn.innerText = `이제 ${times}배 내리기!`;
-                nextBtn.onclick = () => { nextBtn.style.display = 'none'; executeDrop(); }; wrap.appendChild(nextBtn);
-            } else { btn.style.display = 'none'; executeDrop(); }
+                if (statusEl) statusEl.textContent = '1의 자리이므로 종이의 크기와 색은 그대로 두고 곱합니다.';
+                executeDrop();
+            }
         }
 
         function moveAreaToBoard(prefix) {
