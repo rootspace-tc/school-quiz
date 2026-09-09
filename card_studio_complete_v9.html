@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>카드 스튜디오</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f1e9;--panel:#fffdf9;--ink:#25221e;--muted:#766f66;--line:#ddd4c8;
+  --accent:#ff8964;--blue:#5f9ff3;--good:#4eaf76;--bad:#df4b4b;--radius:20px;
+  --shadow:0 10px 28px rgba(49,42,34,.11)
+}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:"Jua",system-ui,sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.42;cursor:not-allowed}
+.hidden{display:none!important}.small{font-size:13px;color:var(--muted)}
+.app{height:100%;display:grid;grid-template-rows:auto 1fr;min-height:0}
+.topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:72px;padding:10px 16px;background:#fffdf9ee;border-bottom:1px solid var(--line);z-index:40}
+.brand{font-size:25px;white-space:nowrap}.nav{display:flex;gap:7px;flex:0 0 auto;flex-wrap:wrap}
+.nav button,.secondary{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 13px;color:var(--ink)}
+.nav button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.primary{border:0;background:var(--accent);color:#fff;border-radius:13px;padding:10px 14px;box-shadow:0 5px 14px rgba(255,137,100,.24)}
+.good{border:0;background:var(--good);color:#fff;border-radius:13px;padding:10px 14px}.danger{border:0;background:var(--bad);color:#fff;border-radius:13px;padding:10px 14px}
+.badge{display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;background:#f1ece4;font-size:13px;white-space:nowrap}
+.top-actions{display:flex;align-items:center;gap:8px;margin-left:auto}.top-scoreboard{display:flex;align-items:center;gap:5px;flex-wrap:wrap;max-width:min(58vw,1100px)}
+.top-score-item{display:flex;align-items:center;gap:4px;border:1px solid #d9d0c4;background:#fff;border-radius:999px;padding:4px 6px 4px 10px;box-shadow:0 2px 8px #00000010}
+.top-score-name{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}.top-score-value{min-width:23px;text-align:center}
+.top-score-item button{width:24px;height:24px;border:0;border-radius:50%;padding:0;background:#eee8df;color:var(--ink)}
+.main{position:relative;min-height:0;overflow:hidden}.view{position:absolute;inset:0;display:none;padding:16px;overflow:hidden}.view.active{display:block}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.field{display:flex;flex-direction:column;gap:6px;margin:9px 0}.field input,.field textarea,.field select{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}
+.section{padding:13px 0;border-bottom:1px dashed var(--line)}.section:last-child{border-bottom:0}.empty{height:100%;display:grid;place-items:center;text-align:center;color:var(--muted);padding:20px}
+h1,h2,h3,p{margin-top:0}
+/* cards */
+.card{position:relative;aspect-ratio:3/4;border-radius:16px;background:#fff;border:1px solid #d8d0c5;overflow:hidden;box-shadow:0 7px 18px rgba(43,37,30,.12);user-select:none}
+.card .photos{position:absolute;inset:0;display:grid;gap:2px;background:#ece8e1}.card .photos.one{grid-template-columns:1fr}.card .photos.two{grid-template-columns:1fr 1fr}.card .photos.three{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}.card .photos.three img:first-child{grid-row:1/3}.card .photos.many{grid-template-columns:1fr 1fr;grid-auto-rows:1fr}.card img{width:100%;height:100%;object-fit:cover;display:block}
+.card .name{position:absolute;left:7%;right:7%;bottom:6%;padding:6px 7px;border-radius:10px;background:#fffffff0;text-align:center;font-size:clamp(9px,1.1vw,16px);box-shadow:0 2px 8px #0001}
+/* home */
+.home-grid{height:100%;display:grid;grid-template-columns:1.05fr 1.95fr;gap:16px}.hero{padding:28px;display:flex;flex-direction:column;justify-content:center}.hero h1{font-size:45px;line-height:1.08}.hero p{font-family:system-ui,sans-serif;line-height:1.55;color:var(--muted)}
+.library{padding:16px;display:flex;flex-direction:column;min-height:0}.library-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.card-grid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));align-content:start;gap:10px;overflow:auto}.thumb{position:relative}.thumb .delete-card{position:absolute;right:6px;top:6px;z-index:3;width:27px;height:27px;border:0;border-radius:50%;background:#222d;color:#fff;padding:0}
+/* roster */
+.roster-layout{height:100%;display:grid;grid-template-columns:420px 1fr;gap:16px}.roster-form{padding:18px;overflow:auto}.roster-form textarea{width:100%;min-height:210px;resize:vertical}.roster-preview{padding:18px;display:flex;flex-direction:column;min-height:0}.roster-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px;align-content:start;overflow:auto}.roster-row{display:flex;align-items:center;justify-content:space-between;gap:7px;border:1px solid var(--line);background:#fff;border-radius:13px;padding:9px 10px}.score-ctrl{display:flex;align-items:center;gap:4px}.score-ctrl button{width:28px;height:28px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:0}.score-num{min-width:28px;text-align:center;font-size:17px}.status-good{min-height:22px;color:#2f8c59;margin-top:8px}
+/* maker */
+.maker-layout{height:100%;display:grid;grid-template-columns:390px 1fr;gap:16px}.control-panel{padding:18px;overflow:auto}.segmented{display:flex;background:#f0ebe3;border-radius:13px;padding:4px;gap:4px}.segmented label{flex:1;text-align:center}.segmented input{display:none}.segmented span{display:block;padding:8px;border-radius:10px;font-size:13px}.segmented input:checked+span{background:#fff;box-shadow:0 2px 7px #0001}.preview-stage{display:grid;place-items:center}.preview-card{width:min(45vh,320px)}.draft-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px}.draft-img{position:relative;aspect-ratio:1;border-radius:9px;overflow:hidden;background:#eee}.draft-img img{width:100%;height:100%;object-fit:cover}.draft-img button{position:absolute;right:3px;top:3px;width:23px;height:23px;border:0;border-radius:50%;background:#222c;color:#fff;padding:0}
+/* classification */
+.classify-layout{height:100%;display:grid;grid-template-columns:245px 1fr;gap:13px}.deck-panel{padding:13px;display:flex;flex-direction:column;gap:9px;min-height:0;overflow:hidden}.deck-current{flex:1;display:grid;place-items:center;min-height:0}.deck-current .card{width:min(185px,95%)}
+.classify-board{display:grid;gap:12px;padding:12px;overflow:hidden;grid-template-columns:repeat(var(--cat-cols,3),minmax(0,1fr));grid-template-rows:repeat(var(--cat-rows,1),minmax(0,1fr))}.category-zone{position:relative;min-width:0;min-height:0;border:2px dashed #cabfaf;border-radius:17px;background:#ffffff99;padding:38px 7px 7px;overflow:hidden;transition:.16s}.category-zone.over{border-color:var(--blue);background:#5f9ff31a;transform:scale(1.008)}.category-title{position:absolute;left:10px;right:10px;top:8px;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.category-cards{width:100%;height:100%;display:grid;align-content:center;justify-content:center;gap:4px;overflow:hidden}.class-card{width:100%;height:100%;min-width:0;min-height:0}.class-card .card{width:100%;height:100%;border-radius:8px}.class-card .card .name{font-size:7px;padding:2px;border-radius:4px}.snap{animation:snap .28s cubic-bezier(.2,1.55,.5,1)}@keyframes snap{0%{transform:scale(.78)}70%{transform:scale(1.08)}100%{transform:scale(1)}}
+.participant-box{padding:10px;border-radius:14px;background:#f3eee7}.active-player{font-size:22px;min-height:29px}.score-list{display:flex;flex-direction:column;gap:5px;max-height:28vh;overflow:auto}.score-row{display:flex;align-items:center;justify-content:space-between;gap:5px;padding:6px 7px;border-radius:9px;background:#fff}.score-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* match */
+.match-layout{height:100%;display:grid;grid-template-columns:220px 1fr;gap:13px}.game-side{padding:13px;display:flex;flex-direction:column;gap:9px;overflow:auto}.match-board{position:relative;overflow:hidden;padding:9px}.match-grid{width:100%;height:100%;display:grid;gap:7px;place-items:center;align-content:center;justify-content:center}.memory-card{width:100%;height:100%;perspective:900px;cursor:pointer}.memory-card .inner{position:relative;width:100%;height:100%;transition:transform .28s cubic-bezier(.2,.75,.25,1);transform-style:preserve-3d}.memory-card.flipped .inner{transform:rotateY(180deg)}.memory-card.solved{pointer-events:none;outline:4px solid #4eaf76c9;outline-offset:-4px;border-radius:13px}.memory-card.solved::after{content:"✓";position:absolute;right:6px;top:6px;z-index:8;width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:#36a866;color:#fff;font-size:19px;box-shadow:0 3px 9px #0003}.memory-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:12px;overflow:hidden}.memory-front{transform:rotateY(180deg)}.memory-front .card{width:100%;height:100%;border-radius:12px}
+.playing-back-blue,.playing-back-red{display:grid;place-items:center;color:#fff;border:5px solid #f7f0df;box-shadow:inset 0 0 0 3px #173c69,inset 0 0 0 7px #ffffffd4;position:absolute;inset:0}.playing-back-blue{background:repeating-conic-gradient(from 45deg,#ffffff24 0 8deg,transparent 8deg 16deg) 0 0/18px 18px,repeating-linear-gradient(45deg,#ffffff14 0 2px,transparent 2px 9px),linear-gradient(145deg,#21528b,#0d2b51)}.playing-back-red{background:repeating-conic-gradient(from 45deg,#ffffff24 0 8deg,transparent 8deg 16deg) 0 0/18px 18px,repeating-linear-gradient(-45deg,#ffffff14 0 2px,transparent 2px 9px),linear-gradient(145deg,#92263b,#4b1020);box-shadow:inset 0 0 0 3px #71182b,inset 0 0 0 7px #ffffffd4}.playing-back-blue::before,.playing-back-red::before{content:"";position:absolute;inset:11%;border:2px solid #ffffffe8;border-radius:9px;background:repeating-conic-gradient(from 22.5deg,#ffffff16 0 6deg,transparent 6deg 12deg);box-shadow:inset 0 0 0 3px #a1293ab0}.playing-back-red::before{box-shadow:inset 0 0 0 3px #24598ebd}.back-number{position:relative;z-index:3;min-width:1.55em;text-align:center;padding:.07em .18em;border-radius:.28em;background:#fffaf0f7;color:#17314f;font-size:clamp(16px,4vw,42px);box-shadow:0 2px 8px #0004}.playing-back-red .back-number{color:#691b2c}
+/* find */
+.find-layout{height:100%;display:grid;grid-template-columns:255px 1fr;gap:13px}.find-side{padding:13px;display:flex;flex-direction:column;gap:9px;overflow:auto}.target-preview{display:grid;place-items:center;min-height:185px}.target-preview .card{width:120px}.find-result{padding:9px;border-radius:12px;background:#f3eee7;min-height:40px}.find-board{position:relative;overflow:hidden}.find-piece{position:absolute;perspective:900px;transition:left var(--move-speed,.6s) cubic-bezier(.2,.75,.2,1),top var(--move-speed,.6s) cubic-bezier(.2,.75,.2,1),width .2s,height .2s;cursor:pointer}.find-piece .inner{position:relative;width:100%;height:100%;transition:transform .27s cubic-bezier(.2,.75,.25,1);transform-style:preserve-3d}.find-piece.back .inner{transform:rotateY(180deg)}.find-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:14px;overflow:hidden}.find-face .card{width:100%;height:100%;border-radius:14px}.find-back{transform:rotateY(180deg)}
+/* modal */
+.modal{position:fixed;inset:0;z-index:100;background:#201b16a1;display:grid;place-items:center;padding:14px}.modal-box{width:min(980px,96vw);max-height:92vh;overflow:auto;background:#fff;border-radius:22px;padding:16px;box-shadow:var(--shadow)}.modal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:10px}.modal-card-btn{border:0;background:transparent;padding:4px;border-radius:18px}.modal-card-btn.selected{outline:4px solid var(--accent2);background:rgba(106,169,255,.12)}
+/* feedback overlay */
+.game-mark-overlay{position:fixed;inset:0;z-index:200;pointer-events:none;display:grid;place-items:center;opacity:0}.game-mark-overlay.show{opacity:1}.game-mark{font-family:Arial,sans-serif;font-size:min(42vw,420px);font-weight:900;line-height:1;text-shadow:0 12px 34px #0003;transform:scale(.2);opacity:0}.game-mark-overlay.show .game-mark{animation:markPop .82s cubic-bezier(.16,.9,.26,1) forwards}.game-mark-overlay.correct .game-mark{color:#27a95f}.game-mark-overlay.wrong .game-mark{color:#e24141}@keyframes markPop{0%{transform:scale(.2);opacity:0}28%{transform:scale(1.08);opacity:.96}66%{transform:scale(.92);opacity:.95}100%{transform:scale(.75);opacity:0}}
+.toast{position:fixed;left:50%;bottom:22px;z-index:210;transform:translateX(-50%);padding:10px 15px;border-radius:999px;background:#25221e;color:#fff;box-shadow:0 7px 22px #0003;opacity:0;transition:.18s;pointer-events:none}.toast.show{opacity:1}
+/* special windows */
+.special-page{height:100%;overflow:auto;padding:20px}.special-shell{max-width:960px;margin:0 auto}.settings-list{display:flex;flex-direction:column;gap:8px}.setting-row{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:13px;padding:9px;background:#fff}.setting-row input[type=text]{flex:1;border:1px solid var(--line);border-radius:9px;padding:9px}.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;max-height:250px;overflow:auto}.check-item{display:flex;gap:6px;align-items:center;padding:7px;border-radius:9px;background:#f5f1e9}
+@media(max-width:900px){.brand{display:none}.topbar{padding:8px}.top-scoreboard{order:3;width:100%;max-width:none}.home-grid,.roster-layout,.maker-layout,.classify-layout,.match-layout,.find-layout{grid-template-columns:1fr}.hero{display:none}.roster-layout{grid-template-rows:auto 1fr}.maker-layout{grid-template-rows:250px 1fr}.classify-layout{grid-template-rows:170px 1fr}.deck-panel{display:grid;grid-template-columns:1fr 1fr}.match-layout{grid-template-rows:160px 1fr}.find-layout{grid-template-rows:175px 1fr}.game-side,.find-side{display:grid;grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div id="normalApp" class="app">
+  <header class="topbar">
+    <div class="brand">🃏 카드 스튜디오</div>
+    <nav class="nav">
+      <button data-view="home" class="active">메인</button>
+      <button data-view="roster">학생 명단</button>
+      <button data-view="maker">카드 만들기</button>
+      <button data-view="classify">분류하기</button>
+      <button data-view="match">짝 맞추기</button>
+      <button data-view="find">카드 찾기</button>
+    </nav>
+    <div id="topScoreboard" class="top-scoreboard"></div>
+    <div class="top-actions"><span id="cardCountBadge" class="badge">카드 0장</span></div>
+  </header>
+  <main class="main">
+    <section id="view-home" class="view active">
+      <div class="home-grid">
+        <div class="panel hero">
+          <span class="badge" style="width:max-content">교실용 인터랙티브 카드 도구</span>
+          <h1>만들고,<br>분류하고,<br>게임하세요.</h1>
+          <p>사진 카드를 저장하고, 자동 배치 분류 활동과 짝 맞추기, 카드 찾기 활동에 바로 사용합니다.</p>
+          <div class="row"><button class="primary" onclick="switchView('maker')">카드 만들기</button><button class="secondary" onclick="switchView('classify')">분류하기</button></div>
+        </div>
+        <div class="panel library">
+          <div class="library-head"><div><h2 style="margin-bottom:3px">저장된 카드</h2><div class="small">같은 브라우저에 계속 저장됩니다.</div></div><button class="secondary" onclick="refreshCards()">새로고침</button></div>
+          <div id="libraryGrid" class="card-grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-roster" class="view">
+      <div class="roster-layout">
+        <div class="panel roster-form">
+          <h2>학생 명단</h2>
+          <p class="small">쉼표 또는 줄바꿈으로 입력한 뒤 저장해 주세요. 저장 즉시 상단의 <b>카드 찾기 오른쪽</b>에 이름과 점수가 나타납니다.</p>
+          <div class="field"><label>학생 이름</label><textarea id="rosterInput" placeholder="민수, 지우, 서연, 현우"></textarea></div>
+          <div class="section">
+            <label class="row"><input id="scoreVisibleInput" type="checkbox" checked> 상단 스코어보드 표시</label>
+            <label class="row"><input id="drawEnabledInput" type="checkbox" checked> 무작위 한 명 뽑기 사용</label>
+            <label class="row"><input id="repeatAllowedInput" type="checkbox" checked> 뽑기 중복 허용</label>
+          </div>
+          <div class="row" style="margin-top:12px"><button class="primary" onclick="saveRoster()">명단 저장 · 적용</button><button class="secondary" onclick="resetScores()">점수 0으로</button><button class="secondary" onclick="clearRoster()">명단 비우기</button></div>
+          <div id="rosterStatus" class="status-good"></div>
+        </div>
+        <div class="panel roster-preview">
+          <div class="library-head"><div><h2 style="margin-bottom:3px">스코어보드</h2><div class="small">여기서도 점수를 바로 조절할 수 있습니다.</div></div><span id="rosterCount" class="badge">0명</span></div>
+          <div id="rosterList" class="roster-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-maker" class="view">
+      <div class="maker-layout">
+        <div class="panel control-panel">
+          <h2>카드 만들기</h2>
+          <div class="section">
+            <div class="small">사진 파일 넣기</div>
+            <div class="segmented" style="margin-top:8px">
+              <label><input type="radio" name="uploadMode" value="batch" checked><span>파일마다 카드 1장</span></label>
+              <label><input type="radio" name="uploadMode" value="bundle"><span>여러 파일을 카드 1장에</span></label>
+            </div>
+            <div class="row" style="margin-top:9px"><button class="primary" onclick="document.getElementById('fileInput').click()">사진 파일 선택</button><input id="fileInput" class="hidden" type="file" accept="image/*" multiple></div>
+          </div>
+          <div class="section"><div class="field"><label>카드 이름 <span class="small">(선택)</span></label><input id="cardName" type="text" placeholder="비워도 됩니다"></div><div class="small">현재 카드 사진</div><div id="draftStrip" class="draft-strip"></div></div>
+          <div class="section row"><button class="good" onclick="saveDraftCard()">현재 카드 저장</button><button class="secondary" onclick="clearDraft()">비우기</button></div>
+          <div class="small">화면 캡처나 다른 프로그램에서 잘라 복사한 이미지는 <b>어느 화면에서든 Ctrl+V</b>만 누르면 카드 만들기로 이동해 바로 추가됩니다. 카드를 저장해도 이 화면에 그대로 남습니다.</div>
+        </div>
+        <div class="panel preview-stage"><div><div id="draftPreview" class="card preview-card"></div><div class="small" style="text-align:center;margin-top:8px">모든 카드는 동일한 3:4 크기입니다.</div></div></div>
+      </div>
+    </section>
+
+    <section id="view-classify" class="view">
+      <div class="classify-layout">
+        <aside class="panel deck-panel">
+          <div class="row"><button class="primary" onclick="drawRandomCard()">무작위 한 장</button><button class="secondary" onclick="openPocketWindow()">카드 주머니</button></div>
+          <div id="classParticipant" class="participant-box hidden"><div class="small">이번 참가자</div><div id="classPlayer" class="active-player">-</div><button class="secondary" onclick="drawParticipant('class')">한 명 뽑기 🔊</button></div>
+          <div class="row"><button class="secondary" onclick="switchView('roster')">학생 명단</button><button class="secondary" onclick="openSettingsWindow('classify')">분류 설정 ↗</button></div>
+          <div id="classScoreList" class="score-list"></div>
+          <div id="classifyCurrent" class="deck-current"></div>
+          <button class="secondary" onclick="resetClassification()">분류 초기화</button>
+        </aside>
+        <div id="classifyBoard" class="panel classify-board"></div>
+      </div>
+    </section>
+
+    <section id="view-match" class="view">
+      <div class="match-layout">
+        <aside class="panel game-side">
+          <div class="row"><button class="primary" onclick="startMatchGame()">섞기 / 시작</button><button id="matchHintBtn" class="secondary" onclick="toggleMatchHint()">힌트 보기</button></div>
+          <div id="matchParticipant" class="participant-box hidden"><div class="small">이번 참가자</div><div id="matchPlayer" class="active-player">-</div><button class="secondary" onclick="drawParticipant('match')">한 명 뽑기 🔊</button></div>
+          <button class="secondary" onclick="switchView('roster')">학생 명단</button>
+          <div id="matchScoreList" class="score-list"></div>
+          <div id="matchStatus" class="small">섞기 / 시작을 눌러 주세요.</div>
+        </aside>
+        <div class="panel match-board"><div id="matchGrid" class="match-grid"></div></div>
+      </div>
+    </section>
+
+    <section id="view-find" class="view">
+      <div class="find-layout">
+        <aside class="panel find-side">
+          <div><div class="small">찾을 카드</div><div class="row" style="margin-top:5px"><button class="primary" onclick="openTargetWindow()">찾을 카드 정하기</button><span id="targetLabel" class="badge">선택 안 됨</span></div></div>
+          <div class="row"><button class="primary" onclick="startFindGame()">보여주고 섞기</button><button id="findHintBtn" class="secondary" onclick="toggleFindHint()">힌트 보기</button><button class="secondary" onclick="openSettingsWindow('find')">게임 설정 ↗</button></div>
+          <div id="findParticipant" class="participant-box hidden"><div class="small">이번 참가자</div><div id="findPlayer" class="active-player">-</div><button class="secondary" onclick="drawParticipant('find')">한 명 뽑기 🔊</button></div>
+          <button class="secondary" onclick="switchView('roster')">학생 명단</button>
+          <div id="findScoreList" class="score-list"></div>
+          <div id="findResult" class="find-result small">찾을 카드를 먼저 정해 주세요.</div>
+          <div id="targetPreview" class="target-preview"></div>
+        </aside>
+        <div id="findBoard" class="panel find-board"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="cardPickerModal" class="modal hidden"><div class="modal-box"><div class="library-head"><h2 id="modalTitle" style="margin:0">카드 선택</h2><button class="secondary" onclick="closeCardPicker()">닫기</button></div><div id="modalGrid" class="modal-grid"></div></div></div>
+<div id="gameMarkOverlay" class="game-mark-overlay"><div class="game-mark"></div></div>
+<div id="toast" class="toast"></div>
+<div id="specialRoot" class="hidden"></div>
+
+<script>
+const DEFAULT_CLASSIFY={categories:[{id:'c1',title:'분류 1'},{id:'c2',title:'분류 2'},{id:'c3',title:'분류 3'}]};
+const DEFAULT_PARTICIPANTS={enabled:true,scoreEnabled:true,repeatAllowed:true,names:[]};
+const DEFAULT_FIND={count:3,speed:.55,rounds:7,distractorMode:'random',customIds:[],allowDuplicateCards:false};
+const state={cards:[],draftImages:[],classification:{},currentClassifyId:null,scores:{},activeParticipant:null,drawnParticipants:[],matchDeck:[],matchSelected:[],matchHint:false,matchBusy:false,findPieces:[],findTargetId:null,findHint:false,findBusy:false,findReady:false};
+const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];
+function clone(v){return JSON.parse(JSON.stringify(v))}function safeParse(t,f){try{return JSON.parse(t)}catch{return clone(f)}}function getSetting(k,f){const v=localStorage.getItem(k);return v==null?clone(f):safeParse(v,f)}function setSetting(k,v){localStorage.setItem(k,JSON.stringify(v))}
+function uid(){return crypto.randomUUID?crypto.randomUUID():'id_'+Date.now()+'_'+Math.random().toString(16).slice(2)}
+function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+/* sound */
+let audioCtx=null;function ctx(){try{if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx}catch{return null}}
+function tone(freq,d=.07,delay=0,type='sine',gain=.045,end=null){const c=ctx();if(!c)return;const t=c.currentTime+delay,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);if(end)o.frequency.exponentialRampToValueAtTime(Math.max(20,end),t+d);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(gain,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+d+.02)}
+function sfxClick(){tone(610,.04,0,'sine',.02,760)}function sfxFlip(){tone(210,.065,0,'triangle',.045,520);tone(720,.04,.04,'sine',.02,900)}function sfxHint(){tone(500,.06,0,'sine',.035);tone(750,.07,.06,'sine',.04)}function sfxShuffle(){for(let i=0;i<6;i++)tone(170+(i%3)*55,.04,i*.04,'square',.018,250+(i%3)*60);tone(480,.07,.27,'triangle',.03,620)}function sfxSnap(){tone(420,.05,0,'triangle',.04,650);tone(840,.055,.045,'sine',.03)}function sfxSave(){tone(523,.09,0,'sine',.04);tone(659,.09,.07,'sine',.045);tone(880,.13,.14,'sine',.05)}function sfxCorrect(){tone(523,.11,0,'sine',.06);tone(659,.11,.08,'sine',.065);tone(784,.14,.16,'sine',.07);tone(1047,.18,.25,'sine',.06)}function sfxWrong(){tone(300,.13,0,'sawtooth',.04,210);tone(190,.17,.11,'triangle',.045,120)}function sfxDraw(){tone(659,.1,0,'sine',.055);tone(784,.1,.07,'sine',.06);tone(1047,.16,.14,'sine',.065)}function sfxPaste(){tone(460,.05,0,'triangle',.035,700);tone(920,.055,.045,'sine',.025)}
+document.addEventListener('click',e=>{if(e.target.closest('button'))sfxClick()});
+function toast(msg){const e=$('#toast');e.textContent=msg;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),1500)}
+function feedback(ok){const o=$('#gameMarkOverlay');o.className='game-mark-overlay '+(ok?'correct':'wrong');o.querySelector('.game-mark').textContent=ok?'O':'X';void o.offsetWidth;o.classList.add('show');clearTimeout(o._t);o._t=setTimeout(()=>o.classList.remove('show'),850);ok?sfxCorrect():sfxWrong()}
+/* DB */
+let dbPromise;function openDB(){if(dbPromise)return dbPromise;dbPromise=new Promise((res,rej)=>{const q=indexedDB.open('ClassroomCardStudio',1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains('cards'))q.result.createObjectStore('cards',{keyPath:'id'})};q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)});return dbPromise}
+async function dbAll(){const db=await openDB();return new Promise((res,rej)=>{const q=db.transaction('cards','readonly').objectStore('cards').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>rej(q.error)})}
+async function dbPut(v){const db=await openDB();return new Promise((res,rej)=>{const t=db.transaction('cards','readwrite');t.objectStore('cards').put(v);t.oncomplete=res;t.onerror=()=>rej(t.error)})}
+async function dbDelete(id){const db=await openDB();return new Promise((res,rej)=>{const t=db.transaction('cards','readwrite');t.objectStore('cards').delete(id);t.oncomplete=res;t.onerror=()=>rej(t.error)})}
+/* card rendering */
+function cardHTML(c,extra=''){const imgs=(c?.images||[]).slice(0,4),kind=imgs.length<=1?'one':imgs.length===2?'two':imgs.length===3?'three':'many';return `<div class="card ${extra}" data-card-id="${c?.id||''}"><div class="photos ${kind}">${imgs.map(x=>`<img src="${x}" alt="">`).join('')}</div>${c?.name?`<div class="name">${esc(c.name)}</div>`:''}</div>`}
+async function refreshCards(){state.cards=(await dbAll()).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));$('#cardCountBadge').textContent=`카드 ${state.cards.length}장`;renderLibrary();renderTarget();if($('#view-classify').classList.contains('active'))renderClassification()}
+function renderLibrary(){const g=$('#libraryGrid');g.innerHTML=state.cards.length?state.cards.map(c=>`<div class="thumb">${cardHTML(c)}<button class="delete-card" onclick="deleteCard('${c.id}')">×</button></div>`).join(''):'<div class="empty" style="grid-column:1/-1"><div><div style="font-size:45px">🖼️</div><h3>아직 카드가 없습니다.</h3><p>카드 만들기에서 사진을 추가해 주세요.</p></div></div>'}
+async function deleteCard(id){if(!confirm('이 카드를 삭제할까요?'))return;await dbDelete(id);delete state.classification[id];saveClassification();await refreshCards()}
+/* navigation */
+function switchView(name){$$('.view').forEach(v=>v.classList.remove('active'));$$('.nav button').forEach(b=>b.classList.remove('active'));$('#view-'+name)?.classList.add('active');$(`.nav button[data-view="${name}"]`)?.classList.add('active');if(name==='roster')renderRoster();if(name==='classify')renderClassification();if(name==='match'){renderScoreboards();fitMatchGrid()}if(name==='find'){renderTarget();renderScoreboards()}}
+$$('.nav button').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
+/* roster */
+function parseNames(v){return [...new Set((Array.isArray(v)?v.join(','):String(v||'')).split(/[,;\n\r]+/).map(x=>x.trim()).filter(Boolean))]}
+function participantSettings(){const s=getSetting('participantSettings',DEFAULT_PARTICIPANTS);return {...DEFAULT_PARTICIPANTS,...s,names:parseNames(s.names)}}
+function saveScores(){setSetting('participantScores',state.scores)}
+function renderRoster(){const s=participantSettings();const saved=localStorage.getItem('participantRosterText');$('#rosterInput').value=saved!=null?saved:s.names.join(', ');$('#scoreVisibleInput').checked=s.scoreEnabled!==false;$('#drawEnabledInput').checked=s.enabled!==false;$('#repeatAllowedInput').checked=s.repeatAllowed!==false;renderRosterList()}
+function renderRosterList(){const names=parseNames($('#rosterInput')?.value||'');$('#rosterCount').textContent=`${names.length}명`;$('#rosterList').innerHTML=names.length?names.map((n,i)=>`<div class="roster-row"><span>${esc(n)}</span><span class="score-ctrl"><button onclick="adjustDraftScore(${i},-1)">−</button><b class="score-num">${state.scores[n]??0}</b><button onclick="adjustDraftScore(${i},1)">＋</button></span></div>`).join(''):'<div class="empty" style="min-height:220px">이름을 입력하면 학생별 점수판이 나타납니다.</div>'}
+function adjustDraftScore(i,d){const names=parseNames($('#rosterInput').value),n=names[i];if(!n)return;state.scores[n]=(state.scores[n]??0)+d;saveScores();renderRosterList();renderScoreboards()}
+function saveRoster(){const text=$('#rosterInput').value,names=parseNames(text),s=participantSettings();s.names=names;s.scoreEnabled=$('#scoreVisibleInput').checked;s.enabled=$('#drawEnabledInput').checked;s.repeatAllowed=$('#repeatAllowedInput').checked;setSetting('participantSettings',s);localStorage.setItem('participantRosterText',text);const next={};names.forEach(n=>next[n]=state.scores[n]??0);state.scores=next;saveScores();state.drawnParticipants=[];if(state.activeParticipant&&!names.includes(state.activeParticipant))state.activeParticipant=null;renderRosterList();renderScoreboards();$('#rosterStatus').textContent=names.length?`저장 완료 · ${names.length}명 · 상단 스코어보드에 바로 적용했습니다.`:'명단을 비웠습니다.';sfxSave()}
+function clearRoster(){$('#rosterInput').value='';renderRosterList();saveRoster()}
+function resetScores(){const names=participantSettings().names;state.scores={};names.forEach(n=>state.scores[n]=0);saveScores();renderRosterList();renderScoreboards();$('#rosterStatus').textContent='모든 점수를 0점으로 초기화했습니다.'}
+function adjustScore(i,d){const s=participantSettings(),n=s.names[i];if(!n)return;state.scores[n]=(state.scores[n]??0)+d;saveScores();renderScoreboards();if($('#view-roster').classList.contains('active'))renderRosterList()}
+function scoreHTML(names,compact=false){return names.map((n,i)=>compact?`<div class="top-score-item"><span class="top-score-name" title="${esc(n)}">${esc(n)}</span><button onclick="adjustScore(${i},-1)">−</button><b class="top-score-value">${state.scores[n]??0}</b><button onclick="adjustScore(${i},1)">＋</button></div>`:`<div class="score-row"><span class="score-name">${esc(n)}</span><span class="score-ctrl"><button onclick="adjustScore(${i},-1)">−</button><b class="score-num">${state.scores[n]??0}</b><button onclick="adjustScore(${i},1)">＋</button></span></div>`).join('')}
+function renderScoreboards(){const s=participantSettings(),names=s.names;names.forEach(n=>{if(state.scores[n]==null)state.scores[n]=0});$('#topScoreboard').innerHTML=s.scoreEnabled&&names.length?scoreHTML(names,true):'';['class','match','find'].forEach(m=>{const box=$('#'+m+'Participant'),player=$('#'+m+'Player'),list=$('#'+m+'ScoreList');if(box)box.classList.toggle('hidden',!s.enabled||!names.length);if(player)player.textContent=state.activeParticipant||'-';if(list)list.innerHTML=s.scoreEnabled?scoreHTML(names,false):''})}
+function drawParticipant(mode){const s=participantSettings();if(!s.enabled||!s.names.length){toast('학생 명단을 먼저 저장해 주세요.');return}let pool=[...s.names];if(!s.repeatAllowed){pool=s.names.filter(n=>!state.drawnParticipants.includes(n));if(!pool.length){state.drawnParticipants=[];pool=[...s.names]}}const n=pool[Math.floor(Math.random()*pool.length)];state.activeParticipant=n;if(!s.repeatAllowed)state.drawnParticipants.push(n);renderScoreboards();sfxDraw();setTimeout(()=>{try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(n);u.lang='ko-KR';u.rate=1.02;speechSynthesis.speak(u)}catch{}},300)}
+$('#rosterInput').addEventListener('input',renderRosterList);
+/* maker */
+function renderDraft(){const strip=$('#draftStrip');strip.innerHTML=state.draftImages.map((x,i)=>`<div class="draft-img"><img src="${x}"><button onclick="removeDraft(${i})">×</button></div>`).join('');const c={id:'draft',name:$('#cardName').value.trim(),images:state.draftImages};const old=$('#draftPreview');old.outerHTML=cardHTML(c,'preview-card').replace('class="card preview-card"','id="draftPreview" class="card preview-card"')}
+function removeDraft(i){state.draftImages.splice(i,1);renderDraft()}function clearDraft(){state.draftImages=[];$('#cardName').value='';renderDraft()}
+$('#cardName').addEventListener('input',renderDraft);
+function fileData(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src})}
+async function compressBlob(blob,max=1100,q=.88){const src=await fileData(blob),img=await loadImg(src);let w=img.naturalWidth,h=img.naturalHeight,sc=Math.min(1,max/Math.max(w,h));w=Math.max(1,Math.round(w*sc));h=Math.max(1,Math.round(h*sc));const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(img,0,0,w,h);return c.toDataURL('image/jpeg',q)}
+$('#fileInput').addEventListener('change',async e=>{const files=[...e.target.files];if(!files.length)return;const mode=$('input[name="uploadMode"]:checked').value;if(mode==='batch'){for(const f of files){const img=await compressBlob(f);await dbPut({id:uid(),name:'',images:[img],createdAt:Date.now()+Math.random()})}await refreshCards();toast(`${files.length}장의 카드를 저장했습니다.`);sfxSave()}else{for(const f of files)state.draftImages.push(await compressBlob(f));renderDraft()}e.target.value=''});
+async function saveDraftCard(){if(!state.draftImages.length){toast('사진을 먼저 추가해 주세요.');return}await dbPut({id:uid(),name:$('#cardName').value.trim(),images:[...state.draftImages],createdAt:Date.now()});clearDraft();await refreshCards();switchView('maker');toast('카드를 저장했습니다. 계속 만들 수 있습니다.');sfxSave()}
+document.addEventListener('paste',async e=>{const item=[...(e.clipboardData?.items||[])].find(x=>x.type?.startsWith('image/'));if(!item)return;const b=item.getAsFile();if(!b)return;e.preventDefault();state.draftImages.push(await compressBlob(b));switchView('maker');renderDraft();toast('붙여넣은 이미지를 현재 카드에 추가했습니다.');sfxPaste()});
+/* classification */
+function classifySettings(){const s=getSetting('classifySettings',DEFAULT_CLASSIFY);if(!Array.isArray(s.categories))s.categories=[];s.categories=s.categories.map(c=>({id:c.id||uid(),title:c.title||'분류'}));return s}
+function loadClassification(){state.classification=getSetting('classificationState',{})}function saveClassification(){setSetting('classificationState',state.classification)}
+function catGrid(n,w,h){let best={cols:1,rows:n,score:-1};for(let c=1;c<=n;c++){const r=Math.ceil(n/c),cw=w/c,ch=h/r,empty=c*r-n,score=Math.min(cw,ch*1.35)-empty*12;if(score>best.score)best={cols:c,rows:r,score}}return best}
+function renderClassification(){const board=$('#classifyBoard'),s=classifySettings();if(!s.categories.length){board.innerHTML='<div class="empty">분류 설정에서 카테고리를 추가해 주세요.</div>';return}const r=board.getBoundingClientRect(),g=catGrid(s.categories.length,Math.max(700,r.width),Math.max(420,r.height));board.style.setProperty('--cat-cols',g.cols);board.style.setProperty('--cat-rows',g.rows);board.innerHTML=s.categories.map(c=>`<div class="category-zone" data-cat="${c.id}"><div class="category-title">${esc(c.title)}</div><div class="category-cards">${state.cards.filter(x=>state.classification[x.id]===c.id).map(x=>`<div class="class-card" draggable="true" data-id="${x.id}">${cardHTML(x)}</div>`).join('')}</div></div>`).join('');board.querySelectorAll('.category-zone').forEach(z=>{z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('over')});z.addEventListener('dragleave',()=>z.classList.remove('over'));z.addEventListener('drop',e=>{e.preventDefault();z.classList.remove('over');const id=e.dataTransfer.getData('text/card-id');if(!id)return;state.classification[id]=z.dataset.cat;saveClassification();if(state.currentClassifyId===id)state.currentClassifyId=null;renderClassification();renderClassCurrent();sfxSnap();const el=board.querySelector(`.class-card[data-id="${id}"]`);el?.classList.add('snap')})});board.querySelectorAll('.class-card').forEach(el=>el.addEventListener('dragstart',e=>e.dataTransfer.setData('text/card-id',el.dataset.id)));fitCategoryCards();renderClassCurrent();renderScoreboards()}
+function fitCategoryCards(){document.querySelectorAll('.category-zone').forEach(z=>{const box=z.querySelector('.category-cards'),n=box.children.length;if(!n)return;const r=box.getBoundingClientRect(),aspect=r.width/Math.max(r.height,1);let cols=Math.ceil(Math.sqrt(n*aspect*.75));cols=Math.max(1,Math.min(n,cols));let rows=Math.ceil(n/cols);const gap=4,cw=(r.width-gap*(cols-1))/cols,ch=(r.height-gap*(rows-1))/rows,w=Math.max(12,Math.min(cw,ch*.75)),h=w/0.75;box.style.gridTemplateColumns=`repeat(${cols},${w}px)`;box.style.gridTemplateRows=`repeat(${rows},${h}px)`})}
+function remainingCards(){return state.cards.filter(c=>!state.classification[c.id])}function drawRandomCard(){const p=remainingCards();if(!p.length){toast('분류하지 않은 카드가 없습니다.');return}state.currentClassifyId=p[Math.floor(Math.random()*p.length)].id;renderClassCurrent()}
+function renderClassCurrent(){const e=$('#classifyCurrent'),c=state.cards.find(x=>x.id===state.currentClassifyId);if(!c){e.innerHTML='<div class="small">카드를 뽑아 주세요.</div>';return}e.innerHTML=cardHTML(c);const n=e.querySelector('.card');n.draggable=true;n.addEventListener('dragstart',ev=>ev.dataTransfer.setData('text/card-id',c.id))}
+function selectPocketCard(id){state.currentClassifyId=id;renderClassCurrent()}window.selectPocketCard=selectPocketCard;
+function resetClassification(){if(!confirm('분류 상태를 초기화할까요?'))return;state.classification={};saveClassification();state.currentClassifyId=null;renderClassification()}
+/* match */
+function startMatchGame(){if(!state.cards.length){toast('카드를 먼저 만들어 주세요.');return}state.matchDeck=state.cards.flatMap(c=>[{instance:uid(),cardId:c.id,num:0,face:false,solved:false},{instance:uid(),cardId:c.id,num:0,face:false,solved:false}]);shuffle(state.matchDeck);state.matchDeck.forEach((x,i)=>x.num=i+1);state.matchSelected=[];state.matchHint=false;state.matchBusy=false;sfxShuffle();renderMatch();$('#matchStatus').textContent='번호 두 개를 눌러 같은 카드를 찾아보세요.';updateMatchHint()}
+function fitMatchGrid(){const g=$('#matchGrid'),n=Math.max(1,state.matchDeck.length),r=g.getBoundingClientRect();if(!r.width||!r.height)return;let best={score:0,cols:1,rows:n,w:50,h:67};for(let c=1;c<=n;c++){const rows=Math.ceil(n/c),cw=(r.width-(c-1)*7)/c,ch=(r.height-(rows-1)*7)/rows,w=Math.min(cw,ch*.75),h=w/.75,score=w*h;if(score>best.score)best={score,cols:c,rows,w,h}}g.style.gridTemplateColumns=`repeat(${best.cols},${best.w}px)`;g.style.gridTemplateRows=`repeat(${best.rows},${best.h}px)`}
+function renderMatch(){const g=$('#matchGrid');if(!state.matchDeck.length){g.innerHTML='<div class="empty">섞기 / 시작을 누르면 모든 카드가 두 장씩 만들어집니다.</div>';return}g.innerHTML=state.matchDeck.map(x=>{const c=state.cards.find(z=>z.id===x.cardId),front=x.solved||state.matchHint||x.face;return `<div class="memory-card ${front?'flipped':''} ${x.solved?'solved':''}" data-inst="${x.instance}" onclick="flipMatch('${x.instance}')"><div class="inner"><div class="memory-face"><div class="playing-back-blue"><span class="back-number">${x.num}</span></div></div><div class="memory-face memory-front">${cardHTML(c)}</div></div></div>`}).join('');fitMatchGrid();const solved=state.matchDeck.filter(x=>x.solved).length/2;$('#matchStatus').textContent=`맞힌 짝 ${solved} / ${state.cards.length}`}
+function updateMatchHint(){const b=$('#matchHintBtn');b.textContent=state.matchHint?'힌트 닫기':'힌트 보기'}
+function toggleMatchHint(){if(!state.matchDeck.length||state.matchBusy)return;state.matchHint=!state.matchHint;state.matchSelected=[];state.matchDeck.forEach(x=>{if(!x.solved)x.face=false});sfxHint();updateMatchHint();renderMatch()}
+async function flipMatch(inst){if(state.matchHint||state.matchBusy)return;const x=state.matchDeck.find(z=>z.instance===inst);if(!x||x.solved)return;if(state.matchSelected.includes(inst))return;if(state.matchSelected.length>=2)return;x.face=true;state.matchSelected.push(inst);sfxFlip();renderMatch();if(state.matchSelected.length===2){state.matchBusy=true;await sleep(320);const pair=state.matchSelected.map(id=>state.matchDeck.find(z=>z.instance===id));const ok=pair[0].cardId===pair[1].cardId;if(ok){feedback(true);pair.forEach(z=>{z.solved=true;z.face=true});awardActive(1);state.matchSelected=[];state.matchBusy=false;renderMatch()}else{feedback(false);await sleep(620);pair.forEach(z=>z.face=false);state.matchSelected=[];state.matchBusy=false;renderMatch()}}}
+/* find */
+function findSettings(){return {...DEFAULT_FIND,...getSetting('findSettings',DEFAULT_FIND)}}
+function renderTarget(){let c=state.cards.find(x=>x.id===state.findTargetId);if(state.findTargetId&&!c){state.findTargetId=null;localStorage.removeItem('findTargetId')}c=state.cards.find(x=>x.id===state.findTargetId);$('#targetLabel').textContent=c?(c.name||`카드 ${state.cards.indexOf(c)+1}`):'선택 안 됨';$('#targetPreview').innerHTML=c?cardHTML(c):'<div class="small">찾을 카드를 정해 주세요.</div>'}
+function setFindTarget(id){if(!state.cards.some(c=>c.id===id))return;state.findTargetId=id;localStorage.setItem('findTargetId',id);renderTarget()}window.setFindTarget=setFindTarget;
+function buildFindCards(){const s=findSettings(),target=state.cards.find(c=>c.id===state.findTargetId);if(!target)return[];const count=Math.max(3,Math.min(10,+s.count||3));let chosen=[];const others=state.cards.filter(c=>c.id!==target.id);if(s.distractorMode==='custom'){chosen=(s.customIds||[]).map(id=>state.cards.find(c=>c.id===id)).filter(Boolean).filter(c=>c.id!==target.id).slice(0,count-1)}let remain=count-1-chosen.length;if(remain>0){if(s.allowDuplicateCards){for(let i=0;i<remain;i++){const pool=others.length?others:state.cards;chosen.push(pool[Math.floor(Math.random()*pool.length)])}}else chosen.push(...shuffle(others.filter(c=>!chosen.some(x=>x.id===c.id))).slice(0,remain))}return shuffle([target,...chosen]).map((c,i)=>({instance:uid(),cardId:c.id,slot:i,num:0,revealed:false,locked:false}))}
+function findSlots(n){const r=$('#findBoard').getBoundingClientRect();let cols=Math.ceil(Math.sqrt(n*Math.max(r.width,1)/Math.max(r.height,1)*.75));cols=Math.max(1,Math.min(n,cols));const rows=Math.ceil(n/cols),gap=14,cw=(r.width-gap*(cols+1))/cols,ch=(r.height-gap*(rows+1))/rows,w=Math.max(40,Math.min(cw,ch*.75)),h=w/.75,totalW=cols*w+(cols-1)*gap,totalH=rows*h+(rows-1)*gap,sx=(r.width-totalW)/2,sy=(r.height-totalH)/2;return Array.from({length:n},(_,i)=>({x:sx+(i%cols)*(w+gap),y:sy+Math.floor(i/cols)*(h+gap),w,h}))}
+function renderFind(showFront=false){const b=$('#findBoard'),slots=findSlots(state.findPieces.length),s=findSettings();b.style.setProperty('--move-speed',s.speed+'s');b.innerHTML=state.findPieces.map(p=>{const c=state.cards.find(x=>x.id===p.cardId),pos=slots[p.slot],front=showFront||state.findHint||p.revealed||p.locked;return `<div class="find-piece ${front?'':'back'}" data-inst="${p.instance}" style="left:${pos.x}px;top:${pos.y}px;width:${pos.w}px;height:${pos.h}px" onclick="pickFind('${p.instance}')"><div class="inner"><div class="find-face">${cardHTML(c)}</div><div class="find-face find-back"><div class="playing-back-red"><span class="back-number">${p.num||''}</span></div></div></div></div>`}).join('')}
+function moveFind(){const slots=findSlots(state.findPieces.length);state.findPieces.forEach(p=>{const e=$(`.find-piece[data-inst="${p.instance}"]`),q=slots[p.slot];if(e&&q){e.style.left=q.x+'px';e.style.top=q.y+'px';e.style.width=q.w+'px';e.style.height=q.h+'px'}})}
+async function startFindGame(){if(!state.findTargetId){toast('찾을 카드를 먼저 정해 주세요.');return}state.findPieces=buildFindCards();if(state.findPieces.length<3){toast('카드가 부족합니다. 카드 수를 줄이거나 중복 허용을 켜 주세요.');return}state.findHint=false;state.findBusy=true;state.findReady=false;updateFindHint();$('#findResult').textContent='찾을 카드를 기억하세요!';renderFind(true);await sleep(900);state.findPieces.forEach(p=>{p.num=0;p.revealed=false});renderFind(false);await sleep(250);sfxShuffle();const s=findSettings();for(let i=0;i<(+s.rounds||7);i++){const slots=shuffle(state.findPieces.map(p=>p.slot).slice());state.findPieces.forEach((p,j)=>p.slot=slots[j]);moveFind();await sleep((+s.speed||.55)*1000+35)}[...state.findPieces].sort((a,b)=>a.slot-b.slot).forEach((p,i)=>p.num=i+1);renderFind(false);state.findBusy=false;state.findReady=true;$('#findResult').textContent='섞기가 끝났습니다. 학생이 말한 번호를 눌러 주세요.'}
+function updateFindHint(){const b=$('#findHintBtn');b.textContent=state.findHint?'힌트 닫기':'힌트 보기'}
+function toggleFindHint(){if(!state.findPieces.length||state.findBusy)return;state.findHint=!state.findHint;sfxHint();updateFindHint();renderFind(false)}
+async function pickFind(inst){if(!state.findReady||state.findBusy||state.findHint)return;const p=state.findPieces.find(x=>x.instance===inst);if(!p||p.locked)return;p.revealed=true;sfxFlip();renderFind(false);await sleep(280);const ok=p.cardId===state.findTargetId;if(ok){p.locked=true;feedback(true);awardActive(1);$('#findResult').textContent='정답입니다! 🎉';renderFind(false)}else{feedback(false);state.findBusy=true;$('#findResult').textContent='아쉽습니다. 다시 뒤집습니다.';await sleep(620);p.revealed=false;state.findBusy=false;renderFind(false);$('#findResult').textContent='다시 골라 주세요.'}}
+function awardActive(points){const s=participantSettings();if(s.scoreEnabled&&state.activeParticipant){state.scores[state.activeParticipant]=(state.scores[state.activeParticipant]??0)+points;saveScores();renderScoreboards()}}
+/* modal picker fallback */
+function openCardPicker(title,cards,onPick,selectedId=null){$('#modalTitle').textContent=title;const g=$('#modalGrid');g.innerHTML=cards.map(c=>`<button type="button" class="modal-card-btn ${c.id===selectedId?'selected':''}" data-id="${c.id}">${cardHTML(c)}</button>`).join('')||'<div class="empty">카드가 없습니다.</div>';g.querySelectorAll('button[data-id]').forEach(b=>b.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();onPick(b.dataset.id);closeCardPicker()}));$('#cardPickerModal').classList.remove('hidden')}
+function closeCardPicker(){$('#cardPickerModal').classList.add('hidden')}
+function openPocketWindow(){const url=location.href.split('#')[0]+'#pocket';const w=window.open(url,'cardPocket','width=900,height=700,resizable=yes,scrollbars=yes');if(!w)openCardPicker('카드 주머니',remainingCards(),selectPocketCard)}
+function openTargetWindow(){if(!state.cards.length){toast('카드를 먼저 만들어 주세요.');return}openCardPicker('찾을 카드 정하기',state.cards,id=>{setFindTarget(id);toast('찾을 카드를 선택했습니다.');sfxSave()},state.findTargetId)}
+function openSettingsWindow(kind){const url=location.href.split('#')[0]+'#settings='+kind;const w=window.open(url,'settings_'+kind,'width=680,height=760,resizable=yes,scrollbars=yes');if(!w){toast('팝업이 차단되었습니다. 팝업을 허용해 주세요.')}}
+window.onExternalSettingsChanged=function(kind){if(kind==='classify')renderClassification();if(kind==='find')toast('카드 찾기 설정을 적용했습니다.')}
+/* special windows using same HTML */
+async function initSpecialMode(){const hash=location.hash.slice(1);if(!hash)return false;const normal=$('#normalApp'),root=$('#specialRoot');normal.classList.add('hidden');root.classList.remove('hidden');root.className='special-page';if(hash==='pocket'){await refreshCardsForSpecial();const classified=opener?.state?.classification||{};const cards=state.cards.filter(c=>!classified[c.id]);root.innerHTML=`<div class="special-shell"><h1>카드 주머니</h1><p class="small">카드를 클릭하면 메인 화면으로 꺼냅니다.</p><div id="specialGrid" class="modal-grid">${cards.map(c=>`<button class="modal-card-btn" data-id="${c.id}">${cardHTML(c)}</button>`).join('')}</div></div>`;root.querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>{if(opener&&!opener.closed)opener.selectPocketCard(b.dataset.id);window.close()});return true}if(hash==='target'){await refreshCardsForSpecial();root.innerHTML=`<div class="special-shell"><h1>찾을 카드 정하기</h1><p class="small">원하는 카드를 클릭해 주세요.</p><div class="modal-grid">${state.cards.map(c=>`<button class="modal-card-btn" data-id="${c.id}">${cardHTML(c)}</button>`).join('')}</div></div>`;root.querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>{if(opener&&!opener.closed)opener.setFindTarget(b.dataset.id);window.close()});return true}if(hash.startsWith('settings=')){const kind=hash.split('=')[1];if(kind==='classify')renderClassifySettings(root);else if(kind==='find')await renderFindSettings(root);return true}normal.classList.remove('hidden');root.classList.add('hidden');return false}
+async function refreshCardsForSpecial(){state.cards=(await dbAll()).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))}
+function renderClassifySettings(root){const s=classifySettings();root.innerHTML=`<div class="special-shell"><h1>분류 설정</h1><p class="small">카테고리는 메인 화면에서 자동으로 겹치지 않게 배치됩니다.</p><div class="panel" style="padding:15px"><div id="catSettings" class="settings-list"></div><div class="row" style="margin-top:10px"><button class="secondary" id="addCat">카테고리 추가</button><button class="primary" id="saveCats">저장 · 적용</button><span id="specialStatus" class="small"></span></div></div></div>`;const list=$('#catSettings');function draw(){list.innerHTML=s.categories.map((c,i)=>`<div class="setting-row"><input type="text" value="${esc(c.title)}" data-i="${i}"><button class="danger" data-del="${i}">삭제</button></div>`).join('');list.querySelectorAll('input[data-i]').forEach(x=>x.oninput=()=>s.categories[+x.dataset.i].title=x.value);list.querySelectorAll('[data-del]').forEach(x=>x.onclick=()=>{s.categories.splice(+x.dataset.del,1);draw()})}draw();$('#addCat').onclick=()=>{s.categories.push({id:uid(),title:'새 분류'});draw()};$('#saveCats').onclick=()=>{setSetting('classifySettings',s);$('#specialStatus').textContent='저장했습니다.';sfxSave();if(opener&&!opener.closed)opener.onExternalSettingsChanged('classify')}}
+async function renderFindSettings(root){await refreshCardsForSpecial();const s=findSettings();root.innerHTML=`<div class="special-shell"><h1>카드 찾기 설정</h1><div class="panel" style="padding:15px"><div class="field"><label>총 카드 수 (3~10)</label><input id="fsCount" type="number" min="3" max="10" value="${s.count}"></div><div class="field"><label>섞이는 속도 · 한 번 이동 시간(초)</label><input id="fsSpeed" type="range" min=".25" max="1.5" step=".05" value="${s.speed}"><span id="speedText" class="small">${s.speed}초</span></div><div class="field"><label>섞는 횟수</label><input id="fsRounds" type="number" min="3" max="20" value="${s.rounds}"></div><div class="field"><label>다른 카드 선택</label><select id="fsMode"><option value="random">자동 랜덤</option><option value="custom">직접 지정</option></select></div><label class="row"><input id="fsDup" type="checkbox" ${s.allowDuplicateCards?'checked':''}> 랜덤 카드 중복 허용</label><div id="customWrap" class="field"><label>직접 사용할 다른 카드</label><div class="checks">${state.cards.map(c=>`<label class="check-item"><input type="checkbox" value="${c.id}" ${(s.customIds||[]).includes(c.id)?'checked':''}> ${esc(c.name||'이름 없는 카드')}</label>`).join('')}</div></div><div class="row" style="margin-top:12px"><button id="saveFindSettings" class="primary">저장 · 적용</button><span id="specialStatus" class="small"></span></div></div></div>`;$('#fsMode').value=s.distractorMode;function mode(){ $('#customWrap').classList.toggle('hidden',$('#fsMode').value!=='custom') }mode();$('#fsMode').onchange=mode;$('#fsSpeed').oninput=()=>$('#speedText').textContent=$('#fsSpeed').value+'초';$('#saveFindSettings').onclick=()=>{const n={count:+$('#fsCount').value,speed:+$('#fsSpeed').value,rounds:+$('#fsRounds').value,distractorMode:$('#fsMode').value,allowDuplicateCards:$('#fsDup').checked,customIds:$$('#customWrap input:checked').map(x=>x.value)};setSetting('findSettings',n);$('#specialStatus').textContent='저장했습니다.';sfxSave();if(opener&&!opener.closed)opener.onExternalSettingsChanged('find')}}
+/* init */
+window.addEventListener('resize',()=>{if($('#view-classify')?.classList.contains('active')){renderClassification()}if(state.matchDeck.length)fitMatchGrid();if(state.findPieces.length)moveFind()});window.addEventListener('storage',e=>{if(e.key==='classifySettings')renderClassification();if(e.key==='participantSettings'||e.key==='participantScores'){state.scores=getSetting('participantScores',{});renderScoreboards()}});
+(async function(){if(await initSpecialMode())return;if(!localStorage.getItem('classifySettings'))setSetting('classifySettings',DEFAULT_CLASSIFY);if(!localStorage.getItem('participantSettings'))setSetting('participantSettings',DEFAULT_PARTICIPANTS);if(!localStorage.getItem('findSettings'))setSetting('findSettings',DEFAULT_FIND);state.scores=getSetting('participantScores',{});loadClassification();state.findTargetId=localStorage.getItem('findTargetId');await refreshCards();renderDraft();renderRoster();renderScoreboards();renderMatch();renderTarget();})();
+</script>
+</body>
+</html>
