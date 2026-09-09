@@ -55,7 +55,7 @@ h1,h2,h3,p{margin-top:0}
 /* find */
 .find-layout{height:100%;display:grid;grid-template-columns:255px 1fr;gap:13px}.find-side{padding:13px;display:flex;flex-direction:column;gap:9px;overflow:auto}.target-preview{display:grid;place-items:center;min-height:185px}.target-preview .card{width:120px}.find-result{padding:9px;border-radius:12px;background:#f3eee7;min-height:40px}.find-board{position:relative;overflow:hidden}.find-piece{position:absolute;perspective:900px;transition:left var(--move-speed,.6s) cubic-bezier(.2,.75,.2,1),top var(--move-speed,.6s) cubic-bezier(.2,.75,.2,1),width .2s,height .2s;cursor:pointer}.find-piece .inner{position:relative;width:100%;height:100%;transition:transform .27s cubic-bezier(.2,.75,.25,1);transform-style:preserve-3d}.find-piece.back .inner{transform:rotateY(180deg)}.find-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:14px;overflow:hidden}.find-face .card{width:100%;height:100%;border-radius:14px}.find-back{transform:rotateY(180deg)}
 /* modal */
-.modal{position:fixed;inset:0;z-index:100;background:#201b16a1;display:grid;place-items:center;padding:14px}.modal-box{width:min(980px,96vw);max-height:92vh;overflow:auto;background:#fff;border-radius:22px;padding:16px;box-shadow:var(--shadow)}.modal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:10px}.modal-card-btn{border:0;background:transparent;padding:4px;border-radius:18px}.modal-card-btn.selected{outline:4px solid var(--accent2);background:rgba(106,169,255,.12)}
+.modal{position:fixed;inset:0;z-index:100;background:#201b16a1;display:grid;place-items:center;padding:14px}.modal-box{width:min(980px,96vw);max-height:92vh;overflow:auto;background:#fff;border-radius:22px;padding:16px;box-shadow:var(--shadow)}.modal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:10px;align-content:start}.modal-grid .card{width:100%}.modal-card-btn{border:0;background:transparent;padding:4px;border-radius:18px}.modal-card-btn.selected{outline:4px solid var(--accent2);background:rgba(106,169,255,.12)}.set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#fff}.set-info{min-width:0;flex:1}.set-name{font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.set-meta{font-size:13px;color:var(--muted);margin-top:3px}.set-actions{display:flex;gap:7px;flex-wrap:wrap}
 /* feedback overlay */
 .game-mark-overlay{position:fixed;inset:0;z-index:200;pointer-events:none;display:grid;place-items:center;opacity:0}.game-mark-overlay.show{opacity:1}.game-mark{font-family:Arial,sans-serif;font-size:min(42vw,420px);font-weight:900;line-height:1;text-shadow:0 12px 34px #0003;transform:scale(.2);opacity:0}.game-mark-overlay.show .game-mark{animation:markPop .82s cubic-bezier(.16,.9,.26,1) forwards}.game-mark-overlay.correct .game-mark{color:#27a95f}.game-mark-overlay.wrong .game-mark{color:#e24141}@keyframes markPop{0%{transform:scale(.2);opacity:0}28%{transform:scale(1.08);opacity:.96}66%{transform:scale(.92);opacity:.95}100%{transform:scale(.75);opacity:0}}
 .toast{position:fixed;left:50%;bottom:22px;z-index:210;transform:translateX(-50%);padding:10px 15px;border-radius:999px;background:#25221e;color:#fff;box-shadow:0 7px 22px #0003;opacity:0;transition:.18s;pointer-events:none}.toast.show{opacity:1}
@@ -89,7 +89,18 @@ h1,h2,h3,p{margin-top:0}
           <div class="row"><button class="primary" onclick="switchView('maker')">카드 만들기</button><button class="secondary" onclick="switchView('classify')">분류하기</button></div>
         </div>
         <div class="panel library">
-          <div class="library-head"><div><h2 style="margin-bottom:3px">저장된 카드</h2><div class="small">같은 브라우저에 계속 저장됩니다.</div></div><button class="secondary" onclick="refreshCards()">새로고침</button></div>
+          <div class="library-head">
+            <div>
+              <h2 style="margin-bottom:3px">저장된 카드</h2>
+              <div class="small"><span id="currentSetLabel">현재 세트</span> · 같은 브라우저에 계속 저장됩니다.</div>
+            </div>
+            <div class="row">
+              <button class="secondary" onclick="saveCurrentSet()">세트 저장</button>
+              <button class="secondary" onclick="openSetManager()">세트 불러오기</button>
+              <button class="secondary" onclick="startNewSet()">새 세트</button>
+              <button class="danger" onclick="clearAllCurrentCards()">전체 카드 삭제</button>
+            </div>
+          </div>
           <div id="libraryGrid" class="card-grid"></div>
         </div>
       </div>
@@ -180,6 +191,18 @@ h1,h2,h3,p{margin-top:0}
   </main>
 </div>
 
+<div id="setManagerModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="library-head">
+      <div>
+        <h2 style="margin:0">카드 세트 관리</h2>
+        <div class="small">저장한 세트를 불러오거나 삭제할 수 있습니다.</div>
+      </div>
+      <button class="secondary" onclick="closeSetManager()">닫기</button>
+    </div>
+    <div id="setManagerList" style="display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+</div>
 <div id="cardPickerModal" class="modal hidden"><div class="modal-box"><div class="library-head"><h2 id="modalTitle" style="margin:0">카드 선택</h2><button class="secondary" onclick="closeCardPicker()">닫기</button></div><div id="modalGrid" class="modal-grid"></div></div></div>
 <div id="gameMarkOverlay" class="game-mark-overlay"><div class="game-mark"></div></div>
 <div id="toast" class="toast"></div>
@@ -189,7 +212,7 @@ h1,h2,h3,p{margin-top:0}
 const DEFAULT_CLASSIFY={categories:[{id:'c1',title:'분류 1'},{id:'c2',title:'분류 2'},{id:'c3',title:'분류 3'}]};
 const DEFAULT_PARTICIPANTS={enabled:true,scoreEnabled:true,repeatAllowed:true,names:[]};
 const DEFAULT_FIND={count:3,speed:.55,rounds:7,distractorMode:'random',customIds:[],allowDuplicateCards:false};
-const state={cards:[],draftImages:[],classification:{},currentClassifyId:null,scores:{},activeParticipant:null,drawnParticipants:[],matchDeck:[],matchSelected:[],matchHint:false,matchBusy:false,findPieces:[],findTargetId:null,findHint:false,findBusy:false,findReady:false};
+const state={cards:[],draftImages:[],classification:{},currentClassifyId:null,currentSetName:'현재 세트',scores:{},activeParticipant:null,drawnParticipants:[],matchDeck:[],matchSelected:[],matchHint:false,matchBusy:false,findPieces:[],findTargetId:null,findHint:false,findBusy:false,findReady:false};
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];
 function clone(v){return JSON.parse(JSON.stringify(v))}function safeParse(t,f){try{return JSON.parse(t)}catch{return clone(f)}}function getSetting(k,f){const v=localStorage.getItem(k);return v==null?clone(f):safeParse(v,f)}function setSetting(k,v){localStorage.setItem(k,JSON.stringify(v))}
 function uid(){return crypto.randomUUID?crypto.randomUUID():'id_'+Date.now()+'_'+Math.random().toString(16).slice(2)}
@@ -204,15 +227,119 @@ document.addEventListener('click',e=>{if(e.target.closest('button'))sfxClick()})
 function toast(msg){const e=$('#toast');e.textContent=msg;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),1500)}
 function feedback(ok){const o=$('#gameMarkOverlay');o.className='game-mark-overlay '+(ok?'correct':'wrong');o.querySelector('.game-mark').textContent=ok?'O':'X';void o.offsetWidth;o.classList.add('show');clearTimeout(o._t);o._t=setTimeout(()=>o.classList.remove('show'),850);ok?sfxCorrect():sfxWrong()}
 /* DB */
-let dbPromise;function openDB(){if(dbPromise)return dbPromise;dbPromise=new Promise((res,rej)=>{const q=indexedDB.open('ClassroomCardStudio',1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains('cards'))q.result.createObjectStore('cards',{keyPath:'id'})};q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)});return dbPromise}
+let dbPromise;function openDB(){if(dbPromise)return dbPromise;dbPromise=new Promise((res,rej)=>{const q=indexedDB.open('ClassroomCardStudio',2);q.onupgradeneeded=()=>{const db=q.result;if(!db.objectStoreNames.contains('cards'))db.createObjectStore('cards',{keyPath:'id'});if(!db.objectStoreNames.contains('sets'))db.createObjectStore('sets',{keyPath:'id'})};q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)});return dbPromise}
 async function dbAll(){const db=await openDB();return new Promise((res,rej)=>{const q=db.transaction('cards','readonly').objectStore('cards').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>rej(q.error)})}
 async function dbPut(v){const db=await openDB();return new Promise((res,rej)=>{const t=db.transaction('cards','readwrite');t.objectStore('cards').put(v);t.oncomplete=res;t.onerror=()=>rej(t.error)})}
 async function dbDelete(id){const db=await openDB();return new Promise((res,rej)=>{const t=db.transaction('cards','readwrite');t.objectStore('cards').delete(id);t.oncomplete=res;t.onerror=()=>rej(t.error)})}
+async function dbClearCards(){const db=await openDB();return new Promise((res,rej)=>{const t=db.transaction('cards','readwrite');t.objectStore('cards').clear();t.oncomplete=res;t.onerror=()=>rej(t.error)})}
+async function dbReplaceCards(cards){const db=await openDB();return new Promise((res,rej)=>{const t=db.transaction('cards','readwrite'),store=t.objectStore('cards');store.clear();(cards||[]).forEach(c=>store.put(c));t.oncomplete=res;t.onerror=()=>rej(t.error)})}
+async function dbAllSets(){const db=await openDB();return new Promise((res,rej)=>{const q=db.transaction('sets','readonly').objectStore('sets').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>rej(q.error)})}
+async function dbPutSet(v){const db=await openDB();return new Promise((res,rej)=>{const t=db.transaction('sets','readwrite');t.objectStore('sets').put(v);t.oncomplete=res;t.onerror=()=>rej(t.error)})}
+async function dbDeleteSet(id){const db=await openDB();return new Promise((res,rej)=>{const t=db.transaction('sets','readwrite');t.objectStore('sets').delete(id);t.oncomplete=res;t.onerror=()=>rej(t.error)})}
 /* card rendering */
 function cardHTML(c,extra=''){const imgs=(c?.images||[]).slice(0,4),kind=imgs.length<=1?'one':imgs.length===2?'two':imgs.length===3?'three':'many';return `<div class="card ${extra}" data-card-id="${c?.id||''}"><div class="photos ${kind}">${imgs.map(x=>`<img src="${x}" alt="">`).join('')}</div>${c?.name?`<div class="name">${esc(c.name)}</div>`:''}</div>`}
-async function refreshCards(){state.cards=(await dbAll()).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));$('#cardCountBadge').textContent=`카드 ${state.cards.length}장`;renderLibrary();renderTarget();if($('#view-classify').classList.contains('active'))renderClassification()}
+async function refreshCards(){state.cards=(await dbAll()).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));$('#cardCountBadge').textContent=`카드 ${state.cards.length}장`;const setLabel=$('#currentSetLabel');if(setLabel)setLabel.textContent=state.currentSetName||'현재 세트';renderLibrary();renderTarget();if($('#view-classify').classList.contains('active'))renderClassification()}
 function renderLibrary(){const g=$('#libraryGrid');g.innerHTML=state.cards.length?state.cards.map(c=>`<div class="thumb">${cardHTML(c)}<button class="delete-card" onclick="deleteCard('${c.id}')">×</button></div>`).join(''):'<div class="empty" style="grid-column:1/-1"><div><div style="font-size:45px">🖼️</div><h3>아직 카드가 없습니다.</h3><p>카드 만들기에서 사진을 추가해 주세요.</p></div></div>'}
 async function deleteCard(id){if(!confirm('이 카드를 삭제할까요?'))return;await dbDelete(id);delete state.classification[id];saveClassification();await refreshCards()}
+
+/* card set management */
+function resetActivityStateForCards(){
+  state.classification={};
+  state.currentClassifyId=null;
+  state.matchDeck=[];
+  state.matchSelected=[];
+  state.matchHint=false;
+  state.matchBusy=false;
+  state.findPieces=[];
+  state.findHint=false;
+  state.findBusy=false;
+  state.findReady=false;
+  localStorage.removeItem('classification');
+}
+async function saveCurrentSet(){
+  if(!state.cards.length){toast('저장할 카드가 없습니다.');return}
+  const sets=await dbAllSets();
+  const defaultName=(state.currentSetName&&state.currentSetName!=='현재 세트')?state.currentSetName:'';
+  const raw=prompt('저장할 카드 세트 이름을 입력해 주세요.',defaultName);
+  if(raw===null)return;
+  const name=raw.trim();
+  if(!name){toast('세트 이름을 입력해 주세요.');return}
+  const same=sets.find(x=>String(x.name||'').trim()===name);
+  if(same&&!confirm(`"${name}" 세트가 이미 있습니다. 덮어쓸까요?`))return;
+  const snapshot=state.cards.map(c=>({...c,images:[...(c.images||[])]}));
+  await dbPutSet({id:same?.id||uid(),name,cards:snapshot,savedAt:Date.now()});
+  state.currentSetName=name;
+  localStorage.setItem('currentCardSetName',name);
+  await refreshCards();
+  sfxSave();toast(`"${name}" 세트를 저장했습니다.`);
+}
+async function startNewSet(){
+  if(state.cards.length&&!confirm('현재 카드를 비우고 새 세트를 시작할까요? 저장하지 않은 현재 상태는 사라집니다.'))return;
+  await dbClearCards();
+  resetActivityStateForCards();
+  state.currentSetName='새 세트';
+  localStorage.setItem('currentCardSetName',state.currentSetName);
+  await refreshCards();
+  renderClassification();renderMatch();renderTarget();
+  sfxSave();toast('새 세트를 시작했습니다.');
+  switchView('maker');
+}
+async function clearAllCurrentCards(){
+  if(!state.cards.length){toast('삭제할 카드가 없습니다.');return}
+  if(!confirm(`현재 카드 ${state.cards.length}장을 모두 삭제할까요?\n저장해 둔 카드 세트는 삭제되지 않습니다.`))return;
+  if(!confirm('정말 모두 삭제하시겠습니까?'))return;
+  await dbClearCards();
+  resetActivityStateForCards();
+  state.currentSetName='현재 세트';
+  localStorage.removeItem('currentCardSetName');
+  await refreshCards();
+  renderClassification();renderMatch();renderTarget();
+  sfxWrong();toast('현재 카드들을 모두 삭제했습니다.');
+}
+async function openSetManager(){
+  const sets=(await dbAllSets()).sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));
+  const list=$('#setManagerList');
+  if(!list)return;
+  list.innerHTML=sets.length?sets.map(set=>{
+    const d=set.savedAt?new Date(set.savedAt):null;
+    const date=d?`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`:'';
+    return `<div class="set-row">
+      <div class="set-info">
+        <div class="set-name">${esc(set.name||'이름 없는 세트')}</div>
+        <div class="set-meta">카드 ${(set.cards||[]).length}장${date?' · '+date:''}</div>
+      </div>
+      <div class="set-actions">
+        <button class="primary" onclick="loadSavedSet('${set.id}')">불러오기</button>
+        <button class="danger" onclick="deleteSavedSet('${set.id}')">세트 삭제</button>
+      </div>
+    </div>`;
+  }).join(''):'<div class="empty" style="min-height:220px">저장된 카드 세트가 없습니다.</div>';
+  $('#setManagerModal').classList.remove('hidden');
+}
+function closeSetManager(){$('#setManagerModal').classList.add('hidden')}
+async function loadSavedSet(id){
+  const sets=await dbAllSets(),set=sets.find(x=>x.id===id);
+  if(!set)return;
+  if(state.cards.length&&!confirm(`현재 카드를 "${set.name}" 세트로 바꿀까요?`))return;
+  const cards=(set.cards||[]).map(c=>({...c,images:[...(c.images||[])]}));
+  await dbReplaceCards(cards);
+  resetActivityStateForCards();
+  state.currentSetName=set.name||'불러온 세트';
+  localStorage.setItem('currentCardSetName',state.currentSetName);
+  await refreshCards();
+  closeSetManager();
+  renderClassification();renderMatch();renderTarget();
+  sfxSave();toast(`"${state.currentSetName}" 세트를 불러왔습니다.`);
+}
+async function deleteSavedSet(id){
+  const sets=await dbAllSets(),set=sets.find(x=>x.id===id);
+  if(!set)return;
+  if(!confirm(`저장된 "${set.name}" 세트를 삭제할까요?\n현재 화면의 카드는 삭제되지 않습니다.`))return;
+  await dbDeleteSet(id);
+  sfxWrong();
+  openSetManager();
+}
+
 /* navigation */
 function switchView(name){$$('.view').forEach(v=>v.classList.remove('active'));$$('.nav button').forEach(b=>b.classList.remove('active'));$('#view-'+name)?.classList.add('active');$(`.nav button[data-view="${name}"]`)?.classList.add('active');if(name==='roster')renderRoster();if(name==='classify')renderClassification();if(name==='match'){renderScoreboards();fitMatchGrid()}if(name==='find'){renderTarget();renderScoreboards()}}
 $$('.nav button').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
@@ -248,7 +375,15 @@ function renderClassification(){const board=$('#classifyBoard'),s=classifySettin
 function fitCategoryCards(){document.querySelectorAll('.category-zone').forEach(z=>{const box=z.querySelector('.category-cards'),n=box.children.length;if(!n)return;const r=box.getBoundingClientRect(),aspect=r.width/Math.max(r.height,1);let cols=Math.ceil(Math.sqrt(n*aspect*.75));cols=Math.max(1,Math.min(n,cols));let rows=Math.ceil(n/cols);const gap=4,cw=(r.width-gap*(cols-1))/cols,ch=(r.height-gap*(rows-1))/rows,w=Math.max(12,Math.min(cw,ch*.75)),h=w/0.75;box.style.gridTemplateColumns=`repeat(${cols},${w}px)`;box.style.gridTemplateRows=`repeat(${rows},${h}px)`})}
 function remainingCards(){return state.cards.filter(c=>!state.classification[c.id])}function drawRandomCard(){const p=remainingCards();if(!p.length){toast('분류하지 않은 카드가 없습니다.');return}state.currentClassifyId=p[Math.floor(Math.random()*p.length)].id;renderClassCurrent()}
 function renderClassCurrent(){const e=$('#classifyCurrent'),c=state.cards.find(x=>x.id===state.currentClassifyId);if(!c){e.innerHTML='<div class="small">카드를 뽑아 주세요.</div>';return}e.innerHTML=cardHTML(c);const n=e.querySelector('.card');n.draggable=true;n.addEventListener('dragstart',ev=>ev.dataTransfer.setData('text/card-id',c.id))}
-function selectPocketCard(id){state.currentClassifyId=id;renderClassCurrent()}window.selectPocketCard=selectPocketCard;
+function selectPocketCard(id){
+  const card=state.cards.find(c=>c.id===id);
+  if(!card)return;
+  state.currentClassifyId=id;
+  renderClassCurrent();
+  sfxClick();
+  toast(card.name?`${card.name} 카드를 꺼냈습니다.`:'카드를 꺼냈습니다.');
+}
+window.selectPocketCard=selectPocketCard;
 function resetClassification(){if(!confirm('분류 상태를 초기화할까요?'))return;state.classification={};saveClassification();state.currentClassifyId=null;renderClassification()}
 /* match */
 function startMatchGame(){if(!state.cards.length){toast('카드를 먼저 만들어 주세요.');return}state.matchDeck=state.cards.flatMap(c=>[{instance:uid(),cardId:c.id,num:0,face:false,solved:false},{instance:uid(),cardId:c.id,num:0,face:false,solved:false}]);shuffle(state.matchDeck);state.matchDeck.forEach((x,i)=>x.num=i+1);state.matchSelected=[];state.matchHint=false;state.matchBusy=false;sfxShuffle();renderMatch();$('#matchStatus').textContent='번호 두 개를 눌러 같은 카드를 찾아보세요.';updateMatchHint()}
@@ -273,7 +408,13 @@ function awardActive(points){const s=participantSettings();if(s.scoreEnabled&&st
 /* modal picker fallback */
 function openCardPicker(title,cards,onPick,selectedId=null){$('#modalTitle').textContent=title;const g=$('#modalGrid');g.innerHTML=cards.map(c=>`<button type="button" class="modal-card-btn ${c.id===selectedId?'selected':''}" data-id="${c.id}">${cardHTML(c)}</button>`).join('')||'<div class="empty">카드가 없습니다.</div>';g.querySelectorAll('button[data-id]').forEach(b=>b.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();onPick(b.dataset.id);closeCardPicker()}));$('#cardPickerModal').classList.remove('hidden')}
 function closeCardPicker(){$('#cardPickerModal').classList.add('hidden')}
-function openPocketWindow(){const url=location.href.split('#')[0]+'#pocket';const w=window.open(url,'cardPocket','width=900,height=700,resizable=yes,scrollbars=yes');if(!w)openCardPicker('카드 주머니',remainingCards(),selectPocketCard)}
+function openPocketWindow(){
+  if(!state.cards.length){
+    toast('카드 주머니에 카드가 없습니다.');
+    return;
+  }
+  openCardPicker(`카드 주머니 · 전체 ${state.cards.length}장`,state.cards,selectPocketCard,state.currentClassifyId);
+}
 function openTargetWindow(){if(!state.cards.length){toast('카드를 먼저 만들어 주세요.');return}openCardPicker('찾을 카드 정하기',state.cards,id=>{setFindTarget(id);toast('찾을 카드를 선택했습니다.');sfxSave()},state.findTargetId)}
 function openSettingsWindow(kind){const url=location.href.split('#')[0]+'#settings='+kind;const w=window.open(url,'settings_'+kind,'width=680,height=760,resizable=yes,scrollbars=yes');if(!w){toast('팝업이 차단되었습니다. 팝업을 허용해 주세요.')}}
 window.onExternalSettingsChanged=function(kind){if(kind==='classify')renderClassification();if(kind==='find')toast('카드 찾기 설정을 적용했습니다.')}
@@ -284,7 +425,7 @@ function renderClassifySettings(root){const s=classifySettings();root.innerHTML=
 async function renderFindSettings(root){await refreshCardsForSpecial();const s=findSettings();root.innerHTML=`<div class="special-shell"><h1>카드 찾기 설정</h1><div class="panel" style="padding:15px"><div class="field"><label>총 카드 수 (3~10)</label><input id="fsCount" type="number" min="3" max="10" value="${s.count}"></div><div class="field"><label>섞이는 속도 · 한 번 이동 시간(초)</label><input id="fsSpeed" type="range" min=".25" max="1.5" step=".05" value="${s.speed}"><span id="speedText" class="small">${s.speed}초</span></div><div class="field"><label>섞는 횟수</label><input id="fsRounds" type="number" min="3" max="20" value="${s.rounds}"></div><div class="field"><label>다른 카드 선택</label><select id="fsMode"><option value="random">자동 랜덤</option><option value="custom">직접 지정</option></select></div><label class="row"><input id="fsDup" type="checkbox" ${s.allowDuplicateCards?'checked':''}> 랜덤 카드 중복 허용</label><div id="customWrap" class="field"><label>직접 사용할 다른 카드</label><div class="checks">${state.cards.map(c=>`<label class="check-item"><input type="checkbox" value="${c.id}" ${(s.customIds||[]).includes(c.id)?'checked':''}> ${esc(c.name||'이름 없는 카드')}</label>`).join('')}</div></div><div class="row" style="margin-top:12px"><button id="saveFindSettings" class="primary">저장 · 적용</button><span id="specialStatus" class="small"></span></div></div></div>`;$('#fsMode').value=s.distractorMode;function mode(){ $('#customWrap').classList.toggle('hidden',$('#fsMode').value!=='custom') }mode();$('#fsMode').onchange=mode;$('#fsSpeed').oninput=()=>$('#speedText').textContent=$('#fsSpeed').value+'초';$('#saveFindSettings').onclick=()=>{const n={count:+$('#fsCount').value,speed:+$('#fsSpeed').value,rounds:+$('#fsRounds').value,distractorMode:$('#fsMode').value,allowDuplicateCards:$('#fsDup').checked,customIds:$$('#customWrap input:checked').map(x=>x.value)};setSetting('findSettings',n);$('#specialStatus').textContent='저장했습니다.';sfxSave();if(opener&&!opener.closed)opener.onExternalSettingsChanged('find')}}
 /* init */
 window.addEventListener('resize',()=>{if($('#view-classify')?.classList.contains('active')){renderClassification()}if(state.matchDeck.length)fitMatchGrid();if(state.findPieces.length)moveFind()});window.addEventListener('storage',e=>{if(e.key==='classifySettings')renderClassification();if(e.key==='participantSettings'||e.key==='participantScores'){state.scores=getSetting('participantScores',{});renderScoreboards()}});
-(async function(){if(await initSpecialMode())return;if(!localStorage.getItem('classifySettings'))setSetting('classifySettings',DEFAULT_CLASSIFY);if(!localStorage.getItem('participantSettings'))setSetting('participantSettings',DEFAULT_PARTICIPANTS);if(!localStorage.getItem('findSettings'))setSetting('findSettings',DEFAULT_FIND);state.scores=getSetting('participantScores',{});loadClassification();state.findTargetId=localStorage.getItem('findTargetId');await refreshCards();renderDraft();renderRoster();renderScoreboards();renderMatch();renderTarget();})();
+(async function(){if(await initSpecialMode())return;if(!localStorage.getItem('classifySettings'))setSetting('classifySettings',DEFAULT_CLASSIFY);if(!localStorage.getItem('participantSettings'))setSetting('participantSettings',DEFAULT_PARTICIPANTS);if(!localStorage.getItem('findSettings'))setSetting('findSettings',DEFAULT_FIND);state.currentSetName=localStorage.getItem('currentCardSetName')||'현재 세트';state.scores=getSetting('participantScores',{});loadClassification();state.findTargetId=localStorage.getItem('findTargetId');await refreshCards();renderDraft();renderRoster();renderScoreboards();renderMatch();renderTarget();})();
 </script>
 </body>
 </html>
