@@ -1417,5 +1417,211 @@
         }
 
     </script>
+    <!-- 화면 필기: 기존 수학 종이 기능과 독립적으로 동작합니다. -->
+    <style>
+        #ink-canvas { position: fixed; inset: 0; z-index: 10000; pointer-events: none; touch-action: none; }
+        #ink-canvas.ink-enabled { pointer-events: auto; cursor: crosshair; }
+        #ink-canvas.ink-erasing { cursor: none; }
+        #ink-cursor { position: fixed; z-index: 10001; pointer-events: none; border: 2px solid #333; background: rgba(255,255,255,.3); box-shadow: 0 0 0 1px white; border-radius: 50%; transform: translate(-50%,-50%); }
+        #ink-ball { position: fixed; z-index: 10003; right: 20px; bottom: 24px; width: 76px; height: 76px; padding: 0; border-radius: 50%; background: #3548a5; color: white; box-shadow: 0 5px 20px #0004; border: 3px solid white; touch-action: none; user-select: none; font-size: 16px; line-height: 1.35; }
+        #ink-ball[aria-pressed="true"] { background: #be3747; }
+        #ink-ball:active { transform: none; }
+        #ink-panel { position: fixed; z-index: 10002; width: 284px; max-width: calc(100vw - 16px); max-height: calc(100dvh - 104px); overflow-y: auto; background: white; color: #333; padding: 16px; border: 1px solid #d8deeb; border-radius: 16px; box-shadow: 0 6px 25px #0003; font-size: 16px; }
+        #ink-panel [hidden], #ink-panel[hidden], #ink-cursor[hidden] { display: none !important; }
+        #ink-panel .ink-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+        #ink-panel button { font-size: 15px; padding: 8px 10px; background: #edf0f7; color: #263248; min-height: 42px; }
+        #ink-panel button[aria-pressed="true"] { outline: 3px solid #3548a5; outline-offset: 1px; }
+        #ink-panel .ink-color { width: 34px; height: 38px; min-height: 38px; padding: 0; border: 2px solid #fff; box-shadow: 0 0 0 1px #b8bfce; border-radius: 50%; }
+        #ink-panel input[type="range"] { flex: 1; min-width: 90px; width: 120px; accent-color: #3548a5; }
+        #ink-panel .ink-note { color: #667085; font-size: 13px; line-height: 1.5; margin-top: 12px; }
+    </style>
+    <canvas id="ink-canvas" aria-label="화면 필기 영역"></canvas>
+    <div id="ink-cursor" hidden></div>
+    <button id="ink-ball" type="button" aria-pressed="false" aria-expanded="false" aria-controls="ink-panel" title="눌러서 필기 켜기/끄기 · 끌어서 위치 이동">✎<br>글씨 쓰기</button>
+    <div id="ink-panel" role="region" aria-label="필기 도구" hidden>
+        <strong>화면에 글씨 쓰기</strong>
+        <div class="ink-row" aria-label="펜 색상">
+            <button type="button" class="ink-color" data-color="#111111" style="background:#111111" aria-label="검정" aria-pressed="true" title="검정"></button>
+            <button type="button" class="ink-color" data-color="#1565e6" style="background:#1565e6" aria-label="파랑" aria-pressed="false" title="파랑"></button>
+            <button type="button" class="ink-color" data-color="#188038" style="background:#188038" aria-label="초록" aria-pressed="false" title="초록"></button>
+            <button type="button" class="ink-color" data-color="#e33131" style="background:#e33131" aria-label="빨강" aria-pressed="false" title="빨강"></button>
+            <button type="button" class="ink-color" data-color="#f4c400" style="background:#f4c400" aria-label="노랑" aria-pressed="false" title="노랑"></button>
+            <button type="button" class="ink-color" data-color="#8e36c9" style="background:#8e36c9" aria-label="보라" aria-pressed="false" title="보라"></button>
+        </div>
+        <div class="ink-row">
+            <button id="ink-pen" type="button" aria-pressed="true">✎ 펜</button>
+            <button id="ink-eraser" type="button" aria-pressed="false">지우개</button>
+            <button id="ink-clear" type="button">전체 지우기</button>
+        </div>
+        <label class="ink-row" for="ink-pen-size">펜 굵기 <input id="ink-pen-size" type="range" min="1" max="16" value="4"><output id="ink-pen-size-label">4</output></label>
+        <label class="ink-row" for="ink-eraser-size">지우개 크기 <input id="ink-eraser-size" type="range" min="12" max="100" value="36"><output id="ink-eraser-size-label">36</output></label>
+        <div class="ink-note">마우스·손가락·펜으로 쓸 수 있어요.<br>둥근 버튼은 끌어서 이동할 수 있어요.<br>끄면 종이를 다시 움직일 수 있어요.</div>
+    </div>
+    <script>
+    (() => {
+        const canvas = document.getElementById('ink-canvas');
+        const ctx = canvas.getContext('2d');
+        const ball = document.getElementById('ink-ball');
+        const panel = document.getElementById('ink-panel');
+        const cursor = document.getElementById('ink-cursor');
+        const penButton = document.getElementById('ink-pen');
+        const eraserButton = document.getElementById('ink-eraser');
+        const penSize = document.getElementById('ink-pen-size');
+        const eraserSize = document.getElementById('ink-eraser-size');
+        const colors = [...panel.querySelectorAll('[data-color]')];
+        let enabled = false, erasing = false, color = '#111111';
+        let activePointer = null, currentStroke = null, ballDrag = null;
+        const strokes = [];
+
+        function paint(stroke, from, to) {
+            ctx.globalCompositeOperation = stroke.erase ? 'destination-out' : 'source-over';
+            ctx.strokeStyle = ctx.fillStyle = stroke.color;
+            ctx.lineWidth = stroke.size;
+            ctx.lineCap = ctx.lineJoin = 'round';
+            ctx.beginPath();
+            if (!from) {
+                ctx.arc(to.x, to.y, stroke.size / 2, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                ctx.moveTo(from.x, from.y);
+                ctx.lineTo(to.x, to.y);
+                ctx.stroke();
+            }
+        }
+        function redraw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (const stroke of strokes) {
+                stroke.points.forEach((point, i) => paint(stroke, stroke.points[i - 1], point));
+            }
+        }
+        function positionPanel() {
+            const r = ball.getBoundingClientRect();
+            const width = panel.offsetWidth || 284;
+            const height = panel.offsetHeight || 320;
+            panel.style.left = Math.max(8, Math.min(innerWidth - width - 8, r.right - width)) + 'px';
+            const top = r.top >= height + 16 ? r.top - height - 10 : r.bottom + 10;
+            panel.style.top = Math.max(8, Math.min(innerHeight - height - 8, top)) + 'px';
+        }
+        function moveBall(left, top) {
+            ball.style.right = ball.style.bottom = 'auto';
+            ball.style.left = Math.max(0, Math.min(innerWidth - ball.offsetWidth, left)) + 'px';
+            ball.style.top = Math.max(0, Math.min(innerHeight - ball.offsetHeight, top)) + 'px';
+            positionPanel();
+        }
+        function resize() {
+            const ratio = window.devicePixelRatio || 1;
+            canvas.width = Math.round(innerWidth * ratio);
+            canvas.height = Math.round(innerHeight * ratio);
+            canvas.style.width = innerWidth + 'px';
+            canvas.style.height = innerHeight + 'px';
+            ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+            redraw();
+            const r = ball.getBoundingClientRect();
+            moveBall(r.left, r.top);
+        }
+        function finishStroke() {
+            const pointer = activePointer;
+            activePointer = null;
+            currentStroke = null;
+            if (pointer !== null && canvas.hasPointerCapture(pointer)) canvas.releasePointerCapture(pointer);
+        }
+        function setEnabled(value) {
+            finishStroke();
+            enabled = value;
+            canvas.classList.toggle('ink-enabled', enabled);
+            panel.hidden = !enabled;
+            cursor.hidden = true;
+            ball.innerHTML = enabled ? '✎<br>쓰기 끄기' : '✎<br>글씨 쓰기';
+            ball.setAttribute('aria-pressed', String(enabled));
+            ball.setAttribute('aria-expanded', String(enabled));
+            positionPanel();
+        }
+        function setTool(erase) {
+            erasing = erase;
+            canvas.classList.toggle('ink-erasing', erase);
+            penButton.setAttribute('aria-pressed', String(!erase));
+            eraserButton.setAttribute('aria-pressed', String(erase));
+            colors.forEach(button => button.setAttribute('aria-pressed', String(!erase && button.dataset.color === color)));
+            cursor.hidden = true;
+        }
+        function showCursor(event) {
+            cursor.hidden = !enabled || !erasing;
+            cursor.style.width = cursor.style.height = eraserSize.value + 'px';
+            cursor.style.left = event.clientX + 'px';
+            cursor.style.top = event.clientY + 'px';
+        }
+        canvas.addEventListener('pointerdown', event => {
+            if (!enabled || activePointer !== null || event.button !== 0) return;
+            event.preventDefault();
+            activePointer = event.pointerId;
+            canvas.setPointerCapture(activePointer);
+            currentStroke = { erase: erasing, color, size: Number(erasing ? eraserSize.value : penSize.value), points: [{x:event.clientX, y:event.clientY}] };
+            strokes.push(currentStroke);
+            paint(currentStroke, null, currentStroke.points[0]);
+            showCursor(event);
+        });
+        canvas.addEventListener('pointermove', event => {
+            if (activePointer !== null && event.pointerId !== activePointer) return;
+            showCursor(event);
+            if (!currentStroke || event.pointerId !== activePointer) return;
+            event.preventDefault();
+            const samples = event.getCoalescedEvents ? event.getCoalescedEvents() : [];
+            for (const sample of samples.length ? samples : [event]) {
+                const point = { x:sample.clientX, y:sample.clientY };
+                paint(currentStroke, currentStroke.points[currentStroke.points.length - 1], point);
+                currentStroke.points.push(point);
+            }
+        });
+        for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+            canvas.addEventListener(name, event => {
+                if (event.pointerId === activePointer) finishStroke();
+                if (event.pointerType !== 'mouse') cursor.hidden = true;
+            });
+        }
+        canvas.addEventListener('pointerleave', () => { cursor.hidden = true; });
+        canvas.addEventListener('contextmenu', event => { if (enabled) event.preventDefault(); });
+        penButton.addEventListener('click', () => setTool(false));
+        eraserButton.addEventListener('click', () => setTool(true));
+        colors.forEach(button => button.addEventListener('click', () => {
+            color = button.dataset.color;
+            setTool(false);
+        }));
+        [penSize, eraserSize].forEach(input => input.addEventListener('input', () => {
+            document.getElementById(input.id + '-label').value = input.value;
+            cursor.style.width = cursor.style.height = eraserSize.value + 'px';
+        }));
+        document.getElementById('ink-clear').addEventListener('click', () => {
+            finishStroke();
+            strokes.length = 0;
+            redraw();
+        });
+        ball.addEventListener('pointerdown', event => {
+            if (ballDrag || event.button !== 0) return;
+            event.preventDefault();
+            const r = ball.getBoundingClientRect();
+            ballDrag = {id:event.pointerId, x:event.clientX, y:event.clientY, left:r.left, top:r.top, moved:false};
+            ball.setPointerCapture(event.pointerId);
+        });
+        ball.addEventListener('pointermove', event => {
+            if (!ballDrag || event.pointerId !== ballDrag.id) return;
+            const dx = event.clientX - ballDrag.x, dy = event.clientY - ballDrag.y;
+            if (Math.hypot(dx, dy) > 6) ballDrag.moved = true;
+            if (ballDrag.moved) moveBall(ballDrag.left + dx, ballDrag.top + dy);
+        });
+        ball.addEventListener('pointerup', event => {
+            if (!ballDrag || event.pointerId !== ballDrag.id) return;
+            const toggle = !ballDrag.moved;
+            ballDrag = null;
+            if (ball.hasPointerCapture(event.pointerId)) ball.releasePointerCapture(event.pointerId);
+            if (toggle) setEnabled(!enabled);
+        });
+        for (const name of ['pointercancel', 'lostpointercapture']) ball.addEventListener(name, () => { ballDrag = null; });
+        ball.addEventListener('click', event => { if (event.detail === 0) setEnabled(!enabled); });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape' && enabled) setEnabled(false); });
+        window.addEventListener('resize', resize);
+        resize();
+    })();
+    </script>
+
 </body>
 </html>
