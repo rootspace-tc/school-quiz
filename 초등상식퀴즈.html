@@ -100,13 +100,69 @@
         #rules-list { text-align: left; font-size: 1.2em; line-height: 2; }
         #alert-message { font-size: 2.5em; /* --- ✨ 알림창 글씨 크기 증가 --- */ line-height: 1.5; margin: 20px 0; }
         #alert-modal button, #rules-modal button { font-size: 1.2em; padding: 10px 30px; }
+    
+        :root { --forest:#184d39; --green:#287653; --cream:#fbf9ec; --gold:#e7b64b; }
+        * { box-sizing:border-box; }
+        body { margin:0; padding:clamp(12px,3vw,36px); min-height:100vh; min-height:100dvh; color:var(--forest); background:radial-gradient(ellipse at 12% 10%,#e6efcb 0,transparent 45%),linear-gradient(150deg,#f4f5df,#d9e9d6); font-size:clamp(16px,1.8vw,20px); -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+        body::before { content:''; position:fixed; inset:0; pointer-events:none; opacity:.16; background-image:radial-gradient(#638460 1px,transparent 1px); background-size:24px 24px; z-index:-1; }
+        .container { width:100%; max-width:960px; padding:clamp(20px,4vw,48px); background:var(--cream); border:1px solid #fff; border-radius:30px; box-shadow:0 20px 65px #294c3020; }
+        #start-container { min-height:85vh; min-height:85dvh; position:relative; overflow:hidden; }
+        .eyebrow { font-size:.8rem; letter-spacing:.18em; color:#54764f; margin:0 0 20px; }
+        #start-container h1 { font-size:clamp(2.2rem,6vw,4rem); line-height:1.2; color:var(--forest); margin:8px 0 16px; }
+        #start-container p { font-size:clamp(1rem,2.5vw,1.35rem); color:#58715e; margin:0 0 26px; line-height:1.6; }
+        .habitat { font-size:clamp(64px,12vw,116px); position:relative; margin:8px 0 20px; animation:sway 5s ease-in-out infinite; filter:drop-shadow(0 12px 12px #2b623025); }
+        .journey { display:flex; width:100%; justify-content:space-between; gap:6px; margin:18px 0 28px; padding:18px 8px; border-block:1px solid #dce4cb; }
+        .journey-node { flex:1; color:#657760; font-size:clamp(.75rem,1.8vw,1rem); }
+        .journey-node b { display:block; font-size:clamp(24px,4vw,38px); margin-bottom:6px; }
+        .journey-node.active { color:#16472f; background:#e1edc9; border-radius:14px; box-shadow:0 0 0 6px #e1edc9; }
+        .journey-node.done { color:#287653; }
+        .btn { min-height:52px; padding:14px 22px; border-radius:14px; font-size:1rem; margin:5px; touch-action:manipulation; transition:transform .2s,box-shadow .2s; }
+        .btn:active { transform:scale(.97); }
+        .btn:focus-visible,.card:focus-visible,input:focus-visible { outline:3px solid #c28e22; outline-offset:4px; }
+        #start-btn { background:var(--green); font-size:1.3rem; padding:18px 36px; box-shadow:0 7px 0 #184d39; margin-bottom:16px; }
+        #rules-btn,#rules-close-btn,#alert-close-btn { color:var(--forest); background:#e3ebd8; }
+        #quiz-header { flex-wrap:wrap; gap:12px; background:#eaf0dd; padding:18px; }
+        .info-box { font-size:1rem; } .info-box span { color:var(--green); }
+        .timer { font-variant-numeric:tabular-nums; padding:8px 14px; border-radius:24px; background:#fffdf4; font-size:.95rem; }
+        hr { display:none; }
+        #question { font-size:clamp(1.25rem,3vw,1.9rem); line-height:1.65; min-height:110px; text-align:left; word-break:keep-all; overflow-wrap:anywhere; margin:25px 0; }
+        #answer-input { width:100%; max-width:620px; padding:18px; background:#fffef8; border:2px solid #b5c6a6; font-size:1.2rem; color:var(--forest); }
+        #hint1-btn,#hint2-btn { background:#eee5c6; color:#675019; }
+        #submit-btn,#next-btn,#home-btn,#unlock-btn { background:var(--green); color:white; }
+        #result { background:#e9f0db; padding:22px; animation:rise .35s ease-out; }
+        #answer-feedback { line-height:1.5; } #explanation { font-size:1rem; color:#49634c; }
+        .modal { padding:16px; background:#102c24b8; overflow-y:auto; overscroll-behavior:contain; height:100%; height:100dvh; }
+        .modal-content { width:100%; padding:clamp(20px,4vw,36px); max-height:calc(100dvh - 32px); overflow-y:auto; background:var(--cream); border:1px solid #e0e9cf; animation:rise .3s ease-out; }
+        .modal-content h2 { font-size:clamp(1.4rem,3vw,2rem); }
+        #card-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; }
+        .card { width:100%; height:auto; aspect-ratio:2/3; padding:0; font:inherit; background:transparent; border:0; border-radius:16px; touch-action:manipulation; }
+        .card-front { background:repeating-linear-gradient(45deg,#317151,#317151 12px,#367956 12px,#367956 24px); border:3px solid #cbdab5; font-size:2.2rem; }
+        .card-back { padding:8px; background:#f5e8b9; font-size:clamp(1rem,2.6vw,1.5rem); border:2px solid #d0ab4d; }
+        #rules-list { font-size:1rem; line-height:1.8; padding-left:22px; }
+        #alert-message { font-size:clamp(1.3rem,3vw,2rem); }
+        #finish-container { display:none; position:relative; overflow:hidden; min-height:85vh; min-height:85dvh; }
+        #finish-container h1 { font-size:clamp(2rem,5vw,3.5rem); margin:12px 0; }
+        .finish-badge { font-size:90px; margin:20px 0 8px; animation:sway 4s ease-in-out infinite; }
+        .time-record { background:#e9efd9; border:1px solid #d4dfbd; border-radius:22px; padding:24px; margin:26px auto; max-width:440px; }
+        #final-time { display:block; font-size:clamp(2rem,5vw,3rem); color:#287653; margin-top:10px; font-variant-numeric:tabular-nums; }
+        .small-note { font-size:.9rem; color:#62705b; line-height:1.6; }
+        #unlock-form { margin:20px auto; max-width:360px; } #unlock-form[hidden] { display:none; }
+        #password-input { width:100%; font:inherit; font-size:1.2rem; padding:16px; margin:12px 0; border:2px solid #b5c6a6; border-radius:12px; }
+        #password-error { color:#a13d27; min-height:1.5em; }
+        .confetti { position:absolute; top:-30px; left:var(--x); width:12px; height:22px; border-radius:100% 0 100% 0; background:var(--c); pointer-events:none; animation:fall 3.8s ease-in var(--delay) both; }
+        @keyframes sway { 0%,100% { transform:rotate(-3deg) translateY(0); } 50% { transform:rotate(3deg) translateY(-8px); } }
+        @keyframes rise { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes fall { from { transform:translateY(-30px) rotate(0); opacity:1; } to { transform:translateY(85vh) rotate(500deg); opacity:0; } }
+        @media(max-width:600px) { .container { border-radius:22px; } #card-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; } .card { max-height:160px; } #quiz-header { justify-content:center; } #start-container { min-height:90dvh; } .btn { padding:13px 16px; } }
+        @media(max-height:600px) and (orientation:landscape) { #start-container { min-height:auto; } .habitat { font-size:60px; } .journey { margin:10px 0; } .modal { justify-content:flex-start; } }
+        @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; } }
     </style>
 </head>
 <body>
     <div id="start-container" class="container">
-        <h1>🌾 먹이 사슬 퀴즈 🌾</h1>
+        <div class="eyebrow">작은 씨앗에서 시작하는 생태계 모험</div><div class="habitat" aria-hidden="true">🌾 🦗 🌿</div><h1>먹이 사슬 퀴즈</h1>
         <p>퀴즈를 풀고 최상위 포식자에 도전해보세요!</p>
-        <div>
+        <div class="journey" aria-label="성장 단계"><div class="journey-node" data-level="1"><b aria-hidden="true">🌾</b>벼</div><div class="journey-node" data-level="2"><b aria-hidden="true">🦗</b>메뚜기</div><div class="journey-node" data-level="3"><b aria-hidden="true">🐿️</b>다람쥐</div><div class="journey-node" data-level="4"><b aria-hidden="true">🐍</b>뱀</div><div class="journey-node" data-level="5"><b aria-hidden="true">🦅</b>매</div></div><div>
             <button id="start-btn" class="btn">게임 시작하기!</button>
             <button id="rules-btn" class="btn">규칙 설명</button>
         </div>
@@ -118,16 +174,16 @@
             <div id="level-display" class="info-box">등급: <span>벼(생산자)</span></div>
             <div id="remaining-display" class="info-box">다음 단계까지 <span>5</span>문제</div>
         </div>
-        <hr>
+        <div class="timer">⏱ 탐험 시간 <span id="live-time">00:00</span></div><div class="journey" aria-label="성장 단계"><div class="journey-node" data-level="1"><b aria-hidden="true">🌾</b>벼</div><div class="journey-node" data-level="2"><b aria-hidden="true">🦗</b>메뚜기</div><div class="journey-node" data-level="3"><b aria-hidden="true">🐿️</b>다람쥐</div><div class="journey-node" data-level="4"><b aria-hidden="true">🐍</b>뱀</div><div class="journey-node" data-level="5"><b aria-hidden="true">🦅</b>매</div></div><hr>
         <div id="question"></div>
-        <input type="text" id="answer-input" placeholder="정답을 입력하세요">
+        <input type="text" id="answer-input" placeholder="정답을 입력하세요" aria-label="퀴즈 정답" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done">
         <br>
         <button id="hint1-btn" class="btn">힌트 1 (글자 수)</button>
         <button id="hint2-btn" class="btn">힌트 2 (초성)</button>
         <button id="submit-btn" class="btn">정답 확인</button>
         <button id="next-btn" class="btn">다음 문제</button>
         <div id="result" style="display: none;">
-            <div id="answer-feedback"></div>
+            <div id="answer-feedback" role="status"></div>
             <div id="explanation"></div>
         </div>
     </div>
@@ -162,9 +218,26 @@
         </div>
     </div>
 
+
+    <section id="finish-container" class="container" aria-labelledby="finish-title">
+        <div class="eyebrow">생태계 탐험 완료</div>
+        <div class="finish-badge" aria-hidden="true">🦅</div>
+        <h1 id="finish-title" tabindex="-1">축하해요, 게임 클리어!</h1>
+        <p>벼에서 시작한 모험, 드디어 최상위 포식자 <strong>매</strong>가 되었어요!</p>
+        <div class="time-record">총 걸린 시간<strong id="final-time"></strong></div>
+        <p class="small-note">재도전과 카드 선택 시간까지 포함한 탐험 기록이에요.<br>선생님께 완료 화면을 보여 주세요.</p>
+        <button id="home-btn" class="btn">🔒 메인으로</button>
+        <form id="unlock-form" hidden>
+            <label for="password-input">메인으로 돌아가려면 비밀번호를 입력하세요.</label>
+            <input id="password-input" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-describedby="password-error">
+            <button id="unlock-btn" class="btn" type="submit">잠금 해제</button>
+            <p id="password-error" role="alert"></p>
+        </form>
+        <p id="storage-note" class="small-note" hidden>이 브라우저에서는 완료 기록을 저장할 수 없어요. 이 화면을 그대로 유지해 주세요.</p>
+    </section>
     <script>
         const quizData = [ /* 50문제 데이터 */ 
-            { question: "물에 젖지 않는 흙을 무엇이라고 할까요?(반대로 물에 잘 젖는 것은 물과 친하다고 해서 '친수성'이라고 해요.)", answer: "소수성흙", explanation: "소수성 흙은 물을 밀어내는 성질을 가지고 있어 물에 젖지 않습니다. 연잎 효과와 비슷한 원리입니다." }, { question: "지구의 대기 중에서 가장 많은 비율을 차지하는 기체는 무엇일까요?", answer: "질소", explanation: "지구 대기의 약 78%는 질소로 이루어져 있습니다. 우리가 숨 쉬는 데 필요한 산소는 약 21%를 차지합니다." }, { question: "태양계에서 가장 큰 행성은 무엇일까요?", answer: "목성", explanation: "목성은 태양계의 모든 다른 행성들을 합친 것보다 2.5배나 더 무거운 거대한 가스 행성입니다." }, { question: "식물이 빛을 이용하여 양분을 스스로 만드는 과정을 무엇이라고 할까요?", answer: "광합성", explanation: "광합성은 식물이 엽록체에서 빛 에너지를 이용해 이산화탄소와 물을 포도당과 산소로 바꾸는 과정입니다." }, { question: "소금의 주성분인 염화나트륨은 어떤 원소들의 화합물일까요?(ooo과 oo)", answer: "나트륨과염소", explanation: "소금(염화나트륨, NaCl)은 나트륨(Na) 원자와 염소(Cl) 원자가 결합하여 만들어진 이온 결합 화합물입니다." }, { question: "몸의 온도가 주변 환경에 따라 변하는 동물을 무엇이라고 할까요?", answer: "변온동물", explanation: "파충류, 양서류, 어류 등은 스스로 체온을 조절하지 못하고 주변 온도에 따라 체온이 변하는 변온동물입니다." }, { question: "지구 자기장이 만들어내는 오로라는 주로 어느 지역에서 관찰될까요?", answer: "극지방", explanation: "오로라는 태양에서 날아온 대전 입자가 지구 자기장에 이끌려 대기권의 기체와 충돌하면서 빛을 내는 현상으로, 주로 북극과 남극 근처에서 보입니다." }, { question: "거울처럼 빛을 반사하는 물체의 표면을 이용해 멀리 있는 물체를 가까이 볼 수 있게 만든 도구이며 주로 잠수함에서 쓰이는 이것은 무엇일까요?", answer: "잠망경", explanation: "잠망경은 두 개의 거울이나 프리즘을 이용해 빛의 경로를 꺾어, 장애물 너머나 물속에서 물 위를 볼 수 있게 해줍니다." }, { question: "액체 상태의 물이 끓어서 기체 상태의 수증기로 변하는 현상을 무엇이라고 할까요?", answer: "기화", explanation: "물질이 액체에서 기체로 상태가 변하는 현상을 기화라고 합니다. 물이 끓는 것이 대표적인 예입니다." }, { question: "우리 몸에서 피를 온몸으로 보내주는 펌프 역할을 하는 기관은 무엇일까요?", answer: "심장", explanation: "심장은 규칙적인 수축과 이완을 통해 혈액을 온몸의 혈관으로 보내 산소와 영양분을 공급하는 중요한 기관입니다." }, { question: "지구의 자전으로 인해 나타나는 현상으로, 물체가 운동 방향의 오른쪽(북반구)이나 왼쪽(남반구)으로 휘는 것처럼 보이게 하는 힘은 무엇일까요?", answer: "전향력", explanation: "전향력 또는 코리올리 힘은 회전하는 기준계에서 나타나는 가상의 힘으로, 태풍의 회전 방향 등을 설명하는 데 사용됩니다." }, { question: "뼈를 튼튼하게 하고 혈액 응고에 중요한 역할을 하는 무기질은 무엇일까요?", answer: "칼슘", explanation: "칼슘은 뼈와 치아를 구성하는 주요 성분이며, 근육 수축과 신경 전달에도 필수적인 역할을 합니다." }, { question: "땅속의 마그마가 지표면으로 분출하여 만들어진 암석을 무엇이라고 할까요?", answer: "화성암", explanation: "화성암은 마그마가 식어서 굳어진 암석입니다. 땅속 깊은 곳에서 천천히 식으면 심성암, 지표면에서 빠르게 식으면 화산암이 됩니다." }, { question: "하나의 세포로 이루어진 생물을 무엇이라고 할까요?", answer: "단세포생물", explanation: "아메바, 짚신벌레, 유글레나 등은 몸 전체가 하나의 세포로 이루어져 생명 활동을 하는 단세포생물입니다." }, { question: "소리의 높낮이를 결정하는 요소는 무엇일까요?", answer: "진동수", explanation: "진동수(주파수)는 1초 동안 진동하는 횟수를 의미하며, 진동수가 높을수록 높은 소리가 나고 낮을수록 낮은 소리가 납니다. 단위는 헤르츠(Hz)를 사용합니다." }, { question: "지구의 그림자에 달이 들어가서 달이 보이지 않거나 어둡게 보이는 현상은 무엇일까요?", answer: "월식", explanation: "월식은 태양-지구-달이 일직선으로 위치할 때 지구의 그림자가 달을 가려서 발생합니다." }, { question: "자석의 같은 극끼리는 서로 밀어내고, 다른 극끼리는 서로 끌어당기는 힘을 무엇이라고 할까요?", answer: "자기력", explanation: "자기력은 자석이나 전류가 흐르는 도체 주위에 생기는 자기장에 의해 발생하는 힘입니다." }, { question: "식물의 뿌리, 줄기, 잎과 같이 식물체를 구성하는 기관을 무엇이라고 할까요?", answer: "영양기관", explanation: "영양기관은 식물이 살아가는데 필요한 양분을 만들고 운반하며 저장하는 역할을 합니다. 꽃, 열매, 씨앗은 생식기관입니다." }, { question: "지진의 규모를 나타내는 단위로, 숫자가 1 증가할 때마다 에너지는 약 32배 커지는 것을 나타내는 척도는 무엇일까요?", answer: "리히터규모", explanation: "리히터 규모(혹은 릭터 규모)는 지진파의 진폭을 바탕으로 지진이 방출하는 에너지의 양을 나타내는 척도입니다." }, { question: "주변의 빛을 흡수했다가 어두운 곳에서 스스로 빛을 내는 현상을 무엇이라고 할까요?", answer: "야광", explanation: "야광(축광)은 물질이 빛 에너지를 흡수하여 저장했다가 서서히 방출하면서 어두운 곳에서 빛을 내는 현상입니다." }, { question: "지구 표면의 약 70%를 덮고 있으며, 생명 유지에 필수적인 액체는 무엇일까요?", answer: "물", explanation: "물은 모든 생명체의 기본 구성 요소이며, 다양한 물질을 녹이고 체온을 조절하는 등 중요한 역할을 합니다." }, { question: "벌레를 잡아먹고 사는 식물을 무엇이라고 할까요?", answer: "식충식물", explanation: "파리지옥, 끈끈이주걱, 네펜데스 같은 식충식물은 질소가 부족한 척박한 땅에서 살기 위해 벌레를 잡아 양분을 보충합니다." }, { question: "물체가 위에서 아래로 떨어지게 하는 지구의 힘은 무엇일까요?", answer: "중력", explanation: "중력은 질량을 가진 모든 물체 사이에 작용하는 힘으로, 지구가 물체를 끌어당기는 힘을 의미합니다." }, { question: "우리 눈에서 빛을 감지하여 뇌로 신호를 보내는 세포가 모여 있는 곳은 어디일까요?", answer: "망막", explanation: "망막은 눈의 가장 안쪽에 있는 투명한 신경조직으로, 카메라의 필름이나 이미지 센서와 같은 역할을 합니다." }, { question: "지구의 대기권 밖의 넓은 공간을 무엇이라고 할까요?", answer: "우주", explanation: "우주는 천체들이 존재하는 무한한 공간으로, 아직도 많은 비밀을 간직하고 있습니다." }, { question: "전기가 흐르는 길을 무엇이라고 할까요?", answer: "전기회로", explanation: "전기회로는 전지, 전선, 스위치, 전구 등이 연결되어 전기가 흐를 수 있도록 만들어진 길입니다." }, { question: "날씨를 예측하고 연구하는 학문을 무엇이라고 할까요?", answer: "기상학", explanation: "기상학은 대기 중에서 일어나는 여러 현상을 연구하여 날씨를 예측하고 기후 변화 등을 분석하는 학문입니다." }, { question: "소리가 앞으로 나아가다가 다른 물체에 부딪혀 되돌아오는 현상을 무엇이라고 할까요?", answer: "반사", explanation: "동굴이나 빈 방에서 소리가 울리는 것은 소리의 반사 현상 때문입니다. 박쥐는 이 원리를 이용해 길을 찾기도 합니다." }, { question: "애벌레가 나비나 나방이 되기 위해 거치는 과정, 즉 모습이 완전히 바뀌는 것을 무엇이라고 할까요?", answer: "완전탈바꿈", explanation: "완전탈바꿈은 알, 애벌레, 번데기, 성충의 4단계를 거치며 모습이 크게 변하는 곤충의 성장 과정입니다." }, { question: "태양, 달, 행성 등 하늘에 있는 모든 물체를 통틀어 무엇이라고 부를까요?", answer: "천체", explanation: "천체는 우주에 존재하는 모든 자연적인 물체를 의미합니다." }, { question: "우리 몸의 뼈와 뼈를 연결하는 부분을 무엇이라고 할까요?", answer: "관절", explanation: "관절 덕분에 우리는 팔다리를 구부리거나 돌리는 등 다양한 움직임을 할 수 있습니다." }, { question: "지층이나 암석 속에 남아있는 옛날 생물의 흔적이나 유해를 무엇이라고 할까요?", answer: "화석", explanation: "화석을 통해 과거에 살았던 생물의 종류나 당시의 환경을 연구할 수 있습니다." }, { question: "공기 중의 수증기가 찬 공기를 만나 작은 물방울로 변해 하늘에 떠 있는 것을 무엇이라고 할까요?", answer: "구름", explanation: "구름을 이루는 물방울이나 얼음 알갱이가 무거워지면 비나 눈이 되어 내립니다." }, { question: "산성 용액과 염기성 용액을 구별하는 데 사용하는 종이를 무엇이라고 할까요?", answer: "리트머스", explanation: "푸른색 리트머스 시험지는 산성 용액에서 붉게 변하고, 붉은색 리트머스 시험지는 염기성 용액에서 푸르게 변합니다." }, { question: "지구가 태양 주위를 한 바퀴 도는 데 걸리는 시간은 얼마일까요?", answer: "1년", explanation: "지구의 공전 주기는 약 365.25일이며, 이로 인해 계절의 변화가 나타납니다." }, { question: "같은 종류의 물질 1세제곱센티미터(cm³)의 질량을 무엇이라고 할까요?", answer: "밀도", explanation: "밀도는 물질의 고유한 특성으로, 밀도가 큰 물질은 물에 가라앉고 작은 물질은 물에 뜹니다." }, { question: "우리 몸으로 들어온 음식물을 잘게 부수고 분해하여 영양분을 흡수하는 과정을 무엇이라고 할까요?", answer: "소화", explanation: "소화는 입, 위, 소장, 대장 등 여러 소화 기관을 거치면서 일어납니다." }, { question: "지구로부터 가장 가까운 별은 무엇일까요?", answer: "태양", explanation: "태양은 스스로 빛을 내는 별이며, 태양계의 중심입니다. 밤하늘의 별들은 태양보다 훨씬 멀리 있습니다." }, { question: "물질을 이루는 기본 입자를 무엇이라고 할까요?", answer: "원자", explanation: "세상의 모든 물질은 매우 작은 입자인 원자로 이루어져 있습니다." }, { question: "서로 다른 물질이 섞여 원래의 성질을 잃지 않으면서 고르게 퍼져 있는 것을 무엇이라고 할까요?", answer: "혼합물", explanation: "소금물, 흙탕물, 공기 등은 여러 물질이 섞여 있는 혼합물입니다." }, { question: "생물이 살아가는 데 필요한 환경과 그 속에서 살아가는 모든 생물을 합쳐 무엇이라고 부를까요?", answer: "생태계", explanation: "생태계는 생산자, 소비자, 분해자가 서로 영향을 주고받으며 균형을 이룹니다." }, { question: "지구가 하루에 한 바퀴 스스로 도는 것을 무엇이라고 할까요?", answer: "자전", explanation: "지구의 자전 때문에 낮과 밤이 생기고, 태양과 별이 동쪽에서 떠서 서쪽으로 지는 것처럼 보입니다." }, { question: "열이 이동하는 세 가지 방법 중, 액체나 기체에서 물질이 직접 이동하며 열을 전달하는 방법은 무엇일까요?", answer: "대류", explanation: "주전자의 물이 끓거나 방 안의 공기가 따뜻해지는 것은 대류 현상 때문입니다." }, { question: "주변 환경과 비슷한 색이나 모양으로 몸을 바꿔 자신을 보호하는 것을 무엇이라고 할까요?", answer: "보호색", explanation: "카멜레온이나 대벌레는 보호색을 이용하여 천적의 눈을 피하거나 먹잇감에 쉽게 다가갑니다." }, { question: "자동차나 공장에서 나오는 연기가 햇빛과 반응하여 뿌옇게 하늘을 덮는 현상을 무엇이라고 할까요?", answer: "스모그", explanation: "스모그는 대기 오염의 한 종류로, 우리 건강에 해로운 영향을 줄 수 있습니다." }, { question: "식물의 잎 뒷면에 있으며, 식물이 숨을 쉬고 물을 내보내는 작은 구멍을 무엇이라고 할까요?", answer: "기공", explanation: "기공은 식물이 광합성과 증산 작용을 하는 데 중요한 역할을 합니다." }, { question: "지진으로 인해 땅이 갈라지고 흔들릴 때 발생하는 파동을 무엇이라고 할까요?", answer: "지진파", explanation: "지진파에는 P파와 S파 등이 있으며, 이를 분석하여 지진의 위치와 규모를 알 수 있습니다." }, { question: "씨앗이 싹을 트는 데 필요한 조건 3가지는 무엇일까요?", answer: "물,온도,산소", explanation: "대부분의 식물 씨앗은 적절한 양의 물과 적당한 온도, 그리고 숨을 쉴 수 있는 산소가 있어야 싹을 틔울 수 있습니다." }, { question: "무지개는 빛이 물방울을 통과하면서 어떻게 되어 나타나는 현상일까요?", answer: "분산", explanation: "햇빛(백색광)이 공기 중의 물방울을 통과할 때 굴절되고 분산되면서 여러 가지 색깔로 나뉘어 보이는 것이 무지개입니다." }, { question: "동물의 먹고 먹히는 관계가 사슬처럼 연결된 것을 무엇이라고 할까요?", answer: "먹이사슬", explanation: "먹이사슬은 생태계의 에너지가 어떻게 흐르는지를 보여주며, 여러 먹이사슬이 얽혀 먹이그물을 이룹니다." }
+            { question: "물에 젖지 않는 흙을 무엇이라고 할까요?(반대로 물에 잘 젖는 것은 물과 친하다고 해서 '친수성'이라고 해요.)", answer: "소수성흙", explanation: "소수성 흙은 물을 밀어내는 성질을 가지고 있어 물에 젖지 않습니다. 연잎 효과와 비슷한 원리입니다." }, { question: "지구의 대기 중에서 가장 많은 비율을 차지하는 기체는 무엇일까요?", answer: "질소", explanation: "지구 대기의 약 78%는 질소로 이루어져 있습니다. 우리가 숨 쉬는 데 필요한 산소는 약 21%를 차지합니다." }, { question: "태양계에서 가장 큰 행성은 무엇일까요?", answer: "목성", explanation: "목성은 태양계의 모든 다른 행성들을 합친 것보다 2.5배나 더 무거운 거대한 가스 행성입니다." }, { question: "식물이 빛을 이용하여 양분을 스스로 만드는 과정을 무엇이라고 할까요?", answer: "광합성", explanation: "광합성은 식물이 엽록체에서 빛 에너지를 이용해 이산화탄소와 물을 포도당과 산소로 바꾸는 과정입니다." }, { question: "소금의 주성분인 염화나트륨은 어떤 원소들의 화합물일까요?(ooo과 oo)", answer: "나트륨과염소", hint: "ㄴㅌㄹ과ㅇㅅ", explanation: "소금(염화나트륨, NaCl)은 나트륨(Na) 원자와 염소(Cl) 원자가 결합하여 만들어진 이온 결합 화합물입니다." }, { question: "몸의 온도가 주변 환경에 따라 변하는 동물을 무엇이라고 할까요?", answer: "변온동물", explanation: "파충류, 양서류, 어류 등은 스스로 체온을 조절하지 못하고 주변 온도에 따라 체온이 변하는 변온동물입니다." }, { question: "지구 자기장이 만들어내는 오로라는 주로 어느 지역에서 관찰될까요?", answer: "극지방", explanation: "오로라는 태양에서 날아온 대전 입자가 지구 자기장에 이끌려 대기권의 기체와 충돌하면서 빛을 내는 현상으로, 주로 북극과 남극 근처에서 보입니다." }, { question: "거울처럼 빛을 반사하는 물체의 표면을 이용해 멀리 있는 물체를 가까이 볼 수 있게 만든 도구이며 주로 잠수함에서 쓰이는 이것은 무엇일까요?", answer: "잠망경", explanation: "잠망경은 두 개의 거울이나 프리즘을 이용해 빛의 경로를 꺾어, 장애물 너머나 물속에서 물 위를 볼 수 있게 해줍니다." }, { question: "액체 상태의 물이 끓어서 기체 상태의 수증기로 변하는 현상을 무엇이라고 할까요?", answer: "기화", explanation: "물질이 액체에서 기체로 상태가 변하는 현상을 기화라고 합니다. 물이 끓는 것이 대표적인 예입니다." }, { question: "우리 몸에서 피를 온몸으로 보내주는 펌프 역할을 하는 기관은 무엇일까요?", answer: "심장", explanation: "심장은 규칙적인 수축과 이완을 통해 혈액을 온몸의 혈관으로 보내 산소와 영양분을 공급하는 중요한 기관입니다." }, { question: "지구의 자전으로 인해 나타나는 현상으로, 물체가 운동 방향의 오른쪽(북반구)이나 왼쪽(남반구)으로 휘는 것처럼 보이게 하는 힘은 무엇일까요?", answer: "전향력", explanation: "전향력 또는 코리올리 힘은 회전하는 기준계에서 나타나는 가상의 힘으로, 태풍의 회전 방향 등을 설명하는 데 사용됩니다." }, { question: "뼈를 튼튼하게 하고 혈액 응고에 중요한 역할을 하는 무기질은 무엇일까요?", answer: "칼슘", explanation: "칼슘은 뼈와 치아를 구성하는 주요 성분이며, 근육 수축과 신경 전달에도 필수적인 역할을 합니다." }, { question: "땅속의 마그마가 지표면으로 분출하여 만들어진 암석을 무엇이라고 할까요?", answer: "화성암", explanation: "화성암은 마그마가 식어서 굳어진 암석입니다. 땅속 깊은 곳에서 천천히 식으면 심성암, 지표면에서 빠르게 식으면 화산암이 됩니다." }, { question: "하나의 세포로 이루어진 생물을 무엇이라고 할까요?", answer: "단세포생물", explanation: "아메바, 짚신벌레, 유글레나 등은 몸 전체가 하나의 세포로 이루어져 생명 활동을 하는 단세포생물입니다." }, { question: "소리의 높낮이를 결정하는 요소는 무엇일까요?", answer: "진동수", explanation: "진동수(주파수)는 1초 동안 진동하는 횟수를 의미하며, 진동수가 높을수록 높은 소리가 나고 낮을수록 낮은 소리가 납니다. 단위는 헤르츠(Hz)를 사용합니다." }, { question: "지구의 그림자에 달이 들어가서 달이 보이지 않거나 어둡게 보이는 현상은 무엇일까요?", answer: "월식", explanation: "월식은 태양-지구-달이 일직선으로 위치할 때 지구의 그림자가 달을 가려서 발생합니다." }, { question: "자석의 같은 극끼리는 서로 밀어내고, 다른 극끼리는 서로 끌어당기는 힘을 무엇이라고 할까요?", answer: "자기력", explanation: "자기력은 자석이나 전류가 흐르는 도체 주위에 생기는 자기장에 의해 발생하는 힘입니다." }, { question: "식물의 뿌리, 줄기, 잎과 같이 식물체를 구성하는 기관을 무엇이라고 할까요?", answer: "영양기관", explanation: "영양기관은 식물이 살아가는데 필요한 양분을 만들고 운반하며 저장하는 역할을 합니다. 꽃, 열매, 씨앗은 생식기관입니다." }, { question: "지진의 규모를 나타내는 단위로, 숫자가 1 증가할 때마다 에너지는 약 32배 커지는 것을 나타내는 척도는 무엇일까요?", answer: "리히터규모", explanation: "리히터 규모(혹은 릭터 규모)는 지진파의 진폭을 바탕으로 지진이 방출하는 에너지의 양을 나타내는 척도입니다." }, { question: "주변의 빛을 흡수했다가 어두운 곳에서 스스로 빛을 내는 현상을 무엇이라고 할까요?", answer: "야광", explanation: "야광(축광)은 물질이 빛 에너지를 흡수하여 저장했다가 서서히 방출하면서 어두운 곳에서 빛을 내는 현상입니다." }, { question: "지구 표면의 약 70%를 덮고 있으며, 생명 유지에 필수적인 액체는 무엇일까요?", answer: "물", explanation: "물은 모든 생명체의 기본 구성 요소이며, 다양한 물질을 녹이고 체온을 조절하는 등 중요한 역할을 합니다." }, { question: "벌레를 잡아먹고 사는 식물을 무엇이라고 할까요?", answer: "식충식물", explanation: "파리지옥, 끈끈이주걱, 네펜데스 같은 식충식물은 질소가 부족한 척박한 땅에서 살기 위해 벌레를 잡아 양분을 보충합니다." }, { question: "물체가 위에서 아래로 떨어지게 하는 지구의 힘은 무엇일까요?", answer: "중력", explanation: "중력은 질량을 가진 모든 물체 사이에 작용하는 힘으로, 지구가 물체를 끌어당기는 힘을 의미합니다." }, { question: "우리 눈에서 빛을 감지하여 뇌로 신호를 보내는 세포가 모여 있는 곳은 어디일까요?", answer: "망막", explanation: "망막은 눈의 가장 안쪽에 있는 투명한 신경조직으로, 카메라의 필름이나 이미지 센서와 같은 역할을 합니다." }, { question: "지구의 대기권 밖의 넓은 공간을 무엇이라고 할까요?", answer: "우주", explanation: "우주는 천체들이 존재하는 무한한 공간으로, 아직도 많은 비밀을 간직하고 있습니다." }, { question: "전기가 흐르는 길을 무엇이라고 할까요?", answer: "전기회로", explanation: "전기회로는 전지, 전선, 스위치, 전구 등이 연결되어 전기가 흐를 수 있도록 만들어진 길입니다." }, { question: "날씨를 예측하고 연구하는 학문을 무엇이라고 할까요?", answer: "기상학", explanation: "기상학은 대기 중에서 일어나는 여러 현상을 연구하여 날씨를 예측하고 기후 변화 등을 분석하는 학문입니다." }, { question: "소리가 앞으로 나아가다가 다른 물체에 부딪혀 되돌아오는 현상을 무엇이라고 할까요?", answer: "반사", explanation: "동굴이나 빈 방에서 소리가 울리는 것은 소리의 반사 현상 때문입니다. 박쥐는 이 원리를 이용해 길을 찾기도 합니다." }, { question: "애벌레가 나비나 나방이 되기 위해 거치는 과정, 즉 모습이 완전히 바뀌는 것을 무엇이라고 할까요?", answer: "완전탈바꿈", explanation: "완전탈바꿈은 알, 애벌레, 번데기, 성충의 4단계를 거치며 모습이 크게 변하는 곤충의 성장 과정입니다." }, { question: "태양, 달, 행성 등 하늘에 있는 모든 물체를 통틀어 무엇이라고 부를까요?", answer: "천체", explanation: "천체는 우주에 존재하는 모든 자연적인 물체를 의미합니다." }, { question: "우리 몸의 뼈와 뼈를 연결하는 부분을 무엇이라고 할까요?", answer: "관절", explanation: "관절 덕분에 우리는 팔다리를 구부리거나 돌리는 등 다양한 움직임을 할 수 있습니다." }, { question: "지층이나 암석 속에 남아있는 옛날 생물의 흔적이나 유해를 무엇이라고 할까요?", answer: "화석", explanation: "화석을 통해 과거에 살았던 생물의 종류나 당시의 환경을 연구할 수 있습니다." }, { question: "공기 중의 수증기가 찬 공기를 만나 작은 물방울로 변해 하늘에 떠 있는 것을 무엇이라고 할까요?", answer: "구름", explanation: "구름을 이루는 물방울이나 얼음 알갱이가 무거워지면 비나 눈이 되어 내립니다." }, { question: "산성 용액과 염기성 용액을 구별하는 데 사용하는 종이를 무엇이라고 할까요?", answer: "리트머스", explanation: "푸른색 리트머스 시험지는 산성 용액에서 붉게 변하고, 붉은색 리트머스 시험지는 염기성 용액에서 푸르게 변합니다." }, { question: "지구가 태양 주위를 한 바퀴 도는 데 걸리는 시간은 얼마일까요?", answer: "1년", explanation: "지구의 공전 주기는 약 365.25일이며, 이로 인해 계절의 변화가 나타납니다." }, { question: "같은 종류의 물질 1세제곱센티미터(cm³)의 질량을 무엇이라고 할까요?", answer: "밀도", explanation: "밀도는 물질의 고유한 특성으로, 밀도가 큰 물질은 물에 가라앉고 작은 물질은 물에 뜹니다." }, { question: "우리 몸으로 들어온 음식물을 잘게 부수고 분해하여 영양분을 흡수하는 과정을 무엇이라고 할까요?", answer: "소화", explanation: "소화는 입, 위, 소장, 대장 등 여러 소화 기관을 거치면서 일어납니다." }, { question: "지구로부터 가장 가까운 별은 무엇일까요?", answer: "태양", explanation: "태양은 스스로 빛을 내는 별이며, 태양계의 중심입니다. 밤하늘의 별들은 태양보다 훨씬 멀리 있습니다." }, { question: "물질을 이루는 기본 입자를 무엇이라고 할까요?", answer: "원자", explanation: "세상의 모든 물질은 매우 작은 입자인 원자로 이루어져 있습니다." }, { question: "서로 다른 물질이 섞여 원래의 성질을 잃지 않으면서 고르게 퍼져 있는 것을 무엇이라고 할까요?", answer: "혼합물", explanation: "소금물, 흙탕물, 공기 등은 여러 물질이 섞여 있는 혼합물입니다." }, { question: "생물이 살아가는 데 필요한 환경과 그 속에서 살아가는 모든 생물을 합쳐 무엇이라고 부를까요?", answer: "생태계", explanation: "생태계는 생산자, 소비자, 분해자가 서로 영향을 주고받으며 균형을 이룹니다." }, { question: "지구가 하루에 한 바퀴 스스로 도는 것을 무엇이라고 할까요?", answer: "자전", explanation: "지구의 자전 때문에 낮과 밤이 생기고, 태양과 별이 동쪽에서 떠서 서쪽으로 지는 것처럼 보입니다." }, { question: "열이 이동하는 세 가지 방법 중, 액체나 기체에서 물질이 직접 이동하며 열을 전달하는 방법은 무엇일까요?", answer: "대류", explanation: "주전자의 물이 끓거나 방 안의 공기가 따뜻해지는 것은 대류 현상 때문입니다." }, { question: "주변 환경과 비슷한 색이나 모양으로 몸을 바꿔 자신을 보호하는 것을 무엇이라고 할까요?", answer: "보호색", explanation: "카멜레온이나 대벌레는 보호색을 이용하여 천적의 눈을 피하거나 먹잇감에 쉽게 다가갑니다." }, { question: "자동차나 공장에서 나오는 연기가 햇빛과 반응하여 뿌옇게 하늘을 덮는 현상을 무엇이라고 할까요?", answer: "스모그", explanation: "스모그는 대기 오염의 한 종류로, 우리 건강에 해로운 영향을 줄 수 있습니다." }, { question: "식물의 잎 뒷면에 있으며, 식물이 숨을 쉬고 물을 내보내는 작은 구멍을 무엇이라고 할까요?", answer: "기공", explanation: "기공은 식물이 광합성과 증산 작용을 하는 데 중요한 역할을 합니다." }, { question: "지진으로 인해 땅이 갈라지고 흔들릴 때 발생하는 파동을 무엇이라고 할까요?", answer: "지진파", explanation: "지진파에는 P파와 S파 등이 있으며, 이를 분석하여 지진의 위치와 규모를 알 수 있습니다." }, { question: "씨앗이 싹을 트는 데 필요한 조건 3가지는 무엇일까요?", answer: "물,온도,산소", explanation: "대부분의 식물 씨앗은 적절한 양의 물과 적당한 온도, 그리고 숨을 쉴 수 있는 산소가 있어야 싹을 틔울 수 있습니다." }, { question: "무지개는 빛이 물방울을 통과하면서 어떻게 되어 나타나는 현상일까요?", answer: "분산", explanation: "햇빛(백색광)이 공기 중의 물방울을 통과할 때 굴절되고 분산되면서 여러 가지 색깔로 나뉘어 보이는 것이 무지개입니다." }, { question: "동물의 먹고 먹히는 관계가 사슬처럼 연결된 것을 무엇이라고 할까요?", answer: "먹이사슬", explanation: "먹이사슬은 생태계의 에너지가 어떻게 흐르는지를 보여주며, 여러 먹이사슬이 얽혀 먹이그물을 이룹니다." }
         ];
 
         const levels = {
@@ -229,6 +302,11 @@
         }
 
         function startQuiz() {
+            if (completed) return;
+            startedAt = Date.now();
+            clearInterval(timerId);
+            timerId = setInterval(updateTimer, 500);
+            updateTimer();
             startContainer.style.display = 'none';
             quizContainer.style.display = 'block';
             questionPool = shuffle([...quizData]);
@@ -243,16 +321,22 @@
             stageDisplay.textContent = currentStage;
             levelDisplay.textContent = `${level.name}(${level.rank})`;
             remainingDisplay.textContent = 5 - questionsAnsweredInStage;
+            document.querySelectorAll('#quiz-container .journey-node').forEach(node => {
+                node.classList.toggle('active', Number(node.dataset.level) === currentStage);
+                node.classList.toggle('done', Number(node.dataset.level) < currentStage);
+            });
         }
 
         function loadQuestion() {
+            answered = false;
+            cardBusy = false;
             if (questionPool.length === 0) questionPool = shuffle([...quizData]);
             currentQuiz = questionPool.pop();
             
             questionEl.textContent = currentQuiz.question;
             answerInputEl.value = '';
             answerInputEl.disabled = false;
-            answerInputEl.focus();
+            if (matchMedia("(pointer:fine)").matches) answerInputEl.focus();
             submitBtn.style.display = 'inline-block';
             hint1Btn.style.display = 'inline-block';
             hint2Btn.style.display = 'inline-block';
@@ -265,10 +349,13 @@
         }
 
         function checkAnswer() {
+            if (completed || answered || !currentQuiz || cardModal.style.display === "flex" || alertModal.style.display === "flex") return;
             const userAnswer = answerInputEl.value.trim().replace(/\s/g, "");
             const correctAnswer = currentQuiz.answer;
 
             if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
+                answered = true;
+                answerInputEl.blur();
                 answerFeedbackEl.innerHTML = `<span style="color:blue; font-weight:bold;">정답입니다!</span> 😊`;
                 explanationEl.innerHTML = `<strong>[해설]</strong><br>${currentQuiz.explanation}`;
                 resultEl.style.display = 'block';
@@ -282,14 +369,16 @@
                 explanationEl.innerHTML = '';
                 resultEl.style.display = 'block';
                 answerInputEl.value = '';
-                answerInputEl.focus();
+                if (matchMedia("(pointer:fine)").matches) answerInputEl.focus();
             }
         }
         
         function showHint1() { hint1Btn.textContent = `${currentQuiz.answer.length}글자`; hint1Btn.disabled = true; }
-        function showHint2() { hint2Btn.textContent = `초성: ${getChosung(currentQuiz.answer)}`; hint2Btn.disabled = true; }
+        function showHint2() { hint2Btn.textContent = `초성: ${currentQuiz.hint || getChosung(currentQuiz.answer)}`; hint2Btn.disabled = true; }
 
         function handleNextStep() {
+            if (!answered || completed) return;
+            answered = false;
             questionsAnsweredInStage++;
             updateUI();
             if (questionsAnsweredInStage >= 5) {
@@ -300,6 +389,7 @@
         }
 
         function showCardModal() {
+            cardBusy = false;
             const deck = cardDecks[currentStage];
             const cards = shuffle([...deck.success, ...deck.fail, ...deck.retry]);
             
@@ -309,7 +399,9 @@
             cardGrid.innerHTML = '';
 
             cards.forEach(cardName => {
-                const card = document.createElement('div');
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.setAttribute('aria-label', '생태계 카드 ' + (cardGrid.children.length + 1) + ' 선택');
                 card.className = 'card';
                 card.dataset.cardName = cardName;
                 const cardInner = document.createElement('div'); cardInner.className = 'card-inner';
@@ -324,7 +416,8 @@
         }
         
         function handleCardClick(clickedCard) {
-            if (clickedCard.classList.contains('flipped')) return;
+            if (cardBusy || completed || clickedCard.classList.contains('flipped')) return;
+            cardBusy = true;
             clickedCard.classList.add('flipped');
             const cardName = clickedCard.dataset.cardName;
             const deck = cardDecks[currentStage];
@@ -333,7 +426,7 @@
                 if (deck.success.includes(cardName)) {
                     currentStage++;
                     if (currentStage > 4) {
-                        showCustomAlert(`🎉 축하합니다! 🎉<br>당신은 매(${levels[5].rank})가 되었습니다. <br>게임 클리어!`, () => location.reload());
+                        finishGame();
                     } else {
                         showCustomAlert(`축하합니다! <br>STAGE ${currentStage}로 진출합니다.<br>당신은 ${levels[currentStage].name}(${levels[currentStage].rank}) 등급으로 상향되었습니다.`, () => {
                             questionsAnsweredInStage = 0;
@@ -351,6 +444,8 @@
                     });
                 } else {
                     clickedCard.classList.add('disabled');
+                    clickedCard.disabled = true;
+                    cardBusy = false;
                     document.getElementById('card-modal-text').textContent = '아쉽네요! 다른 카드를 선택하세요.';
                 }
             }, 1000);
@@ -367,7 +462,84 @@
         nextBtn.addEventListener('click', handleNextStep);
         hint1Btn.addEventListener('click', showHint1);
         hint2Btn.addEventListener('click', showHint2);
-        answerInputEl.addEventListener('keyup', (e) => { if (e.key === "Enter") submitBtn.click(); });
+        answerInputEl.addEventListener('keyup', (e) => { if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) checkAnswer(); });
+
+        const completionKey = 'food-chain-quiz-completion-v1';
+        let startedAt = 0, timerId = null, completed = false, answered = false, cardBusy = false;
+        const finishContainer = document.getElementById('finish-container');
+        function formatTime(ms) {
+            const seconds = Math.floor(ms / 1000);
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor(seconds / 60) % 60;
+            const s = seconds % 60;
+            return (h ? String(h).padStart(2,'0') + ':' : '') + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+        }
+        function updateTimer() {
+            document.getElementById('live-time').textContent = formatTime(Math.max(0, Date.now() - startedAt));
+        }
+        function showFinish(elapsed) {
+            completed = true;
+            clearInterval(timerId);
+            document.querySelectorAll('.modal').forEach(el => el.style.display = 'none');
+            startContainer.style.display = 'none';
+            quizContainer.style.display = 'none';
+            finishContainer.style.display = 'block';
+            document.getElementById('final-time').textContent = formatTime(elapsed);
+            document.getElementById('finish-title').focus();
+            window.scrollTo(0,0);
+            finishContainer.querySelectorAll('.confetti').forEach(el => el.remove());
+            for (let i=0;i<28;i++) {
+                const leaf = document.createElement('i');
+                leaf.className = 'confetti';
+                leaf.setAttribute('aria-hidden','true');
+                leaf.style.cssText = `--x:${Math.random()*100}%;--delay:${Math.random()*1.3}s;--c:${['#8ca956','#e3b64f','#56885d'][i%3]}`;
+                finishContainer.appendChild(leaf);
+            }
+        }
+        function finishGame() {
+            const elapsed = Math.max(0, Date.now() - startedAt);
+            try { localStorage.setItem(completionKey, JSON.stringify({elapsed})); }
+            catch { document.getElementById('storage-note').hidden = false; }
+            showFinish(elapsed);
+        }
+        document.getElementById('home-btn').addEventListener('click', () => {
+            document.getElementById('unlock-form').hidden = false;
+            document.getElementById('password-input').focus();
+        });
+        document.getElementById('unlock-form').addEventListener('submit', event => {
+            event.preventDefault();
+            const input = document.getElementById('password-input');
+            if (input.value !== '0306') {
+                document.getElementById('password-error').textContent = '비밀번호가 맞지 않아요. 다시 입력해 주세요.';
+                input.value = ''; input.focus(); return;
+            }
+            try { localStorage.removeItem(completionKey); } catch {}
+            completed = false;
+            input.value = '';
+            document.getElementById('password-error').textContent = '';
+            document.getElementById('unlock-form').hidden = true;
+            finishContainer.style.display = 'none';
+            startContainer.style.display = 'flex';
+            startBtn.focus();
+        });
+        // 키보드, 길게 누르기 메뉴, 드래그 입력을 통한 복사/붙여넣기를 제한합니다.
+        ['copy','cut','paste','contextmenu','drop','dragstart'].forEach(type => {
+            document.addEventListener(type, event => event.preventDefault());
+        });
+        document.addEventListener('beforeinput', event => {
+            if (['insertFromPaste','insertFromDrop','insertFromYank'].includes(event.inputType)) event.preventDefault();
+        });
+        document.addEventListener('keydown', event => {
+            if ((event.ctrlKey || event.metaKey) && ['c','v','x'].includes(event.key.toLowerCase())) event.preventDefault();
+        });
+        function restoreCompletion() {
+            try {
+                const record = JSON.parse(localStorage.getItem(completionKey));
+                if (record && Number.isFinite(record.elapsed) && record.elapsed >= 0) showFinish(record.elapsed);
+            } catch {}
+        }
+        restoreCompletion();
+        window.addEventListener('pageshow', restoreCompletion);
     </script>
 </body>
 </html>
