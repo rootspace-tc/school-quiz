@@ -450,7 +450,7 @@ const TYPING_ATTACK_PER_CHAR=4;
 const TYPING_RESEARCH_MULT=[1,1.18,1.38,1.62,1.90,2.22,2.60,3.05,3.58,4.20,4.95];
 const CHEAT_GOLD=10000;
 const LEADERBOARD_KEY="typing_defense_records_v1";
-const SAVE_VERSION=14;
+const SAVE_VERSION=16;
 const SAVE_MAGIC="TYPING_TOWER_DEFENSE_SAVE";
 const SAVE_EXTENSION=".ttdsave";
 const PLAN_TILE=46;
@@ -760,7 +760,7 @@ function loadGamePayload(payload){
   viewMode=game.phase==="prepare"?"plan":game.phase==="night"?"night":"day";game.preparingNight=game.phase==="prepare";game.opsOpen=false;game.paused=game.phase==="prepare";input.value="";input.disabled=game.paused;
   scheduleResize();
   requestAnimationFrame(()=>{
-    const total=Math.max(1,routeMetrics().total);game.enemies.forEach(e=>{if(Number.isFinite(e.routeRatio))e.dist=clamp(e.routeRatio,0,1)*total;delete e.routeRatio});
+    game.enemies.forEach(e=>{const total=Math.max(1,routeMetrics(e).total);if(Number.isFinite(e.routeRatio))e.dist=clamp(e.routeRatio,0,1)*total;delete e.routeRatio});
     game.dayWords.forEach(w=>{w.x=clamp((Number(w.x)||W/2)/savedW*W,55,W-55);w.y=clamp((Number(w.y)||H/2)/savedH*H,55,H-55)});
     if(game.phase==="prepare"){game.opsOpen=true;resetPlanCamera("start");document.getElementById("app").classList.add("ops-open");document.getElementById("opsLayer").classList.remove("hidden");document.getElementById("opsPhaseNote").textContent="저장한 운영 시간을 불러왔습니다. 준비를 마친 뒤 밤 전투를 시작하세요.";document.getElementById("pauseStamp").textContent="운영 시간 · 저장 파일 불러옴";document.getElementById("resumeBtn").textContent="준비 완료 · 밤 전투 시작";renderOps()}else{game.paused=false;input.disabled=false}
     if(game.phase==="day"&&!game.quest)makeQuest();refreshAll();lastTime=performance.now();cancelAnimationFrame(animationId);animationId=requestAnimationFrame(loop);if(!input.disabled)setTimeout(()=>input.focus(),80);showToast(`저장 파일을 불러왔습니다 · ${game.cycle}일차`);
@@ -786,14 +786,14 @@ function updateNight(dt){game.spawnTimer-=dt;const nearestStart=game.enemies.len
   const m=routeMetrics();for(const e of [...game.enemies]){e.flash=Math.max(0,e.flash-dt);if(e.burnLeft>0){const burnStep=Math.min(dt,e.burnLeft);e.burnLeft=Math.max(0,e.burnLeft-dt);damage(e,(e.burnDps||0)*burnStep,"tower");if(!game.enemies.includes(e))continue;if(e.burnLeft<=0)e.burnDps=0}if(e.slowLeft>0)e.slowLeft-=dt;else e.slow=1;const focusMove=game.focusTime>0?(e.boss?.28:0):1;e.dist+=e.speed*e.slow*focusMove*dt}
   for(let i=game.enemies.length-1;i>=0;i--){const e=game.enemies[i];if(e.dist>=m.total){game.enemies.splice(i,1);const dmg=e.boss?9+Math.floor(game.cycle/12):1,blocked=Math.min(game.wallShield||0,dmg),taken=dmg-blocked;game.wallShield=Math.max(0,(game.wallShield||0)-blocked);game.hp-=taken;if(blocked)addEffect("text",W*.9,H*.46,`보호막 -${blocked}`,"#7ffcff");if(taken)addEffect("text",W*.9,H*.53,`성벽 -${taken}`,"#ff6877");sfx.wallHit();if(game.hp<=0){game.hp=0;refreshAll();endGame();return}}}
   if(game.focusTime>0)game.focusTime-=dt;if(game.spawned>=game.spawnTarget&&game.enemies.length===0&&!game.bossRewardPending)finishNight()}
-function applyBurn(e,dps,time){if(!game.enemies.includes(e))return;e.burnDps=Math.max(e.burnDps||0,dps);e.burnLeft=Math.max(e.burnLeft||0,time);const q=pointAt(e.dist);addEffect("text",q.x,q.y-30,`화상 ${dps.toFixed(1)}/초`,"#ffad5c")}
+function applyBurn(e,dps,time){if(!game.enemies.includes(e))return;e.burnDps=Math.max(e.burnDps||0,dps);e.burnLeft=Math.max(e.burnLeft||0,time);const q=pointAt(e.dist,e);addEffect("text",q.x,q.y-30,`화상 ${dps.toFixed(1)}/초`,"#ffad5c")}
 function attack(t){
-  const s=towerStats(t),p=cellCenter(t.c,t.r);let candidates=game.enemies.filter(e=>{const q=pointAt(e.dist);return Math.hypot(q.x-p.x,q.y-p.y)<=s.range});if(!candidates.length)return;candidates.sort((a,b)=>b.dist-a.dist);if(t.type==="sniper")candidates.sort((a,b)=>b.hp-a.hp);t.cooldown=s.cooldown;sfx.tower(t.type);
-  if(t.type==="fire"){const e=candidates.find(v=>(v.burnLeft||0)<s.cooldown*.9)||candidates[0],q=pointAt(e.dist);addEffect("line",p.x,p.y,"",TOWER_TYPES[t.type].color,q.x,q.y);damage(e,s.damage,"tower");if(game.enemies.includes(e))applyBurn(e,s.dotDamage,s.dotTime);return}
-  const targets=candidates.slice(0,s.targets);targets.forEach((e,i)=>{const q=pointAt(e.dist);addEffect("line",p.x,p.y,"",TOWER_TYPES[t.type].color,q.x,q.y);let hit=s.damage;if(t.type==="lightning")hit*=Math.max(s.chainFloor,1-i*s.chainStep);if(t.type==="sniper"&&e.boss)hit*=1+s.bossBonus;damage(e,hit,"tower");if(t.type==="frost"&&game.enemies.includes(e)){e.slow=Math.min(e.slow,s.slow);e.slowLeft=Math.max(e.slowLeft,s.slowTime)}})
+  const s=towerStats(t),p=cellCenter(t.c,t.r);let candidates=game.enemies.filter(e=>{const q=pointAt(e.dist,e);return Math.hypot(q.x-p.x,q.y-p.y)<=s.range});if(!candidates.length)return;candidates.sort((a,b)=>b.dist-a.dist);if(t.type==="sniper")candidates.sort((a,b)=>b.hp-a.hp);t.cooldown=s.cooldown;sfx.tower(t.type);
+  if(t.type==="fire"){const e=candidates.find(v=>(v.burnLeft||0)<s.cooldown*.9)||candidates[0],q=pointAt(e.dist,e);addEffect("line",p.x,p.y,"",TOWER_TYPES[t.type].color,q.x,q.y);damage(e,s.damage,"tower");if(game.enemies.includes(e))applyBurn(e,s.dotDamage,s.dotTime);return}
+  const targets=candidates.slice(0,s.targets);targets.forEach((e,i)=>{const q=pointAt(e.dist,e);addEffect("line",p.x,p.y,"",TOWER_TYPES[t.type].color,q.x,q.y);let hit=s.damage;if(t.type==="lightning")hit*=Math.max(s.chainFloor,1-i*s.chainStep);if(t.type==="sniper"&&e.boss)hit*=1+s.bossBonus;damage(e,hit,"tower");if(t.type==="frost"&&game.enemies.includes(e)){e.slow=Math.min(e.slow,s.slow);e.slowLeft=Math.max(e.slowLeft,s.slowTime)}})
 }
 function damage(e,n,source){if(!game.enemies.includes(e))return;if(e.boss&&source==="tower"&&game.focusTime>0)n*=.72;e.hp-=n;e.flash=.12;if(e.hp<=0)killEnemy(e,source)}
-function killEnemy(e,source){const i=game.enemies.indexOf(e);if(i<0)return;sfx.kill();const p=pointAt(e.dist),wasBoss=!!e.boss;game.enemies.splice(i,1);const direct=source==="typing",baseGold=e.reward*(direct?2:1),gold=scaledGold(baseGold);game.coins+=gold;game.score+=Math.round(e.maxHp)+(direct?e.text.length*24:0);addEffect("burst",p.x,p.y,"",direct?"#56e39f":"#ffd35a");addEffect("text",p.x,p.y-25,direct?`직접 2배 +${gold}G`:`+${gold}G`,direct?"#56e39f":"#ffd35a");if(!direct)registerTowerComboKill(p);if(e.isReview){const ri=game.review.indexOf(e.text);if(ri>=0)game.review.splice(ri,1)}if(wasBoss){addLog("강화 보스 격파 · 전리품 상자 등장");openBossLoot()}}
+function killEnemy(e,source){const i=game.enemies.indexOf(e);if(i<0)return;sfx.kill();const p=pointAt(e.dist,e),wasBoss=!!e.boss;game.enemies.splice(i,1);const direct=source==="typing",baseGold=e.reward*(direct?2:1),gold=scaledGold(baseGold);game.coins+=gold;game.score+=Math.round(e.maxHp)+(direct?e.text.length*24:0);addEffect("burst",p.x,p.y,"",direct?"#56e39f":"#ffd35a");addEffect("text",p.x,p.y-25,direct?`직접 2배 +${gold}G`:`+${gold}G`,direct?"#56e39f":"#ffd35a");if(!direct)registerTowerComboKill(p);if(e.isReview){const ri=game.review.indexOf(e.text);if(ri>=0)game.review.splice(ri,1)}if(wasBoss){addLog("강화 보스 격파 · 전리품 상자 등장");openBossLoot()}}
 
 function activeExactWord(typed){if(!typed)return false;if(game.phase==="day")return game.dayWords.some(w=>norm(w.text)===typed);return game.phase==="night"&&game.enemies.some(e=>norm(e.text)===typed)}
 function nextEnemyWord(enemy){const excluded=game.enemies.filter(e=>e!==enemy).map(e=>e.text).concat(enemy.text);let next=getWord(excluded);if(next===enemy.text&&WORD_BANK.length>1){const choices=WORD_BANK.filter(w=>w!==enemy.text&&!excluded.includes(w));if(choices.length)next=pick(choices)}enemy.text=next;enemy.isReview=game.review.includes(next)}
@@ -807,7 +807,7 @@ function submitTyped(){if(!game||game.paused||game.gameOver)return;const typed=n
     else handleTypingMiss("일치하는 낮 단어 없음")
   }else if(game.phase==="night"){
     const matches=game.enemies.filter(e=>norm(e.text)===typed).sort((a,b)=>b.dist-a.dist);
-    if(matches.length){const e=matches[0],oldWord=e.text,wasReview=e.isReview,p=pointAt(e.dist);gainCombo(1,"typing",p);const hit=typingDamageFor(oldWord);game.correct++;game.correctChars+=oldWord.length;game.nightTyped++;game.allNightTyped++;game.focus=clamp(game.focus+1,0,game.focusNeed);e.typingHits++;game.score+=oldWord.length*10;if(wasReview){const ri=game.review.indexOf(oldWord);if(ri>=0)game.review.splice(ri,1)}damage(e,hit,"typing");if(game.enemies.includes(e)){nextEnemyWord(e);addEffect("text",p.x,p.y-45,`타자 -${hit} · ${game.combo}콤보`,e.boss?"#ffe07a":"#65e6ff")}sfx.correct(game.combo,true)}
+    if(matches.length){const e=matches[0],oldWord=e.text,wasReview=e.isReview,p=pointAt(e.dist,e);gainCombo(1,"typing",p);const hit=typingDamageFor(oldWord);game.correct++;game.correctChars+=oldWord.length;game.nightTyped++;game.allNightTyped++;game.focus=clamp(game.focus+1,0,game.focusNeed);e.typingHits++;game.score+=oldWord.length*10;if(wasReview){const ri=game.review.indexOf(oldWord);if(ri>=0)game.review.splice(ri,1)}damage(e,hit,"typing");if(game.enemies.includes(e)){nextEnemyWord(e);addEffect("text",p.x,p.y-45,`타자 -${hit} · ${game.combo}콤보`,e.boss?"#ffe07a":"#65e6ff")}sfx.correct(game.combo,true)}
     else if(WORD_BANK.some(w=>norm(w)===typed)){
       // 타워가 입력 도중 목표를 처치했을 수 있으므로, 단어풀의 정상 단어는 늦은 입력으로 인정한다.
       // 콤보/피해/집중/금화는 추가하지 않고 기존 콤보만 보존한다.
@@ -912,7 +912,7 @@ function drawWeaponIcon(type,x,y,size,color){ctx.save();ctx.strokeStyle=color;ct
 function drawTowerSprite(t,selected=false){const p=cellCenter(t.c,t.r),type=TOWER_TYPES[t.type],tile=layout().tile,size=Math.max(22,tile*.68),x=p.x,y=p.y,labelH=Math.max(10,Math.floor(size*.25)),labelY=y+size/2-labelH;rect(x-size/2+4,y-size/2+4,size,size,"rgba(0,0,0,.5)");rect(x-size/2,y-size/2,size,size,"#101c29");ctx.strokeStyle=type.color;ctx.lineWidth=3;ctx.strokeRect(Math.round(x-size/2),Math.round(y-size/2),Math.round(size),Math.round(size));drawWeaponIcon(t.type,x,y-labelH*.16,size*.62,type.color);rect(x-size/2+3,labelY,size-6,labelH-3,"rgba(3,10,17,.94)");ctx.font=`${Math.max(8,Math.floor(labelH*.72))}px Jua, 'Malgun Gothic', sans-serif`;ctx.fillStyle="#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(`Lv.${t.level}`,x,labelY+(labelH-3)/2);if(selected){ctx.strokeStyle="#ffd35a";ctx.lineWidth=4;ctx.strokeRect(x-tile/2+3,y-tile/2+3,tile-6,tile-6)}}
 function drawRangeCircle(t,cell,mode="normal"){
   const p=cellCenter(cell?.c??t.c,cell?.r??t.r),stats=towerStats(t);ctx.save();ctx.setLineDash([5,5]);
-  const selected=mode==="selected",preview=mode==="preview";ctx.strokeStyle=preview?"rgba(86,227,159,.95)":selected?"rgba(255,211,90,.82)":"rgba(98,184,255,.34)";ctx.fillStyle=preview?"rgba(86,227,159,.10)":selected?"rgba(255,211,90,.07)":"rgba(98,184,255,.035)";ctx.lineWidth=preview?4:selected?3:1.5;ctx.beginPath();ctx.arc(p.x,p.y,stats.range,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
+  const selected=mode==="selected",preview=mode==="preview";ctx.strokeStyle=preview?"rgba(86,227,159,.95)":selected?"rgba(255,211,90,.82)":"rgba(98,184,255,.34)";ctx.fillStyle=preview?"rgba(86,227,159,.10)":selected?"rgba(255,211,90,.07)":"rgba(98,184,255,.035)";ctx.lineWidth=preview?4:selected?3:1.5;ctx.beginPath();ctx.arc(p.x,p.y,(window.TTD10?.screenRange?.(stats.range)??stats.range),0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
 }
 function drawTowers(planning){
   const movingId=planning&&canvasDrag?.moved?canvasDrag.id:null;
@@ -927,7 +927,7 @@ function drawTowers(planning){
   if(planning&&dragPreviewCell&&movingId){const src=game.towers.find(v=>v.id===movingId);if(src)drawRangeCircle(src,dragPreviewCell,"preview")}
   if(pendingPlacement){const src=pendingPlacement.mode==="new"?game.inventory.find(v=>v.id===pendingPlacement.towerId):game.towers.find(v=>v.id===pendingPlacement.towerId);if(src){drawRangeCircle(src,pendingPlacement.cell,"preview");const ghost={...src,c:pendingPlacement.cell.c,r:pendingPlacement.cell.r};ctx.save();ctx.globalAlpha=.72;drawTowerSprite(ghost,true);ctx.restore()}}
 }
-function enemyLabelLayout(){const boxes=[],data=[];const ordered=[...game.enemies].sort((a,b)=>b.dist-a.dist);for(const e of ordered){const p=pointAt(e.dist),fs=e.boss?30:22;ctx.font=`${fs}px Jua, 'Malgun Gothic', sans-serif`;const w=ctx.measureText(e.text).width+(e.boss?54:24),h=e.boss?63:36;const candidates=[[0,-48],[0,-88],[0,45],[0,84],[-82,-57],[82,-57],[-104,42],[104,42]];let chosen=null;for(const [dx,dy] of candidates){const b={x:p.x+dx-w/2,y:p.y+dy-h/2,w,h};if(b.x<2||b.y<2||b.x+b.w>W-2||b.y+b.h>H-2)continue;if(!boxes.some(o=>!(b.x+b.w+7<o.x||o.x+o.w+7<b.x||b.y+b.h+7<o.y||o.y+o.h+7<b.y))){chosen={...b,cx:p.x+dx,cy:p.y+dy};break}}if(!chosen){const dy=-52-(boxes.length%4)*36;chosen={x:p.x-w/2,y:p.y+dy-h/2,w,h,cx:p.x,cy:p.y+dy}}boxes.push(chosen);data.push({e,p,b:chosen,fs})}return data}
+function enemyLabelLayout(){const boxes=[],data=[];const ordered=[...game.enemies].sort((a,b)=>b.dist-a.dist);for(const e of ordered){const p=pointAt(e.dist,e),fs=e.boss?30:22;ctx.font=`${fs}px Jua, 'Malgun Gothic', sans-serif`;const w=ctx.measureText(e.text).width+(e.boss?54:24),h=e.boss?63:36;const candidates=[[0,-48],[0,-88],[0,45],[0,84],[-82,-57],[82,-57],[-104,42],[104,42]];let chosen=null;for(const [dx,dy] of candidates){const b={x:p.x+dx-w/2,y:p.y+dy-h/2,w,h};if(b.x<2||b.y<2||b.x+b.w>W-2||b.y+b.h>H-2)continue;if(!boxes.some(o=>!(b.x+b.w+7<o.x||o.x+o.w+7<b.x||b.y+b.h+7<o.y||o.y+o.h+7<b.y))){chosen={...b,cx:p.x+dx,cy:p.y+dy};break}}if(!chosen){const dy=-52-(boxes.length%4)*36;chosen={x:p.x-w/2,y:p.y+dy-h/2,w,h,cx:p.x,cy:p.y+dy}}boxes.push(chosen);data.push({e,p,b:chosen,fs})}return data}
 function drawEnemyBodies(){const labels=enemyLabelLayout(),pulse=.55+.45*Math.sin(performance.now()/170);for(const {e,p} of labels){const size=e.boss?29:15,s=Math.max(2,Math.floor(size/7));if(e.boss){ctx.fillStyle=`rgba(255,224,122,${.16+pulse*.18})`;ctx.fillRect(p.x-6*s,p.y-6*s,12*s,12*s);ctx.strokeStyle="#ffe07a";ctx.lineWidth=3;ctx.strokeRect(p.x-5*s,p.y-5*s,10*s,10*s);rect(p.x-4*s,p.y-6*s,2*s,2*s,"#ffe07a");rect(p.x-s,p.y-8*s,2*s,4*s,"#ffe07a");rect(p.x+2*s,p.y-6*s,2*s,2*s,"#ffe07a")}
     rect(p.x-3*s,p.y-3*s,6*s,6*s,e.flash>0?"#fff":e.boss?"#8d4fc5":e.isReview?"#6d4e83":"#833a46");rect(p.x-2*s,p.y-s,s,s,"#fff");rect(p.x+s,p.y-s,s,s,"#fff");if(e.slow<1){ctx.strokeStyle="#5be4e6";ctx.lineWidth=3;ctx.strokeRect(p.x-3*s,p.y-3*s,6*s,6*s)}if(e.burnLeft>0){ctx.strokeStyle="#ff8a42";ctx.lineWidth=3;ctx.strokeRect(p.x-4*s,p.y-4*s,8*s,8*s);rect(p.x-s,p.y-5*s,2*s,2*s,"#ffd35a")}}}
 function drawEnemyLabels(){const labels=enemyLabelLayout(),pulse=.55+.45*Math.sin(performance.now()/170);for(const {e,b,fs} of labels){if(e.boss){rect(b.x+6,b.y+6,b.w,b.h,"rgba(0,0,0,.65)");rect(b.x-4,b.y-4,b.w+8,b.h+8,pulse>.62?"#8b6530":"#654327");rect(b.x,b.y,b.w,b.h,"#43245d");rect(b.x,b.y,b.w,21,"#9a6a25");ctx.font="16px Jua, 'Malgun Gothic', sans-serif";ctx.fillStyle="#fff3a6";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(`♛ 보스 · 에너지 ${Math.ceil(e.hp)}/${Math.ceil(e.maxHp)}`,b.cx,b.y+10);ctx.font=`${fs}px Jua, 'Malgun Gothic', sans-serif`;ctx.fillStyle="#fff";ctx.fillText(e.text,b.cx,b.y+41)}else{rect(b.x+4,b.y+4,b.w,b.h,"rgba(0,0,0,.55)");rect(b.x,b.y,b.w,b.h,"#081725");ctx.strokeStyle=e.isReview?"#bd91ff":"#aabed0";ctx.lineWidth=2;ctx.strokeRect(b.x,b.y,b.w,b.h);ctx.font=`${fs}px Jua, 'Malgun Gothic', sans-serif`;ctx.fillStyle="#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(e.text,b.cx,b.cy)}const ratio=clamp(e.hp/e.maxHp,0,1);rect(b.x,b.y+b.h-6,b.w,6,"#02070d");rect(b.x,b.y+b.h-6,b.w*ratio,6,e.boss?"#ffe07a":ratio>.45?"#56e39f":"#ff6877")}
@@ -1137,7 +1137,7 @@ window.KINGDOM_ASSETS={"title":"data:image/webp;base64,UklGRtrfBQBXRUJQVlA4IM7fB
         const effect=game.effects[i];effect.towerType=activeShot.type;effect.towerLevel=clamp(activeShot.level||1,1,5);
         effect.towerId=activeShot.id;effect.shotSeed=(activeShot.c*13+activeShot.r*29+effect.towerLevel*7)||1;
         effect.renderX=x;effect.renderY=y-layout().tile*.39;
-        const target=game.enemies.find(enemy=>{const p=pointAt(enemy.dist);return Math.abs(p.x-x2)<.75&&Math.abs(p.y-y2)<.75;});
+        const target=game.enemies.find(enemy=>{const p=pointAt(enemy.dist,enemy);return Math.abs(p.x-x2)<.75&&Math.abs(p.y-y2)<.75;});
         const p=target?enemyRenderAnchor(target):{x:x2,y:y2};effect.renderX2=p.x;effect.renderY2=p.y-layout().tile*.06;
       }
     }return result;
@@ -1305,26 +1305,13 @@ window.KINGDOM_ASSETS={"title":"data:image/webp;base64,UklGRtrfBQBXRUJQVlA4IM7fB
   drawRangeCircle=function(t,cell,mode="normal"){
     if(mode==="normal"&&viewMode!=="plan")return;
     const p=cellCenter(cell?.c??t.c,cell?.r??t.r),s=towerStats(t),preview=mode==="preview",selected=mode==="selected";
-    ctx.save();ctx.beginPath();ctx.arc(p.x,p.y,s.range,0,TAU);
+    ctx.save();ctx.beginPath();ctx.arc(p.x,p.y,(window.TTD10?.screenRange?.(s.range)??s.range),0,TAU);
     ctx.fillStyle=preview?"rgba(154,231,170,.12)":selected?"rgba(255,230,158,.10)":"rgba(239,249,220,.025)";ctx.fill();
     ctx.setLineDash(preview?[7,5]:selected?[3,6]:[2,7]);ctx.strokeStyle=preview?"rgba(222,255,205,.95)":selected?"rgba(255,239,177,.88)":"rgba(247,255,226,.35)";
     ctx.lineWidth=preview?2.5:selected?2:1;ctx.stroke();ctx.restore();
   };
   function enemyIndex(e){if(e.boss)return indices.boss;let h=0;for(const ch of String(e.id||e.text))h=(h*31+ch.charCodeAt(0))|0;return 7+Math.abs(h%3);}
-  function enemyRenderAnchor(e){
-    const p=pointAt(e.dist),l=layout(),tile=l.tile,size=e.boss?Math.max(56,tile*1.8):Math.max(30,tile*.97);
-    if(viewMode==="plan")return {...p,size,alpha:1,spawnClamped:false};
-    const portal=cellCenter(0,7),mouth=Math.max(portal.x+tile*.35,l.ox+tile*.95+3);
-    const minVisibleX=Math.max(8+size*.48,mouth+tile*.1);
-    const start=cellCenter(...ROUTE_CONTROLS[0]),end=cellCenter(...ROUTE_CONTROLS[1]);
-    const entryLength=Math.hypot(end.x-start.x,end.y-start.y),entering=e.dist<entryLength;
-    // Compress the hidden approach into the visible portal-to-corner stretch. A
-    // positive distance increment now moves the sprite from its very first frame;
-    // simulation distance, speed, targeting and every later corner stay unchanged.
-    const progress=clamp(e.dist/Math.max(1,entryLength),0,1);
-    const x=entering?minVisibleX+(end.x-minVisibleX)*progress:p.x;
-    return {...p,x,size,alpha:1,spawnClamped:false,rawX:p.x,rawY:p.y};
-  }
+  function enemyRenderAnchor(e){ if(window.TTD10?.enemyRenderAnchor)return window.TTD10.enemyRenderAnchor(e); const p=pointAt(e.dist,e),tile=layout().tile; return {...p,size:e.boss?Math.max(56,tile*1.8):Math.max(30,tile*.97),alpha:1,spawnClamped:false}; }
   drawEnemyBodies=function(){
     const tile=layout().tile,t=time();
     for(const e of [...game.enemies].sort((a,b)=>enemyRenderAnchor(a).y-enemyRenderAnchor(b).y)){
@@ -1370,13 +1357,6 @@ window.KINGDOM_ASSETS={"title":"data:image/webp;base64,UklGRtrfBQBXRUJQVlA4IM7fB
       if(e.boss){ctx.font="11px Jua, 'Malgun Gothic', sans-serif";ctx.fillStyle="#a38249";ctx.fillText(`보스 · ${Math.ceil(e.hp)} / ${Math.ceil(e.maxHp)}`,center,b.y+13);ctx.font=`${fs}px Jua, 'Malgun Gothic', sans-serif`;ctx.fillStyle="#735085";ctx.fillText(e.text,center,b.y+37);}
       else{ctx.font=`${fs}px Jua, 'Malgun Gothic', sans-serif`;ctx.fillText(e.text,center,b.y+18);}
       const ratio=clamp(e.hp/e.maxHp,0,1);bar(ctx,b.x+9,b.y+b.h-9,b.w-18,4,ratio,e.boss?"#d9b46a":ratio>.45?"#9cbf87":"#dd8b96");
-    }
-    const boss=game.enemies.find(e=>e.boss);
-    if(boss){const width=Math.min(430,W*.76),x=(W-width)/2,y=H-57;
-      panel(ctx,x,y,width,43,"rgba(246,236,255,.97)","#c5a3d4",14);
-      ctx.font=`${Math.min(17,width/22)}px Jua, 'Malgun Gothic', sans-serif`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#79528c";
-      ctx.fillText(`보스 · ${boss.text}${game.focusTime>0?" · 시간 저항":""}`,W/2,y+15);
-      bar(ctx,x+17,y+28,width-34,5,boss.hp/boss.maxHp,"#b58ecb");
     }
   };
   function crystal(c,x,y,r,color,rotation=0){
@@ -1570,6 +1550,1073 @@ window.KINGDOM_ASSETS={"title":"data:image/webp;base64,UklGRtrfBQBXRUJQVlA4IM7fB
     const logo=thumb('castle');if(logo){const image=document.createElement('img');image.src=logo;image.className='brand-emblem';image.alt='';document.querySelector('.brand').prepend(image);}
     decorateHelp();decorateOps();
   });
+})();
+
+</script>
+<script>
+/* V10: three left entrances, visible route forecasts, and world-distance roads. */
+(() => {
+  'use strict';
+  const V = window.TTD10 = window.TTD10 || {};
+  const originalMiddle = ROUTE_CONTROLS.map(p => p.slice());
+  const tail = [[15,10],[15,5],[20,5],[20,9],[23,9],[23,7],[24,7]];
+  const legacyRoutes = {
+    middle: {id:'middle', entrance:'middle', name:'중단', row:7, unlock:1, color:'#b398db', controls:originalMiddle},
+    upper: {id:'upper', entrance:'upper', name:'상단', row:2, unlock:5, color:'#87bfc3', controls:[[-1,2],[4,2],[4,3],[9,3],[9,10],...tail]},
+    upper_split: {id:'upper_split', entrance:'upper', name:'상단 · 우회로', row:2, unlock:5, color:'#87bfc3', controls:[[-1,2],[4,2],[4,3],[9,3],[12,3],[12,8],[15,8],[15,5],[20,5],[20,9],[23,9],[23,7],[24,7]]},
+    lower: {id:'lower', entrance:'lower', name:'하단', row:12, unlock:10, color:'#dbad7d', controls:[[-1,12],[6,12],[6,10],[9,10],...tail]},
+    lower_split: {id:'lower_split', entrance:'lower', name:'하단 · 갈림길', row:12, unlock:10, color:'#dbad7d', controls:[[-1,12],[3,12],[3,10],[9,10],...tail]}
+  };
+  // Historical geometry is migration data only. It is never painted as roads.
+  const rearUpper=[[12,10],[12,1],[20,1],[20,9],[23,9],[23,7],[24,7]];
+  const rearLower=[[12,10],[12,8],[17,8],[17,12],[20,12],[20,9],[23,9],[23,7],[24,7]];
+  for(const base of ['middle','upper','lower']) {
+    const route=legacyRoutes[base];
+    const junction=route.controls.findIndex(([c,r])=>c===9&&r===10);
+    const approach=route.controls.slice(0,junction+1).map(p=>p.slice());
+    for(const [suffix,name,controls]of [['upper','후방 윗길',rearUpper],['lower','후방 아랫길',rearLower]]) {
+      const routeId=base+'_rear_'+suffix;
+      legacyRoutes[routeId]={...route,id:routeId,name:route.name+' · '+name,
+        controls:[...approach,...controls.map(p=>p.slice())]};
+    }
+  }
+  V.legacyRoutes=legacyRoutes;
+  V.routes={
+    upper:{...legacyRoutes.upper_rear_upper,id:'upper',name:'상단'},
+    middle:{...legacyRoutes.middle,id:'middle',name:'중단'},
+    lower:{...legacyRoutes.lower_rear_lower,id:'lower',name:'하단'}
+  };
+  for(const route of Object.values(legacyRoutes)) {
+    route.controls.forEach(Object.freeze);Object.freeze(route.controls);Object.freeze(route);
+  }
+  Object.freeze(legacyRoutes);
+  V.canonicalRouteId=function(value) {
+    const raw=typeof value==='string'?value:value?.routeId||value?.route||'middle';
+    const family=String(raw).split('_')[0];
+    return ['upper','middle','lower'].includes(family)?family:'middle';
+  };
+  V.routeFamilyColors=Object.freeze({upper:'#35aebe',middle:'#a271d1',lower:'#e58a68'});
+  for(const route of Object.values(V.routes))route.color=V.routeFamilyColors[route.entrance];
+  const entranceOrder = ['upper','middle','lower'];
+  const allRoutes = Object.values(V.routes);
+  const routeWorld = new Map();
+  const reserved = new Set();
+  const baseBuildable = buildable;
+  const terrain = new Map();
+
+  function resolve(value) {
+    return V.routes[V.canonicalRouteId(value)];
+  }
+  function stageAt(cycle) {
+    const actual = Math.max(1, Number(cycle ?? game?.cycle ?? 1) || 1);
+    return Math.max(1, typeof V.stageCycle === 'function' ? Number(V.stageCycle(actual)) || 1 : actual);
+  }
+  function worldMetrics(route) {
+    if (routeWorld.has(route)) return routeWorld.get(route);
+    const segs = []; let total = 0;
+    for (let i=0; i<route.controls.length-1; i++) {
+      const a=route.controls[i], b=route.controls[i+1];
+      const len=Math.hypot(b[0]-a[0],b[1]-a[1])*PLAN_TILE;
+      segs.push({ca:a,cb:b,len,start:total,index:i}); total+=len;
+    }
+    const result={segs,total}; routeWorld.set(route,result); return result;
+  }
+  function addCells(route) {
+    for(let i=0;i<route.controls.length-1;i++) {
+      const a=route.controls[i],b=route.controls[i+1];
+      let c=a[0],r=a[1]; const dc=Math.sign(b[0]-c),dr=Math.sign(b[1]-r);
+      reserved.add(keyCell(c,r));
+      while(c!==b[0]||r!==b[1]) { c+=dc; r+=dr; reserved.add(keyCell(c,r)); }
+    }
+  }
+  allRoutes.forEach(addCells);
+  // Every future road is visible and reserved from the first planning phase.
+  // Existing saves keep their towers even if another save used a future road tile.
+  V.plannedPathCells=reserved;
+  V.syncPaths=function() {
+    PATH_CELLS.clear();
+    for(const cell of reserved) PATH_CELLS.add(cell);
+    if(game) {
+      game.legacyTowerCells=(game.towers||[]).filter(t=>reserved.has(keyCell(t.c,t.r)))
+        .map(t=>({id:t.id,c:t.c,r:t.r}));
+    }
+    terrain.clear();
+  };
+  V.routeIds=function(cycle) {
+    const stage=stageAt(cycle);
+    return ['middle','upper','lower'].filter(id=>stage>=V.routes[id].unlock);
+  };
+  V.routeName=value=>V.routes[V.canonicalRouteId(value)].name;
+  V.variantIds=value=>[V.canonicalRouteId(value)];
+  V.pickRoute=value=>V.canonicalRouteId(value);
+  V.routeTotal=value=>worldMetrics(resolve(value)).total;
+  V.legacyRouteTotal=value=>worldMetrics(V.legacyRoutes[typeof value==='string'?value:value?.routeId]||V.legacyRoutes.middle).total;
+  V.legacyGridPoint=function(dist,value) {
+    const route=V.legacyRoutes[typeof value==='string'?value:value?.routeId]||V.legacyRoutes.middle,m=worldMetrics(route);
+    const d=clamp(Number(dist)||0,0,m.total),seg=m.segs.find(s=>d<=s.start+s.len)||m.segs[m.segs.length-1];
+    const q=seg.len?(d-seg.start)/seg.len:0;
+    return {x:seg.ca[0]+(seg.cb[0]-seg.ca[0])*q,y:seg.ca[1]+(seg.cb[1]-seg.ca[1])*q};
+  };
+  V.projectToRoute=function(point,value,preferredDist) {
+    const route=V.routes[V.canonicalRouteId(value)],m=worldMetrics(route);
+    const x=Number(Array.isArray(point)?point[0]:point?.c??point?.x),y=Number(Array.isArray(point)?point[1]:point?.r??point?.y);
+    if(!Number.isFinite(x)||!Number.isFinite(y))return 0;
+    let bestDistance=Infinity,best=0;
+    for(const seg of m.segs) {
+      const dx=seg.cb[0]-seg.ca[0],dy=seg.cb[1]-seg.ca[1],denominator=dx*dx+dy*dy;
+      const q=clamp(denominator?((x-seg.ca[0])*dx+(y-seg.ca[1])*dy)/denominator:0,0,1);
+      const distance=(x-seg.ca[0]-dx*q)**2+(y-seg.ca[1]-dy*q)**2,dist=seg.start+seg.len*q;
+      const tied=Math.abs(distance-bestDistance)<1e-9;
+      if(distance<bestDistance-1e-9||(tied&&Number.isFinite(preferredDist)&&Math.abs(dist-preferredDist)<Math.abs(best-preferredDist))) {bestDistance=distance;best=dist;}
+    }
+    return best;
+  };
+  V.migrateFixedRoutes=function(g) {
+    for(const enemy of Array.isArray(g?.enemies)?g.enemies:[]) {
+      const oldId=typeof enemy.routeId==='string'?enemy.routeId:'middle';
+      const canonical=V.canonicalRouteId(oldId),oldRoute=V.legacyRoutes[oldId]||V.legacyRoutes[canonical];
+      const oldTotal=worldMetrics(oldRoute).total,newRoute=V.routes[canonical],newTotal=worldMetrics(newRoute).total;
+      const oldDist=Number.isFinite(enemy.routeRatio)?clamp(enemy.routeRatio,0,1)*oldTotal:clamp(Number(enemy.dist)||0,0,oldTotal);
+      const identical=oldRoute.controls.length===newRoute.controls.length&&oldRoute.controls.every((p,i)=>p[0]===newRoute.controls[i][0]&&p[1]===newRoute.controls[i][1]);
+      const point=V.legacyGridPoint(oldDist,oldRoute.id);
+      let distance=identical?oldDist:V.projectToRoute(point,canonical,oldDist/oldTotal*newTotal);
+      if(!identical&&Number(enemy.hp)>0&&oldDist<oldTotal-1e-6)distance=Math.min(distance,newTotal-PLAN_TILE*1.2);
+      enemy.routeId=canonical;enemy.dist=clamp(distance,0,newTotal);enemy.routeRatio=enemy.dist/newTotal;
+    }
+    if(g){
+      if(Array.isArray(g.assault?.routes))g.assault.routes=g.assault.routes.map(V.canonicalRouteId);
+      for(const wave of Array.isArray(g.assault?.waves)?g.assault.waves:[])
+        if(Array.isArray(wave.routes))wave.routes=wave.routes.map(V.canonicalRouteId);
+      g.routeLayout='fixed3';delete g.routeCursors;
+    }
+    return g;
+  };
+  V.screenRange=range=>Math.max(0,Number(range)||0)*layout().tile/PLAN_TILE;
+  V.assignRoute=function(enemy,routeId='middle') {
+    enemy.routeId=V.canonicalRouteId(routeId);
+    enemy.dist=Math.max(0,Number(enemy.dist)||0);
+    return enemy;
+  };
+  V.remaining=enemy=>Math.max(0,V.routeTotal(enemy)-(Number(enemy.dist)||0));
+  routeMetrics=function(value) {
+    const route=resolve(value),m=worldMetrics(route);
+    const p=route.controls.map(([c,r])=>cellCenter(c,r));
+    return {routeId:route.id,p,total:m.total,segs:m.segs.map((s,i)=>({a:p[i],b:p[i+1],len:s.len,start:s.start,screenLen:Math.hypot(p[i+1].x-p[i].x,p[i+1].y-p[i].y)}))};
+  };
+  V.routePoint=function(dist,value) {
+    const route=resolve(value),m=worldMetrics(route);
+    const d=clamp(Number(dist)||0,0,m.total);
+    const s=m.segs.find(s=>d<=s.start+s.len)||m.segs[m.segs.length-1];
+    const q=s.len?(d-s.start)/s.len:0;
+    const a=cellCenter(s.ca[0],s.ca[1]),b=cellCenter(s.cb[0],s.cb[1]);
+    let x=a.x+(b.x-a.x)*q, y=a.y+(b.y-a.y)*q;
+    if(s.index===0 && viewMode!=='plan') {
+      // Put the creature on the visible gate mouth from its first frame.
+      // This is the SAME point used by simulation targeting, labels and artwork.
+      const l=layout(),gate=cellCenter(0,route.row);
+      const mouth=Math.max(gate.x+l.tile*.35,l.ox+l.tile*.95+3);
+      x=mouth+(b.x-mouth)*q;
+    }
+    return {x,y,total:m.total,routeId:route.id};
+  };
+  V.enemyPoint=enemy=>V.routePoint(enemy.dist,enemy);
+  V.enemyRenderAnchor=function(enemy) {
+    const p=V.enemyPoint(enemy),tile=layout().tile;
+    return {...p,size:enemy.boss?Math.max(56,tile*1.8):Math.max(30,tile*.97),alpha:1,spawnClamped:false};
+  };
+  function guideFor(routeId,start=0,preview=false) {
+    const route=resolve(routeId),m=worldMetrics(route);
+    const from=clamp(Number(start)||0,0,m.total);
+    const points=[V.routePoint(from,route.id)];
+    for(const seg of m.segs)if(seg.start+seg.len>from+.001)
+      points.push(V.routePoint(seg.start+seg.len,route.id));
+    return {routeId:route.id,entrance:route.entrance,color:V.routeFamilyColors[route.entrance],
+      start:from,points:points.map(p=>({x:p.x,y:p.y})),preview};
+  }
+  V.activeRouteGuides=function() {
+    const starts=new Map();
+    for(const enemy of game?.enemies||[]) {
+      if(enemy.hp<=0)continue;
+      const route=V.routes[V.canonicalRouteId(enemy)],distance=clamp(Number(enemy.dist)||0,0,V.routeTotal(route.id));
+      starts.set(route.id,Math.min(starts.get(route.id)??Infinity,distance));
+    }
+    // Gameplay has exactly one route for each entrance; no variant selection.
+    return [...starts].map(([routeId,start])=>guideFor(routeId,start));
+  };
+  V.routeGuides=function(planning=false) {
+    // Full permanent route guides stay visible regardless of spawning, enemy
+    // progress or gate locks. A gate's date controls spawning, not road drawing.
+    return entranceOrder.map(routeId=>guideFor(routeId,0,false));
+  };
+  function lanePoints(points,offset) {
+    if(!offset||points.length<2)return points;
+    const normals=[];
+    for(let i=1;i<points.length;i++) {
+      const dx=points[i].x-points[i-1].x,dy=points[i].y-points[i-1].y,len=Math.hypot(dx,dy)||1;
+      normals.push({x:-dy/len,y:dx/len});
+    }
+    return points.map((p,i)=>{
+      const a=normals[Math.max(0,i-1)],b=normals[Math.min(normals.length-1,i)];
+      const denominator=Math.max(.5,1+a.x*b.x+a.y*b.y);
+      return {x:p.x+(a.x+b.x)*offset/denominator,y:p.y+(a.y+b.y)*offset/denominator};
+    });
+  }
+  V.drawRouteGuides=function(planning=false) {
+    const guides=V.routeGuides(planning),l=layout(),tile=l.tile;
+    const lanes={upper:-tile*.14,middle:0,lower:tile*.14};
+    for(const entrance of entranceOrder) {
+      const family=guides.filter(g=>g.entrance===entrance&&g.points.length>1);
+      if(!family.length)continue;
+      const color=V.routeFamilyColors[entrance];
+      ctx.save();ctx.strokeStyle=color;ctx.lineCap='round';ctx.lineJoin='round';ctx.setLineDash([]);
+      {
+        ctx.globalAlpha=planning?.18:.28;ctx.lineWidth=Math.max(2,tile*.105);ctx.beginPath();
+        for(const guide of family)lanePoints(guide.points,lanes[entrance]).forEach((p,i)=>{if(i)ctx.lineTo(p.x,p.y);else ctx.moveTo(p.x,p.y);});
+        ctx.stroke();
+      }
+      ctx.globalAlpha=planning?.34:.56;
+      ctx.lineWidth=Math.max(1.3,tile*(planning?.035:.052));ctx.beginPath();
+      const arrows=new Set(),size=tile*(planning?.15:.19),step=tile*2;
+      for(const guide of family)for(let i=1;i<guide.points.length;i++) {
+        const a=guide.points[i-1],b=guide.points[i],dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy);
+        if(length<tile*.9)continue;
+        const horizontal=Math.abs(dx)>Math.abs(dy),origin=(horizontal?l.ox:l.oy)+tile*.5;
+        const min=Math.min(horizontal?a.x:a.y,horizontal?b.x:b.y)+tile*.40;
+        const max=Math.max(horizontal?a.x:a.y,horizontal?b.x:b.y)-tile*.40;
+        const ux=dx/length,uy=dy/length,nx=-uy,ny=ux;
+        // Grid-anchored arrows stay still while enemies advance along them.
+        for(let n=Math.ceil((min-origin)/step);n<=Math.floor((max-origin)/step);n++) {
+          const axis=origin+n*step;
+          const x=(horizontal?axis:a.x)+nx*lanes[entrance],y=(horizontal?a.y:axis)+ny*lanes[entrance];
+          const key=[Math.round(x*10),Math.round(y*10),Math.round(ux),Math.round(uy)].join(':');
+          if(arrows.has(key))continue;arrows.add(key);
+          ctx.moveTo(x-ux*size-nx*size*.64,y-uy*size-ny*size*.64);ctx.lineTo(x+ux*size*.45,y+uy*size*.45);
+          ctx.lineTo(x-ux*size+nx*size*.64,y-uy*size+ny*size*.64);
+        }
+      }
+      ctx.stroke();ctx.restore();
+    }
+    return guides;
+  };
+  V.drawEnemyRouteMarkers=function() {
+    ctx.save();ctx.globalAlpha=.76;ctx.lineCap='round';ctx.setLineDash([]);
+    ctx.lineWidth=Math.max(1.6,layout().tile*.052);
+    for(const enemy of game?.enemies||[]) {
+      if(enemy.hp<=0)continue;
+      const route=resolve(enemy),p=V.enemyRenderAnchor(enemy);
+      ctx.strokeStyle=V.routeFamilyColors[route.entrance];ctx.beginPath();
+      // A short arc under the feet ties the moving creature to its road color.
+      // It remains below word labels and does not cover the creature's face.
+      ctx.ellipse(p.x,p.y+p.size*.26,p.size*(enemy.boss?.45:.40),p.size*.13,0,0,Math.PI);ctx.stroke();
+    }
+    ctx.restore();
+  };
+  pointAt=function(dist,enemy) {return V.routePoint(dist,enemy);};
+  buildable=function(c,r,ignoreId=null) {
+    if(!inGrid(c,r))return false;
+    const sameTower=ignoreId&&(game?.towers||[]).some(t=>t.id===ignoreId&&t.c===c&&t.r===r);
+    if(reserved.has(keyCell(c,r)))return !!sameTower&&!occupied(c,r,ignoreId);
+    // All three portals retain a small, readable staging area at the left edge.
+    if(c<=1&&entranceOrder.some(id=>Math.abs(r-V.routes[id].row)<=1))
+      return !!sameTower&&!occupied(c,r,ignoreId);
+    return baseBuildable(c,r,ignoreId);
+  };
+  V.forecast=function(cycle) {
+    const actual=Math.max(1,Number(cycle??game?.cycle??1)||1),stage=stageAt(actual);
+    const active=V.routeIds(actual).map(id=>({id,name:V.routes[id].name,row:V.routes[id].row,unlock:V.routes[id].unlock}));
+    const pending=['upper','lower'].find(id=>stage<V.routes[id].unlock);
+    const next=pending?{id:pending,name:V.routes[pending].name,cycle:actual+(V.routes[pending].unlock-stage),daysLeft:V.routes[pending].unlock-stage}:null;
+    const simultaneous=stage>=15;
+    const notice=next?`${next.cycle}일차 밤부터 왼쪽 ${next.name} 입구 개방`:!simultaneous?`${actual+(15-stage)}일차 밤부터 두 입구 동시 공세`:'세 입구 중 최대 두 곳에서 동시 공세';
+    return {cycle:actual,stage,active,next,simultaneous,
+      summary:active.map(r=>r.name).join(' · ')+(simultaneous?' / 최대 2곳 동시':' / 번갈아 등장'),notice};
+  };
+
+  function roundBox(c,x,y,w,h,r=8) {
+    r=Math.min(r,w/2,h/2);c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();
+  }
+  function traceRoad(c,route,tile,dy=0) {
+    c.beginPath();route.controls.forEach(([col,row],i)=>{
+      const x=(col+.5)*tile,y=(row+.5)*tile+dy;
+      if(i)c.lineTo(x,y);else c.moveTo(x,y);
+    });
+  }
+  function drawTerrain(l,planning) {
+    const unlocked=V.routeIds(),stage=stageAt();
+    const art=window.KINGDOM_ART;
+    const cacheKey=[l.tile,unlocked.join(','),!!art?.images?.meadow].join(':');
+    if(terrain.has(cacheKey))return terrain.get(cacheKey);
+    const out=document.createElement('canvas');out.width=Math.max(1,l.mapW);out.height=Math.max(1,l.mapH);
+    const c=out.getContext('2d'),tile=l.tile;
+    c.imageSmoothingEnabled=true;
+    if(art?.images?.meadow)c.drawImage(art.images.meadow,0,0,out.width,out.height);
+    else {c.fillStyle='#a5bc7b';c.fillRect(0,0,out.width,out.height);}
+    c.fillStyle='rgba(226,237,177,.10)';c.fillRect(0,0,out.width,out.height);
+    c.lineCap='round';c.lineJoin='round';
+    // Every road is physically complete from day one. A closed gate controls
+    // spawning; it never leaves a portal stranded on a dashed, missing road.
+    const visible=allRoutes;
+    // Draw all road shadows, then all outer borders, then all surfaces. Shared
+    // segments and intersections form continuous roads without striped seams.
+    for(const [dy,width,color]of [[tile*.08,.99,'rgba(62,75,38,.23)'],[0,.91,'#ad956b'],[0,.82,'#d6bd8c'],[-tile*.025,.68,'#e6d0a5']]) {
+      c.lineWidth=tile*width;c.strokeStyle=color;
+      for(const route of visible){traceRoad(c,route,tile,dy);c.stroke();}
+    }
+    const activeCells=new Set();
+    for(const route of visible)for(const seg of worldMetrics(route).segs){
+      let col=seg.ca[0],row=seg.ca[1];const dx=Math.sign(seg.cb[0]-col),dy=Math.sign(seg.cb[1]-row);
+      activeCells.add(keyCell(col,row));
+      while(col!==seg.cb[0]||row!==seg.cb[1]){col+=dx;row+=dy;activeCells.add(keyCell(col,row));}
+    }
+    for(const key of activeCells) {
+      const [col,row]=key.split(',').map(Number);
+      for(let k=0;k<2;k++){
+        const seed=(col*19+row*31+k*17)%23,x=(col+.5)*tile+((seed%7)-3)*tile*.06,y=(row+.5)*tile+(((seed*3)%7)-3)*tile*.06;
+        roundBox(c,x-tile*.13,y-tile*.065,tile*.26,tile*.13,tile*.05);
+        c.fillStyle=k?'rgba(255,249,223,.27)':'rgba(154,123,79,.13)';c.fill();
+      }
+    }
+    // A thin colored seam identifies a locked approach while the broad paved
+    // surface remains continuous beneath it. Shared rear roads stay neutral.
+    for(const id of ['upper','lower']) {
+      const route=V.routes[id];if(stage>=route.unlock)continue;
+      const [start,end]=route.controls;
+      c.save();c.beginPath();c.moveTo((start[0]+.5)*tile,(start[1]+.5)*tile);
+      c.lineTo((end[0]+.5)*tile,(end[1]+.5)*tile);
+      c.setLineDash([tile*.11,tile*.16]);c.strokeStyle='rgba(82,116,105,.45)';c.lineWidth=Math.max(1,tile*.055);c.stroke();c.restore();
+    }
+    if(terrain.size>8)terrain.clear();terrain.set(cacheKey,out);return out;
+  }
+  function entranceLabel(route,l,open) {
+    const p=cellCenter(0,route.row),forecast=V.forecast(),stage=forecast.stage;
+    const fs=Math.max(9,Math.min(12,l.tile*.34));
+    const name=open?`${route.name} · 개방`: `${route.name} · ${forecast.cycle+Math.max(0,route.unlock-stage)}일 개방`;
+    ctx.font=`${fs}px Jua, 'Malgun Gothic', sans-serif`;
+    const width=Math.max(65,Math.min(112,ctx.measureText(name).width+18)),height=Math.max(22,l.tile*.58);
+    const x=l.ox+Math.max(3,l.tile*.08),y=p.y+(route.row===12?-l.tile*1.34:l.tile*.82);
+    if(x+width<0||x>W||y+height<0||y>H)return;
+    ctx.save();roundBox(ctx,x,y,width,height,7);
+    ctx.fillStyle=open?'rgba(250,246,232,.96)':'rgba(233,234,219,.90)';ctx.fill();
+    ctx.strokeStyle=open?route.color:'rgba(139,151,130,.9)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=open?'#5b5a6d':'#687761';ctx.fillText(name,x+width/2,y+height/2+.5);ctx.restore();
+  }
+  drawSpawnGate=function() {
+    const l=layout(),tile=l.tile,art=window.KINGDOM_ART,stage=stageAt();
+    const t=(typeof performance!=='undefined'?performance.now():0)/1000;
+    for(const id of entranceOrder) {
+      const route=V.routes[id],p=cellCenter(0,route.row),open=stage>=route.unlock;
+      const cx=Math.max(p.x+tile*.35,l.ox+tile*.95+3);
+      ctx.save();ctx.globalAlpha=open?1:.46;
+      ctx.fillStyle='rgba(45,34,64,.23)';ctx.beginPath();ctx.ellipse(cx,p.y+tile*.55,tile*.72,tile*.23,0,0,Math.PI*2);ctx.fill();
+      if(open){const glow=ctx.createRadialGradient(cx,p.y,1,cx,p.y,tile);glow.addColorStop(0,`rgba(190,137,255,${.16+Math.sin(t*2)*.025})`);glow.addColorStop(1,'rgba(190,137,255,0)');ctx.fillStyle=glow;ctx.fillRect(cx-tile,p.y-tile,tile*2,tile*2);}
+      let drawn=false;
+      if(art?.drawSprite&&art.boxes?.[art.indices.portal])drawn=art.drawSprite(art.indices.portal,cx,p.y+tile*.75,tile*1.7,tile*1.98,ctx);
+      if(!drawn){roundBox(ctx,cx-tile*.52,p.y-tile*.7,tile*1.04,tile*1.25,tile*.4);ctx.fillStyle='#66537f';ctx.fill();roundBox(ctx,cx-tile*.32,p.y-tile*.49,tile*.64,tile*.97,tile*.25);ctx.fillStyle='#26203f';ctx.fill();}
+      if(!open){ctx.strokeStyle='#edf0d6';ctx.lineWidth=Math.max(2,tile*.085);ctx.lineCap='round';ctx.beginPath();ctx.moveTo(cx-tile*.22,p.y-tile*.16);ctx.lineTo(cx+tile*.22,p.y+tile*.27);ctx.moveTo(cx+tile*.22,p.y-tile*.16);ctx.lineTo(cx-tile*.22,p.y+tile*.27);ctx.stroke();}
+      ctx.restore();entranceLabel(route,l,open);
+    }
+  };
+  drawDefenseMap=function(planning) {
+    const l=layout(),meadow=window.KINGDOM_ART?.images?.meadow;
+    // Defense and planning share the same bright meadow and sand palette.
+    // Extend its texture across letterbox margins instead of exposing dark bars.
+    ctx.fillStyle='#a5bc7b';ctx.fillRect(0,0,W,H);
+    if(meadow)ctx.drawImage(meadow,0,0,W,H);
+    ctx.drawImage(drawTerrain(l,planning),l.ox,l.oy,l.mapW,l.mapH);
+    if(planning){
+      ctx.save();ctx.lineWidth=1;
+      for(let r=0;r<GRID.rows;r++)for(let c=0;c<GRID.cols;c++){
+        const x=l.ox+c*l.tile,y=l.oy+r*l.tile;if(x>W||y>H||x+l.tile<0||y+l.tile<0)continue;
+        ctx.strokeStyle='rgba(255,255,234,.25)';ctx.strokeRect(x+.5,y+.5,l.tile-1,l.tile-1);
+        if(buildable(c,r)){ctx.fillStyle='rgba(50,96,59,.30)';ctx.beginPath();ctx.arc(x+l.tile/2,y+l.tile/2,1.4,0,Math.PI*2);ctx.fill();}
+      }ctx.restore();
+    }
+    V.drawRouteGuides(planning);
+    drawPixelCastle();drawSpawnGate();if(!planning){drawEnemyBodies();V.drawEnemyRouteMarkers();}drawTowers(planning);if(!planning)drawEnemyLabels();
+    if(planning){
+      const text='길은 모두 연결되어 있어요 · 잠긴 입구는 표시된 날 개방',width=Math.min(390,W-24),x=(W-width)/2;
+      ctx.save();roundBox(ctx,x,H-38,width,27,12);ctx.fillStyle='rgba(255,250,235,.94)';ctx.fill();ctx.strokeStyle='rgba(182,166,129,.75)';ctx.lineWidth=1;ctx.stroke();
+      ctx.font='12px Jua, "Malgun Gothic", sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#5a705c';ctx.fillText(text,W/2,H-24.5);ctx.restore();
+    }
+    if(planning&&dragPreviewCell){
+      const ok=buildable(dragPreviewCell.c,dragPreviewCell.r,pendingPlacement?.mode==='move'?pendingPlacement.towerId:null),p=cellCenter(dragPreviewCell.c,dragPreviewCell.r);
+      ctx.save();roundBox(ctx,p.x-l.tile/2+3,p.y-l.tile/2+3,l.tile-6,l.tile-6,8);ctx.fillStyle=ok?'rgba(159,235,165,.28)':'rgba(255,132,144,.25)';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle=ok?'#d4ffc4':'#ff9eac';ctx.stroke();ctx.restore();
+    }
+  };
+  V.syncPaths();
+})();
+
+/* V10 bosses: explicit tells, fixed counter words, shared rewards and finite powers. */
+(function(){
+  'use strict';
+  const V=window.TTD10=window.TTD10||{};
+  const catalog=[
+    {id:'dash',name:'돌격 대장',icon:'➤',color:'#df865e',mechanic:'조금 빠르게 이동 · 7초 예고 뒤 2.5초 돌진',counter:'고정 단어로 돌진 취소 · 잠시 감속',cast:'돌진 저지',duration:7,uses:3},
+    {id:'summon',name:'소환 군주',icon:'✦',color:'#ad80ce',mechanic:'7.5초 예고 뒤 입구에서 수호병 3기 소환 · 최대 2회',counter:'고정 단어로 이번 소환 취소',cast:'수호병 소환 저지',duration:7.5,uses:2},
+    {id:'twins',name:'쌍둥이 대장',icon:'Ⅱ',color:'#78aabd',mechanic:'단단한 형과 빠른 동생 · 합산 체력은 단일 보스의 115%',counter:'연결 단어로 형제 가속 취소 · 한 기씩 처치 가능',cast:'형제 가속 저지',duration:7,uses:2},
+    {id:'armor',name:'갑주 거인',icon:'⬡',color:'#b49d70',mechanic:'갑주가 타워 피해 28% 감소 · 완전 면역 없음',counter:'고정 단어로 갑주 영구 파괴 · 7초간 타워 피해 증가',cast:'갑주 파괴',duration:8,uses:3},
+    {id:'commander',name:'진군 지휘관',icon:'⚑',color:'#c27880',mechanic:'7초 예고 뒤 주변 일반 적 최대 6기를 5초간 가속',counter:'고정 단어로 진군 명령 취소',cast:'진군 명령 차단',duration:7,uses:2},
+    {id:'split',name:'분열 군체',icon:'◇',color:'#77ad87',mechanic:'체력 50% 이하에서 한 번 분열 · 남은 체력을 둘이 나눔',counter:'고정 단어로 분열체 약화 · 분열해도 체력 회복 없음',cast:'분열체 약화',duration:8,uses:1},
+    {id:'siege',name:'공성 포병',icon:'◎',color:'#bd9262',mechanic:'멈춰서 8초 조준 뒤 성벽 피해 2 · 최대 2회',counter:'고정 단어로 포격 취소 · 집중 정지로 조준 시간 확보',cast:'성벽 포격 중단',duration:8,uses:2},
+    {id:'warden',name:'수호대장',icon:'▣',color:'#779fc1',mechanic:'호위병 2기와 등장 · 호위 중 타워 피해 20% 감소',counter:'호위병 처치 또는 고정 단어로 8초 보호 연결 해제',cast:'보호 연결 해제',duration:8,uses:2}
+  ];
+  const byId=Object.fromEntries(catalog.map(b=>[b.id,b]));
+  const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const finite=(n,f=0)=>Number.isFinite(Number(n))?Number(n):f;
+  const active=()=>typeof game!=='undefined'&&game&&Array.isArray(game.enemies)?game.enemies:[];
+  const info=e=>byId[e?.bossKind]||byId[V.bossKind(typeof game!=='undefined'?game?.cycle:3)];
+  const alive=e=>active().includes(e);
+  function notify(title,detail){if(V.feedback)V.feedback(title,detail);else if(typeof showActionFeedback==='function')showActionFeedback(title,detail,'purple');}
+  function rememberCast(e){if(!e?.cast)return;const c=e.cast;if(V.rememberWord)V.rememberWord({text:c.word,id:'boss-command-'+c.id,bossCommand:true,cast:true});e.cast=null;}
+  function chooseWord(){
+    const banned=new Set();
+    for(const e of active()){banned.add(norm(e.text));if(e.cast?.word)banned.add(norm(e.cast.word));}
+    if(typeof V.commandWords==='function')for(const w of V.commandWords()||[])banned.add(norm(typeof w==='string'?w:w?.text||w?.word||''));
+    const pool=WORD_BANK.filter(w=>w.length>=2&&w.length<=5&&!banned.has(norm(w)));
+    const fallback=WORD_BANK.filter(w=>!banned.has(norm(w)));
+    return pick(pool.length?pool:fallback.length?fallback:WORD_BANK);
+  }
+  function groupFor(e){return game?.bossGroups?.[e.bossGroup];}
+  function beginCast(e){
+    const b=info(e);
+    if(e.cast||e.splitFragment||e.powerUsed>=b.uses)return;
+    if(b.id==='twins'&&!active().some(q=>q!==e&&q.bossGroup===e.bossGroup&&q.boss))return;
+    if(b.id==='split'&&e.splitDone)return;
+    const word=chooseWord();
+    e.cast={id:String(e.id)+'-'+(e.powerUsed+1),word,left:b.duration,total:b.duration,label:b.cast};
+    e.powerUsed++;
+    notify(b.icon+' '+b.name+' · '+b.cast,`「${word}」를 ${b.duration}초 안에 입력하세요. 일반 타워 공격으로 이 단어는 바뀌지 않습니다.`);
+  }
+  function initialize(e,kind,group){
+    const b=byId[kind]||catalog[0];
+    e.boss=true;e.bossKind=b.id;e.bossGroup=group;e.bossLabel=b.name;e.bossIcon=b.icon;
+    e.powerClock=2;e.powerUsed=0;e.cast=null;e.dashLeft=0;e.staggerLeft=0;e.exposedLeft=0;e.wardSuppressed=0;
+    e.wallDamage=9+Math.floor(game.cycle/12);
+    return e;
+  }
+  function guards(boss,count,label){
+    let made=0;
+    for(let i=0;i<count;i++){
+      if(active().filter(e=>e.guardOwner===boss.bossGroup).length>=6)break;
+      let guard;
+      if(V.addGuard)guard=V.addGuard(boss,{hpFraction:.82,speedFactor:.92,label,routeId:boss.routeId,dist:0});
+      else{guard=enemyTemplate(false);guard.hp*=.82;guard.maxHp=guard.hp;guard.speed*=.92;V.addEnemy(guard,boss.routeId);}
+      if(guard){guard.guardOwner=boss.bossGroup;guard.guardLabel=label;guard.bossLabel=label;guard.dist=0;guard.wallDamage=1;made++;}
+    }
+    return made;
+  }
+  function finishCast(e){
+    const b=info(e);rememberCast(e);e.powerClock=b.id==='armor'?5:10;
+    if(b.id==='dash'){e.dashLeft=2.5;notify('➤ 돌격 시작','돌격은 2.5초 뒤 끝납니다. 집중 정지와 서리 감속이 적용됩니다.');}
+    else if(b.id==='summon'){const n=guards(e,3,'소환 수호병');notify('✦ 수호병 소환',`입구에서 수호병 ${n}기가 출발합니다. 순간이동하지 않습니다.`);}
+    else if(b.id==='commander'){
+      const allies=active().filter(q=>!q.boss&&q.routeId===e.routeId&&Math.abs(q.dist-e.dist)<260).sort((a,b)=>b.dist-a.dist).slice(0,6);
+      for(const q of allies)q.rallyLeft=5;
+      notify('⚑ 진군 명령',`같은 길의 일반 적 ${allies.length}기 이동속도 +25% · 5초`);
+    }
+    else if(b.id==='twins'){
+      const other=active().find(q=>q!==e&&q.boss&&q.bossGroup===e.bossGroup);
+      if(other){other.dashLeft=3;notify('Ⅱ 형제 가속','살아 있는 쌍둥이 한 기가 3초간 가속합니다. 부활하지 않습니다.');}
+    }
+    else if(b.id==='armor'){notify('⬡ 갑주 유지',e.powerUsed<b.uses?'타워 피해는 계속 72% 적용됩니다. 다음 약점 단어에 다시 도전할 수 있습니다.':'타워 피해는 계속 72% 적용됩니다. 남은 본체를 정면으로 돌파하세요.');}
+    else if(b.id==='split'){notify('◇ 분열 준비 완료','체력 50%에서 남은 체력을 나눠 분열합니다. 한 번뿐입니다.');}
+    else if(b.id==='siege'){
+      if(V.hitWall)V.hitWall(2,'공성 포격');else if(V.damageWall)V.damageWall(2,'공성 포격');else game.bossPendingWall=(game.bossPendingWall||0)+2;
+      notify('◎ 포격 명중','성벽 피해 2 · 보호막이 먼저 흡수합니다. 다음 포격도 예고됩니다.');
+    }
+    else if(b.id==='warden'){notify('▣ 보호 연결 유지','호위병을 처치하면 보호가 사라집니다. 완전 면역은 없습니다.');}
+  }
+  function split(e,n){
+    if(e.bossKind!=='split'||e.splitDone||e.splitFragment||e.hp-n<=0||e.hp-n>e.maxHp*.5)return;
+    const oldMax=e.maxHp,remaining=e.hp-n,oldReward=e.reward,oldWall=e.wallDamage;
+    const child=initialize(enemyTemplate(true),'split',e.bossGroup);
+    child.splitDone=true;child.splitFragment=true;child.powerUsed=byId.split.uses;child.powerClock=999;
+    child.maxHp=oldMax/2;child.hp=remaining/2;child.reward=oldReward/2;child.wallDamage=Math.floor(oldWall/2);child.speed=e.speed;
+    child.bossLabel='분열체 B';child.dist=e.dist;child.burnDps=e.burnDps||0;child.burnLeft=e.burnLeft||0;child.slow=e.slow;child.slowLeft=e.slowLeft;
+    if(e.splitWeakened){child.exposedLeft=6;child.staggerLeft=6;e.exposedLeft=6;e.staggerLeft=6;}
+    e.splitDone=true;e.splitFragment=true;e.bossLabel='분열체 A';e.maxHp=oldMax/2;e.hp=remaining/2+n;e.reward=oldReward/2;e.wallDamage=Math.ceil(oldWall/2);
+    rememberCast(e);
+    V.addEnemy(child,e.routeId);child.dist=e.dist;
+    const g=groupFor(e);if(g)g.members++;
+    notify('◇ 한 번 분열!',e.splitWeakened?'약화 성공 · 남은 체력을 나눠 가진 두 분열체가 6초간 느려집니다.':'남은 체력을 둘이 나눠 가졌습니다. 회복과 추가 분열은 없습니다.');
+  }
+  V.bossCatalog=catalog;
+  V.activeBossWords=()=>active().filter(e=>e.boss&&e.cast).map(e=>e.cast.word);
+  V.bossKind=cycle=>catalog[((Math.floor(Math.max(3,finite(cycle,3))/3)-1)%catalog.length+catalog.length)%catalog.length].id;
+  V.bossInfo=cycle=>byId[V.bossKind(cycle)];
+  V.spawnBossGroup=function(routeId){
+    game.bossGroups=game.bossGroups||{};
+    const kind=V.bossKind(game.cycle),b=byId[kind],group='bg-'+game.cycle+'-'+id();
+    game.bossGroups[group]={kind,members:kind==='twins'?2:1,deaths:0,escaped:0,rewarded:false};
+    const e=initialize(enemyTemplate(true),kind,group),baseHp=e.hp,baseReward=e.reward,baseWall=e.wallDamage;
+    if(kind==='dash')e.speed*=1.12;
+    if(kind==='siege')e.speed*=.90;
+    if(kind==='twins'){
+      e.hp=e.maxHp=baseHp*.65;e.reward=baseReward*.55;e.speed*=.82;e.wallDamage=Math.ceil(baseWall*.55);e.bossLabel='쌍둥이 형 · 중장갑';
+      V.addEnemy(e,routeId);
+      const other=initialize(enemyTemplate(true),kind,group);
+      other.hp=other.maxHp=baseHp*.50;other.reward=baseReward*.45;other.speed=e.speed/.82*1.25;other.wallDamage=baseWall-e.wallDamage;
+      other.bossLabel='쌍둥이 동생 · 신속';other.twinFollower=true;other.powerUsed=b.uses;other.powerClock=999;
+      V.addEnemy(other,routeId);other.dist=0;
+    }else V.addEnemy(e,routeId);
+    if(kind==='warden')guards(e,2,'수호대장 호위병');
+    notify(b.icon+' '+b.name+' 출현',b.mechanic+' / 대응: '+b.counter);
+    if(typeof addLog==='function')addLog(b.name+' · '+b.mechanic);
+    if(typeof sfx!=='undefined')sfx.boss();
+    return group;
+  };
+  V.tickBosses=function(dt){
+    if(!game||dt<=0)return;
+    for(const e of [...active()]){
+      e.rallyLeft=Math.max(0,finite(e.rallyLeft)-dt);
+      if(!e.boss)continue;
+      for(const k of ['dashLeft','staggerLeft','exposedLeft','wardSuppressed'])e[k]=Math.max(0,finite(e[k])-dt);
+      if(e.cast){
+        if(e.bossKind==='twins'&&!active().some(q=>q!==e&&q.boss&&q.bossGroup===e.bossGroup)){rememberCast(e);continue;}
+        e.cast.left=Math.max(0,e.cast.left-dt);
+        if(e.cast.left<=0)finishCast(e);
+      }else{
+        e.powerClock=Math.max(0,finite(e.powerClock,2)-dt);
+        if(e.powerClock<=0)beginCast(e);
+      }
+    }
+  };
+  V.tryBossCommand=function(word){
+    const e=active().find(q=>q.boss&&q.cast&&norm(q.cast.word)===norm(word));
+    if(!e)return false;
+    const b=info(e),c=e.cast;e.cast=null;e.powerClock=b.id==='armor'?8:10;
+    if(V.supportInput)V.supportInput(c.word,e);
+    if(b.id==='armor'){e.armorBroken=true;e.exposedLeft=7;e.powerUsed=b.uses;}
+    else if(b.id==='dash'){e.dashLeft=0;e.staggerLeft=3.5;e.exposedLeft=4;}
+    else if(b.id==='split'){e.splitWeakened=true;e.exposedLeft=5;}
+    else if(b.id==='warden'){e.wardSuppressed=8;e.exposedLeft=5;}
+    else if(b.id==='twins'){for(const q of active().filter(q=>q.bossGroup===e.bossGroup&&q.boss)){q.dashLeft=0;q.exposedLeft=5;}}
+    else e.exposedLeft=5;
+    notify(b.icon+' '+b.cast+' 성공!',b.id==='armor'?'갑주가 부서졌습니다. 7초간 타워 피해 +35%.':b.id==='split'?'분열해도 체력 회복 없이 6초간 약화됩니다.':'예고된 행동을 막았습니다. 잠시 타워 집중포화에 약해집니다.');
+    if(alive(e)&&typeof damage==='function')damage(e,Math.round(typingDamageFor(c.word)*1.15),'typing');
+    return true;
+  };
+  V.bossDamage=function(e,n,source){
+    n=Math.max(0,finite(n));
+    if(!e.boss)return n;
+    if(source==='tower'){
+      if(e.bossKind==='armor'&&!e.armorBroken)n*=.72;
+      if(e.bossKind==='warden'&&!e.wardSuppressed&&active().some(q=>!q.boss&&q.guardOwner===e.bossGroup))n*=.80;
+      if(e.exposedLeft>0)n*=1.35;
+    }
+    split(e,n);
+    return n;
+  };
+  V.bossMove=function(e){
+    let speed=e.rallyLeft>0?1.25:1;
+    if(!e.boss)return speed;
+    if(e.bossKind==='siege'&&e.cast)return 0;
+    if(e.cast)speed*=.80;
+    if(e.dashLeft>0)speed*=1.65;
+    if(e.staggerLeft>0)speed*=.65;
+    return speed;
+  };
+  V.onBossDeath=function(e){
+    if(!e.boss)return false;
+    rememberCast(e);
+    const g=groupFor(e);
+    if(g){g.deaths++;if(g.rewarded||g.escaped)return false;}
+    if(active().some(q=>q!==e&&q.boss&&q.bossGroup===e.bossGroup))return false;
+    if(g)g.rewarded=true;
+    return true;
+  };
+  V.onBossEscape=function(e){
+    if(!e.boss)return;
+    rememberCast(e);
+    const g=groupFor(e);if(g)g.escaped++;
+    notify('보스가 성벽에 도달',e.bossKind==='twins'||e.splitFragment?'나눠진 성벽 피해만 적용됩니다. 남은 보스는 계속 막을 수 있습니다.':'다음 예고를 보고 집중 정지와 타자 공격을 준비하세요.');
+  };
+  V.bossBadge=function(e){const b=info(e);return e.boss?b.icon+' '+(e.bossLabel||b.name)+(e.cast?' · '+b.cast:e.dashLeft>0?' · 돌진 중':e.exposedLeft>0?' · 약점 노출':''):e.guardLabel||'';};
+  V.bossPanelHTML=function(){
+    const bosses=active().filter(e=>e.boss);
+    if(!bosses.length){
+      const cycle=Math.max(3,Math.ceil((finite(game?.cycle,1))/3)*3),b=V.bossInfo(cycle);
+      return `<div class="v10-boss-preview"><strong>${b.icon} ${cycle}일차 · ${b.name}</strong><span>${b.mechanic}</span><small>대응: ${b.counter}</small></div>`;
+    }
+    return bosses.map(e=>{
+      const b=info(e),c=e.cast,detail=c?`${b.cast} · ${c.left.toFixed(1)}초`:e.dashLeft>0?'돌진 중 · '+e.dashLeft.toFixed(1)+'초':e.exposedLeft>0?'약점 노출 · '+e.exposedLeft.toFixed(1)+'초':e.splitFragment?'남은 체력을 나눈 분열체 · 추가 분열 없음':e.powerUsed>=b.uses?'기믹 사용 완료 · 본체를 마무리하세요':'다음 기믹까지 '+Math.max(0,e.powerClock||0).toFixed(1)+'초';
+      const ratio=c?Math.max(0,Math.min(100,c.left/c.total*100)):Math.max(0,Math.min(100,e.hp/e.maxHp*100));
+      return `<div class="v10-boss-card${c?' casting':''}" style="--boss-color:${b.color}"><div class="v10-boss-head"><strong>${b.icon} ${safe(e.bossLabel||b.name)}</strong><span>${Math.max(0,Math.ceil(e.hp))} / ${Math.ceil(e.maxHp)}</span></div><p>${b.mechanic}</p><small>${b.counter}</small><div class="v10-boss-action"><b>${safe(detail)}</b>${c?`<label>중단 단어 <strong class="v10-command-word">${safe(c.word)}</strong><em>타워가 공격해도 유지</em></label>`:''}</div><div class="v10-boss-meter"><i style="width:${ratio.toFixed(1)}%"></i></div></div>`;
+    }).join('');
+  };
+  V.normalizeBosses=function(g){
+    if(!g.bossGroups||typeof g.bossGroups!=='object'||Array.isArray(g.bossGroups))g.bossGroups={};
+    for(const e of Array.isArray(g.enemies)?g.enemies:[]){
+      if(!e.boss)continue;
+      if(!byId[e.bossKind])e.bossKind=V.bossKind(g.cycle);
+      const b=byId[e.bossKind];
+      e.bossLabel=typeof e.bossLabel==='string'?e.bossLabel:b.name;e.bossIcon=b.icon;e.bossGroup=String(e.bossGroup||'legacy-boss-'+e.id);
+      if(!g.bossGroups[e.bossGroup])g.bossGroups[e.bossGroup]={kind:e.bossKind,members:1,deaths:0,escaped:0,rewarded:false};
+      for(const k of ['powerClock','powerUsed','dashLeft','staggerLeft','exposedLeft','wardSuppressed','rallyLeft'])e[k]=Math.max(0,finite(e[k],k==='powerClock'?2:0));
+      e.powerUsed=Math.min(b.uses,Math.floor(e.powerUsed));e.wallDamage=Math.max(0,finite(e.wallDamage,9+Math.floor(g.cycle/12)));
+      if(e.cast){if(typeof e.cast.word!=='string'||!WORD_BANK.includes(e.cast.word))e.cast=null;else{e.cast.total=b.duration;e.cast.left=Math.max(.05,Math.min(b.duration,finite(e.cast.left,b.duration)));e.cast.label=b.cast;e.cast.id=String(e.cast.id||e.id+'-restored');}}
+    }
+    return g;
+  };
+})();
+
+/* V10: announced assaults, reliable typing assistance, save-compatible campaign. */
+(() => {
+  'use strict';
+  const V = window.TTD10 = window.TTD10 || {};
+  V.version = 10;
+  V.escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  V.stageCycle = (cycle = game?.cycle || 1) => Math.max(1, cycle - (game?.routeEpoch || 0));
+  V.actualDayForStage = stage => stage + (game?.routeEpoch || 0);
+  V.feedback = (title, detail = '') => showActionFeedback(title, detail, 'purple');
+
+  const baseInitial = initialGame;
+  initialGame = function () {
+    return {...baseInitial(), rulesVersion: 10, routeLayout: 'fixed3', routeEpoch: 0, recentWords: [], supportBank: [], nightClock: 0,
+      assault: null, bossGroups: {}, bossSpawned: false, assistanceCount: 0};
+  };
+  V.ensureState = g => {
+    g.recentWords = (Array.isArray(g.recentWords) ? g.recentWords : []).filter(w => w && WORD_BANK.includes(w.text) && Number.isFinite(w.until)).slice(-20);
+    g.supportBank = (Array.isArray(g.supportBank) ? g.supportBank : []).filter(x => Number.isFinite(x.damage) && x.damage > 0).slice(-3);
+    g.nightClock = Math.max(0, Number(g.nightClock) || 0);
+    g.assistanceCount = Math.max(0, Number(g.assistanceCount) || 0);
+    g.bossGroups = g.bossGroups && typeof g.bossGroups === 'object' ? g.bossGroups : {};
+    delete g.routeCursors;
+    return g;
+  };
+  const baseNormalize = normalizeLoadedGame;
+  normalizeLoadedGame = function (saved) {
+    const g = baseNormalize(saved);
+    if (!(saved?.rulesVersion >= 10)) {
+      // Existing empires get the next five-day milestone, with at least two days' notice.
+      g.routeEpoch = Math.max(0, Math.ceil((g.cycle + 2) / 5) * 5 - 5);
+      g.assault = g.phase === 'night' ? {legacy: true, phase: 'legacy', left: 0, elapsed: 0} : null;
+      g.recentWords = []; g.supportBank = []; g.nightClock = 0;
+      g.enemies.forEach(e => { e.routeId = 'middle'; });
+      g.bossSpawned = g.enemies.some(e => e.boss) || g.spawned >= g.spawnTarget;
+      g.migrationNotice = '기존 방어선 보존 · 새 출입구는 예고 후 개방됩니다.';
+    }
+    if(saved?.rulesVersion>=10&&saved?.routeLayout!=='fixed3')V.migrateFixedRoutes?.(g);
+    g.enemies.forEach(e=>{e.routeId=V.canonicalRouteId?.(e.routeId)||'middle';});
+    g.routeLayout='fixed3';g.rulesVersion = 10;
+    V.ensureState(g);
+    V.normalizeBosses?.(g);
+    return g;
+  };
+
+  V.addEnemy = (e, routeId = 'middle') => {
+    V.assignRoute(e, routeId);
+    if (!Number.isFinite(e.dist)) e.dist = 0;
+    e.wordId = e.wordId || id();
+    game.enemies.push(e);
+    return e;
+  };
+  V.commandWords = () => (game?.recentWords || []).map(w => w.text);
+  const oldGetWord = getWord;
+  getWord = function(ex = []) { return oldGetWord([...ex, ...(V.activeBossWords?.() || []), ...V.commandWords()]); };
+  V.addGuard = (boss, opts = {}) => {
+    const owner = boss.bossGroup || boss.id;
+    if (game.enemies.filter(e => e.guardOf === owner).length >= 6 || game.enemies.length >= V.screenEnemyCap() + 4) return null;
+    const e = enemyTemplate(false);
+    e.hp = e.maxHp = Math.max(1, Math.round(e.hp * (opts.hpFraction || .6)));
+    e.speed *= opts.speedFactor || 1;
+    e.guardOf = owner; e.guardLabel = opts.label || '수호병';
+    e.reward = Math.max(1, Math.floor(e.reward * .35));
+    e.dist = clamp(opts.dist ?? boss.dist - PLAN_TILE * 1.1, 0, V.routeTotal(boss) * .7);
+    return V.addEnemy(e, opts.routeId || boss.routeId);
+  };
+  V.screenEnemyCap = () => W < 650 ? 7 : 12;
+  V.hitWall = (amount, label = '성벽 피격') => {
+    const damageValue = Math.max(0, Number(amount) || 0);
+    const blocked = Math.min(game.wallShield || 0, damageValue);
+    game.wallShield = Math.max(0, (game.wallShield || 0) - blocked);
+    game.hp = Math.max(0, game.hp - (damageValue - blocked));
+    addEffect('text', W * .85, H * .5, `${label} · ${blocked === damageValue ? '보호막 방어' : '-' + (damageValue - blocked)}`, '#ff8793');
+    sfx.wallHit();
+    if (game.hp <= 0) { refreshAll(); endGame(); }
+  };
+
+  V.rememberWord = e => {
+    if (!e || !WORD_BANK.includes(e.text)) return;
+    V.ensureState(game);
+    const key = e.wordId || e.id || id();
+    if (game.recentWords.some(w => w.id === key)) return;
+    const lifetime = Math.min(6, 3 + e.text.length * .3);
+    game.recentWords.push({id: key, text: e.text, until: game.nightClock + lifetime, cast: !!(e.cast || e.bossCommand)});
+    game.recentWords = game.recentWords.slice(-20);
+  };
+  V.supportInput = (word, e) => {
+    const p = e && Number.isFinite(e.dist) ? pointAt(e.dist, e) : {x: W / 2, y: H * .45};
+    gainCombo(1, 'typing', p);
+    game.correct++; game.correctChars += word.length;
+    game.nightTyped++; game.allNightTyped++;
+    game.focus = clamp(game.focus + 1, 0, game.focusNeed);
+    game.score += word.length * 10;
+    sfx.correct(game.combo, true);
+  };
+  V.queueSupport = word => {
+    const hit = typingDamageFor(word);
+    if (game.supportBank.length < 3) game.supportBank.push({damage: hit, word});
+    else game.supportBank[0].damage = Math.max(game.supportBank[0].damage, hit);
+    game.assistanceCount++;
+  };
+  V.releaseSupport = () => {
+    if (!game.supportBank.length || !game.enemies.length || game.paused || game.gameOver) return;
+    const target = [...game.enemies].sort((a,b) => V.remaining(a) - V.remaining(b))[0];
+    const charge = game.supportBank.shift(), p = pointAt(target.dist, target);
+    damage(target, charge.damage, 'typing');
+    addEffect('text', p.x, p.y - 40, `연계 지원 -${charge.damage}`, '#8ff2d3');
+  };
+
+  function wavePlan() {
+    const stage = V.stageCycle(), count = Math.min(5, 2 + Math.floor(game.cycle / 10));
+    const routes = V.routeIds(game.cycle);
+    const list = [];
+    for (let i = 0; i < count; i++) {
+      let entrances = [routes[i % routes.length]];
+      if (stage >= 15 && routes.length > 1 && i === count - 1) entrances = [routes[0], routes[1 + ((Math.floor(game.cycle / 3)) % (routes.length - 1))]];
+      const quota = Math.floor(game.spawnTarget / count) + (i < game.spawnTarget % count ? 1 : 0);
+      list.push({routes: entrances, quota, spawned: 0, duration: 16 + Math.min(8, Math.floor(quota / 8))});
+    }
+    return list;
+  }
+  V.makeAssault = () => ({phase: 'warning', left: 5, elapsed: 0, index: 0, spawnClock: 0, routes: ['middle'], waves: wavePlan(), clock: 0});
+  const baseEnterNight = enterNight;
+  enterNight = function () {
+    baseEnterNight();
+    V.ensureState(game); game.recentWords = []; game.supportBank = []; game.nightClock = 0;
+    game.bossGroups = {}; game.bossSpawned = false; game.assault = V.makeAssault();
+    V.syncPaths(); refreshAll();
+  };
+  V.peekRouteForSpawn = base => {
+    return V.canonicalRouteId ? V.canonicalRouteId(base) : base;
+  };
+  V.routeForSpawn = base => V.peekRouteForSpawn(base);
+  V.spawnScheduled = (routeId = 'middle') => {
+    const a=game.assault;
+    const bossSlot=a?.legacy ? game.spawned===game.spawnTarget-1 : a?.index===a?.waves?.length-1 && a?.waves?.[a.index]?.spawned===0;
+    const boss = game.cycle % 3 === 0 && !game.bossSpawned && bossSlot;
+    const actualRoute=V.routeForSpawn(routeId);
+    if (boss) {
+      V.spawnBossGroup(actualRoute);
+      game.bossSpawned = true;
+      addLog(`보스 출현 · ${V.bossInfo(game.cycle).name}`);
+      sfx.boss();
+    } else V.addEnemy(enemyTemplate(false), actualRoute);
+    game.spawned++;
+  };
+  spawnEnemy = function () { V.spawnScheduled('middle'); };
+  V.tickAssault = dt => {
+    const a = game.assault;
+    if (!a || a.legacy) {
+      game.spawnTimer -= dt;
+      const startClear = !game.enemies.some(e => e.dist < 88);
+      if (game.spawned < game.spawnTarget && game.spawnTimer <= 0 && startClear) {
+        V.spawnScheduled('middle'); game.spawnTimer = Math.max(.55, 1.32 - game.cycle * .05);
+      }
+      return;
+    }
+    a.clock += dt;
+    const wave = a.waves[a.index];
+    if (!wave) { a.phase = 'cleanup'; return; }
+    if (a.phase === 'warning' || a.phase === 'rest') {
+      a.left = Math.max(0, a.left - dt);
+      if (a.left <= 0) {
+        a.phase = 'assault'; a.elapsed = 0; a.spawnClock = 0;
+        a.routes = wave.routes;
+        V.feedback(`제${a.index + 1}공세 시작`, wave.routes.map(V.routeName).join(' + '));
+      }
+      return;
+    }
+    if (a.phase !== 'assault') return;
+    a.elapsed += dt;
+    // Bounded timer: density limits and focus never accumulate a catch-up backlog.
+    a.spawnClock = Math.max(0, a.spawnClock - dt);
+    const interval = Math.max(.32, wave.duration / Math.max(1, wave.quota));
+    if (wave.spawned < wave.quota && a.spawnClock <= 0 && game.enemies.length < V.screenEnemyCap()) {
+      const base = wave.routes[wave.spawned % wave.routes.length];
+      V.spawnScheduled(base); wave.spawned++; a.spawnClock = interval;
+    }
+    if (wave.spawned >= wave.quota && a.elapsed >= wave.duration) {
+      a.index++;
+      a.phase = a.index >= a.waves.length ? 'cleanup' : 'rest'; a.left = 9;
+    }
+  };
+
+  damage = function (e, n, source) {
+    if (!game.enemies.includes(e)) return;
+    if(e.boss&&source==='tower'&&game.focusTime>0)n*=.72;
+    n = V.bossDamage ? V.bossDamage(e, n, source) : n;
+    if (!Number.isFinite(n) || n <= 0) return;
+    e.hp-=n;e.flash=.12;if(e.hp<=0)killEnemy(e,source);
+  };
+  V.shotEffect=(t,p,q)=>{
+    addEffect('line',p.x,p.y,'',TOWER_TYPES[t.type].color,q.x,q.y);
+    const e=game.effects[game.effects.length-1];
+    Object.assign(e,{towerType:t.type,towerLevel:t.level,towerId:t.id,shotSeed:t.c*13+t.r*29+t.level*7,
+      renderX:p.x,renderY:p.y-layout().tile*.39,renderX2:q.x,renderY2:q.y-layout().tile*.06});
+  };
+  killEnemy = function (e, source) {
+    const i = game.enemies.indexOf(e); if (i < 0) return;
+    if (source !== 'typing') V.rememberWord(e);
+    const p = pointAt(e.dist, e), direct = source === 'typing';
+    game.enemies.splice(i, 1); sfx.kill();
+    const gold = scaledGold(e.reward * (direct ? 2 : 1));
+    game.coins += gold; game.score += Math.round(e.maxHp) + (direct ? e.text.length * 24 : 0);
+    addEffect('burst', p.x, p.y, '', direct ? '#56e39f' : '#ffd35a');
+    addEffect('text', p.x, p.y - 25, direct ? `직접 2배 +${gold}G` : `+${gold}G`, direct ? '#56e39f' : '#ffd35a');
+    if (!direct) registerTowerComboKill(p);
+    if (e.isReview) game.review = game.review.filter(w => w !== e.text);
+    if (e.boss && V.onBossDeath(e)) {
+      addLog('보스 부대 격파 · 전리품 상자'); openBossLoot();
+    }
+  };
+  attack = function (t) {
+    const s = towerStats(t), p = cellCenter(t.c, t.r), range = V.screenRange(s.range);
+    let candidates = game.enemies.filter(e => {const q = pointAt(e.dist,e); return Math.hypot(q.x-p.x,q.y-p.y) <= range;});
+    if (!candidates.length) return;
+    candidates.sort((a,b) => V.remaining(a) - V.remaining(b));
+    if (t.type === 'sniper') candidates.sort((a,b) => b.hp-a.hp || V.remaining(a)-V.remaining(b));
+    t.cooldown = s.cooldown; sfx.tower(t.type);
+    if (t.type === 'fire') {
+      const e = candidates.find(v => (v.burnLeft || 0) < s.cooldown * .9) || candidates[0], q = pointAt(e.dist,e);
+      V.shotEffect(t,p,q); damage(e,s.damage,'tower');
+      if (game.enemies.includes(e)) applyBurn(e,s.dotDamage,s.dotTime);
+      return;
+    }
+    candidates.slice(0,s.targets).forEach((e,i) => {
+      if (!game.enemies.includes(e)) return;
+      const q=pointAt(e.dist,e); V.shotEffect(t,p,q);
+      let hit=s.damage;
+      if(t.type==='lightning') hit*=Math.max(s.chainFloor,1-i*s.chainStep);
+      if(t.type==='sniper'&&e.boss) hit*=1+s.bossBonus;
+      damage(e,hit,'tower');
+      if(t.type==='frost'&&game.enemies.includes(e)){e.slow=Math.min(e.slow,s.slow);e.slowLeft=Math.max(e.slowLeft,s.slowTime);}
+    });
+  };
+  updateNight = function (dt) {
+    V.ensureState(game); game.nightClock += dt;
+    game.recentWords = game.recentWords.filter(w => w.until > game.nightClock);
+    const frozen = game.focusTime > 0;
+    if (!frozen) { V.tickAssault(dt); V.tickBosses(dt); }
+    if (game.gameOver || game.paused) return;
+    V.releaseSupport();
+    if (game.gameOver || game.paused) return;
+    for (const t of game.towers) {
+      t.cooldown = Math.max(0, t.cooldown - dt);
+      if (t.cooldown <= 0) attack(t);
+      if (game.paused || game.gameOver) return;
+    }
+    for (const e of [...game.enemies]) {
+      if (!game.enemies.includes(e)) continue;
+      e.flash = Math.max(0,e.flash-dt);
+      if(e.burnLeft>0){const burnStep=Math.min(dt,e.burnLeft);e.burnLeft=Math.max(0,e.burnLeft-dt);damage(e,(e.burnDps||0)*burnStep,'tower');if(game.paused||game.gameOver)return;if(!game.enemies.includes(e))continue;if(e.burnLeft<=0)e.burnDps=0;}
+      if(e.slowLeft>0)e.slowLeft-=dt;else e.slow=1;
+      const focusMove=frozen?(e.boss?.28:0):1;
+      e.dist+=e.speed*e.slow*focusMove*(V.bossMove?.(e)??1)*dt;
+      if(e.dist>=V.routeTotal(e)){
+        game.enemies.splice(game.enemies.indexOf(e),1);
+        if(e.boss)V.onBossEscape(e);
+        V.hitWall(e.wallDamage??(e.boss?9+Math.floor(game.cycle/12):1),e.boss?'보스 돌파':'성벽');
+        if(game.gameOver)return;
+      }
+    }
+    if(game.focusTime>0)game.focusTime=Math.max(0,game.focusTime-dt);
+    if(game.bossPendingWall){const n=game.bossPendingWall;game.bossPendingWall=0;V.hitWall(n,'보스 포격');}
+    if(game.spawned>=game.spawnTarget&&game.enemies.length===0&&!game.bossRewardPending&&!game.gameOver)finishNight();
+  };
+
+  const baseSubmit = submitTyped;
+  submitTyped = function () {
+    if (!game || game.paused || game.gameOver) return;
+    const typed = norm(input.value);
+    if (game.phase !== 'night' || typed === '쇼미더머니') { baseSubmit(); return; }
+    input.value = ''; if (!typed) return;
+    V.ensureState(game); game.attempts++;
+    if (V.tryBossCommand(typed)) { refreshAll(); return; }
+    const target = game.enemies.filter(e => norm(e.text) === typed).sort((a,b) => V.remaining(a)-V.remaining(b))[0];
+    if (target) {
+      const oldWord=target.text, p=pointAt(target.dist,target);
+      V.supportInput(oldWord,target); target.typingHits++;
+      if(target.isReview)game.review=game.review.filter(w=>w!==oldWord);
+      const hit=typingDamageFor(oldWord); damage(target,hit,'typing');
+      if(game.enemies.includes(target)){nextEnemyWord(target);target.wordId=id();addEffect('text',p.x,p.y-45,`타자 -${hit}`,'#8ff2d3');}
+    } else {
+      const recent=game.recentWords.find(w=>norm(w.text)===typed&&w.until>game.nightClock);
+      if(recent){game.recentWords=game.recentWords.filter(w=>w.id!==recent.id);V.supportInput(typed);V.queueSupport(typed);showToast('처치 연계 성공 · 지원 공격 예약 + 집중 충전');}
+      else handleTypingMiss('현재 적·중단 주문·처치 연계 단어와 일치하지 않습니다');
+    }
+    refreshAll();
+  };
+
+  const baseLoad = loadGamePayload;
+  loadGamePayload = function (payload) {
+    cancelAnimationFrame(animationId);
+    clearTimeout(nightClearTimer); clearInterval(transitionInterval);
+    baseLoad(payload);
+    V.syncPaths();
+    game.enemies.forEach(e => V.assignRoute(e,e.routeId||'middle'));
+    // An extension save contains the exact world distances. Base loader's ratio restoration is patched per route.
+    V.ensureState(game); refreshAll();
+  };
+  const baseStart = startGame;
+  startGame = function () { baseStart(); V.syncPaths(); refreshAll(); };
+  const baseDay = enterDay;
+  enterDay = function () { baseDay(); V.syncPaths(); game.recentWords=[]; game.supportBank=[]; game.assault=null; refreshAll(); };
+  const baseReturn = returnToMain;
+  returnToMain = function () { baseReturn(); V.refreshBrief?.(); };
+
+  V.snapshot = () => {
+    if (!game) return null;
+    const snapshot = JSON.parse(JSON.stringify(game));
+    snapshot.effects=[];snapshot.paused=false;snapshot.opsOpen=false;snapshot.transitioning=false;snapshot.gameOver=false;snapshot.nightComplete=false;
+    snapshot.enemies=snapshot.enemies.map(e=>({...e,routeRatio:clamp(e.dist/Math.max(1,V.routeTotal(e)),0,1)}));
+    return {magic:SAVE_MAGIC,version:SAVE_VERSION,savedAt:new Date().toISOString(),selectedDifficulty,board:{w:W,h:H},game:snapshot};
+  };
+  saveGameToFile = function () {
+    if(!game||game.gameOver){showToast('저장할 진행 상황이 없습니다.');return;}
+    if(game.transitioning){showToast('낮·밤 전환이 끝난 뒤 저장해 주세요.');return;}
+    if(game.bossRewardPending){showToast('보스 전리품을 선택한 뒤 저장해 주세요.');return;}
+    if(game.phase==='night'&&game.opsOpen){showToast('밤 운영 화면을 닫은 뒤 저장해 주세요.');return;}
+    const payload=V.snapshot(),url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
+    const a=document.createElement('a'),stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+    a.href=url;a.download=`타자디펜스_v10_${safeFilePart(DIFFICULTY[selectedDifficulty].label)}_${game.cycle}일차_${stamp}${SAVE_EXTENSION}`;
+    document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1200);showToast('v10 저장 파일을 다운로드했습니다.');
+  };
+
+
+  const css=document.createElement('style');css.textContent=`
+    #app{grid-template-rows:78px minmax(0,1fr) 86px!important;width:100%;min-width:0}.main,.topbar,.inputbar{min-width:0}
+    .status-panel{display:flex;flex-direction:column;min-height:0}.status-panel>.panel-title{flex:none}.status-panel .panel-scroll{flex:1;min-height:0;height:auto!important;overflow:auto!important}
+    #ttdBrief{display:flex;flex-direction:column;gap:9px;flex:0 1 auto;min-height:0;max-height:64%;overflow:auto;padding:10px;background:#f7f5e8;border-bottom:1px solid #d8dfc9;color:#526949;box-sizing:border-box}#ttdBrief[hidden]{display:none!important}
+    .ttd-strategy{min-width:0}.ttd-strategy strong{font-size:13px;color:#92713a}.ttd-strategy small{display:block;font-size:11px;line-height:1.6;color:#7d826b;margin-top:4px}
+    #ttdBosses{display:flex;flex-direction:column;gap:8px;min-width:0}
+    .v10-boss-preview{display:grid;gap:4px;font-size:11px;line-height:1.5;color:#7b6b84;padding:7px 9px;border-left:3px solid #c5b4d2}.v10-boss-preview strong{font-size:13px;color:#795987}.v10-boss-preview small{font-size:10px;color:#8b7e91}
+    .v10-boss-card{background:#f4edf9;border:1px solid var(--boss-color,#c7b5df);border-radius:11px;padding:9px;min-width:0;font-size:11px;color:#705c7c}.v10-boss-head{display:flex;justify-content:space-between;gap:7px;align-items:center}.v10-boss-head strong{font-size:13px;color:#695075}.v10-boss-head span{font-size:10px;white-space:nowrap}.v10-boss-card p{margin:5px 0;line-height:1.5}.v10-boss-card small{font-size:10px;line-height:1.5}.v10-boss-action{margin-top:6px;font-size:11px}.v10-boss-action label{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:5px}.v10-command-word{font-size:24px;line-height:1.2;color:#6d4291;white-space:nowrap}.v10-boss-action em{font-style:normal;color:#9a88a4;font-size:9px}.v10-boss-meter{height:4px;background:#e3d8ec;border-radius:4px;overflow:hidden;margin-top:7px}.v10-boss-meter i{display:block;height:100%;background:var(--boss-color,#a582bd)}.v10-boss-card.casting{box-shadow:0 0 0 2px #d8c8e64d}
+    .inputbar{position:relative;padding:6px 18px 25px!important}.inputbar #typingInput{padding:8px 14px;font-size:22px}.inputbar .input-submit{padding:10px 16px}
+    #ttdRecent{position:absolute;left:18px;right:18px;bottom:3px;display:flex;align-items:center;gap:7px;color:#7e8973;font-size:11px;height:20px;overflow:hidden;white-space:nowrap}.ttd-grace{display:inline-flex;gap:6px;align-items:center;background:#e8f4e5;color:#426e51;border:1px solid #b9d2b2;padding:1px 8px;border-radius:7px;font-size:12px}.ttd-grace small{font-size:10px;color:#8b9982}.ttd-bank{margin-left:auto;color:#8070a1}.ttd-mobile-command{display:none}
+    #nightRewardGuide{display:none!important}.input-help{font-size:11px}#mapTitle{pointer-events:none}#mapTitleSub{max-width:350px}.ttd-help{background:#edf3e4;border:1px solid #c3d2b6;border-radius:10px;padding:10px;margin-top:10px;font-size:12px;line-height:1.7;color:#617356}.ttd-ops-strategy{display:grid;gap:8px;margin-bottom:12px;padding:10px;border:1px solid #c9d7bb;border-radius:12px;background:#f5f5e8}.ttd-ops-strategy .v10-boss-head strong{font-size:14px}
+    @media(max-height:780px) and (min-width:801px){#app{grid-template-rows:67px minmax(0,1fr) 74px!important}.inputbar{padding:4px 14px 23px!important}.inputbar #typingInput{padding:6px 12px;font-size:20px}.inputbar .input-submit{padding:8px 14px}}
+    @media(max-width:800px){#app{grid-template-rows:68px minmax(0,1fr) 82px!important}.status-panel{display:none!important}.topbar{padding:6px!important;gap:4px!important}.brand{flex:0 1 auto!important;min-width:0!important}.topbar .brand h1{font-size:13px!important}.hud{gap:3px!important;min-width:0}.hud-box{min-width:35px!important;padding:4px!important}.hud-box b{font-size:11px!important}.hud-box span{font-size:8px!important}.phase-badge{min-width:50px!important;font-size:10px!important;padding:6px 4px!important}.top-actions{margin-left:auto!important;flex:none;gap:0!important}.top-actions .pixel-button{padding:8px 5px!important;font-size:9px!important}#pauseBtn{max-width:65px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.inputbar{padding:5px 11px 24px!important}.inputbar #typingInput{padding:8px 10px;font-size:19px}.inputbar .input-submit{padding:10px 12px}#ttdRecent{left:11px;right:11px;bottom:3px;font-size:10px;gap:4px}.ttd-grace{font-size:11px;padding:1px 5px}.ttd-grace small{display:none}.ttd-bank{font-size:10px}.ttd-mobile-command{display:inline-flex;gap:5px;align-items:center;flex:none;padding:1px 6px;background:#f1e7fa;border:1px solid #cbb3dc;color:#705185;border-radius:7px;font-size:10px}.ttd-mobile-command b{font-size:15px;color:#69408b}.ttd-mobile-wave{font-size:10px;color:#8b794f;overflow:hidden;text-overflow:ellipsis;min-width:0}.ttd-mobile-command~.ttd-bank{display:none}.ttd-mobile-command~.ttd-recent-label{display:none}#mapTitle{top:7px!important;left:7px!important;padding:5px 8px!important;max-width:calc(100% - 80px)!important}#mapTitle strong{font-size:12px!important}#mapTitle span{display:none!important}#focusButton{bottom:8px!important;right:8px!important;font-size:11px!important}.combo-display{top:75px!important}}
+  `;document.head.append(css);
+  const brief=document.createElement('div');brief.id='ttdBrief';brief.hidden=true;
+  brief.innerHTML='<div class="ttd-strategy" id="ttdStrategy"></div><div id="ttdBosses"></div>';
+  document.querySelector('.status-panel .panel-title').after(brief);
+  const recent=document.createElement('div');recent.id='ttdRecent';document.querySelector('.inputbar').append(recent);
+  document.querySelector('.input-help').innerHTML='<b>Enter / Space</b> 입력 · <b>Shift+Enter</b> 집중 정지<br>적 단어 · 보스 중단 주문 · 초록색 처치 연계 단어';
+  const previousRefresh=refreshAll;
+  let lastUI='';
+  V.refreshBrief=()=>{
+    brief.hidden=!game||game.gameOver;recent.style.visibility=game?.phase==='night'?'visible':'hidden';
+    if(!game)return;
+    const forecast=V.forecast(game.cycle),a=game.assault;
+    let line=game.phase==='night'?'방어 진행 중':'오늘 밤 작전';
+    if(game.phase==='night'&&a&&!a.legacy){const wave=a.waves[a.index];const entrances=(wave?.routes||a.routes||['middle']).map(V.routeName).join(' + ');line=a.phase==='warning'?`공세 예고 · ${Math.ceil(a.left)}초 뒤 ${entrances}`:a.phase==='rest'?`재정비 ${Math.ceil(a.left)}초 · 다음 ${entrances}`:a.phase==='assault'?`제${a.index+1}/${a.waves.length}공세 · ${entrances}`:'마지막 적 정리';if(game.focusTime>0)line+=' · 집중 정지로 공세 대기';}
+    else if(a?.legacy&&game.phase==='night')line='기존 세이브의 밤 · 중단 경로 유지';
+    let notice=forecast.notice||forecast.summary;
+    if(game.migrationNotice&&V.stageCycle()<5)notice=`${notice} · 기존 타워와 진행 유지`;
+    const text=`<strong class="ttd-wave-tag">${V.escapeHTML(line)}</strong><small>${V.escapeHTML(notice)}</small>`;
+    if(document.getElementById('ttdStrategy').innerHTML!==text)document.getElementById('ttdStrategy').innerHTML=text;
+    const bossHTML=V.bossPanelHTML();if(document.getElementById('ttdBosses').innerHTML!==bossHTML)document.getElementById('ttdBosses').innerHTML=bossHTML;
+    const mobile=window.innerWidth<=800;
+    const casts=game.enemies.filter(e=>e.boss&&e.cast).slice(0,2);
+    const commands=mobile?casts.map(e=>`<span class="ttd-mobile-command" title="${V.escapeHTML(e.cast.label)}">중단 <b>${V.escapeHTML(e.cast.word)}</b> ${Math.ceil(e.cast.left)}초</span>`).join(''):'';
+    const mobileWave=mobile&&!commands?`<span class="ttd-mobile-wave">${V.escapeHTML(line)}</span>`:'';
+    const words=game.recentWords.filter(w=>w.until>game.nightClock).slice(mobile?-1:-3);
+    const recentHTML=`${commands||mobileWave}<span class="ttd-recent-label">${mobile?'연계':'처치 연계'}</span>${words.map(w=>`<span class="ttd-grace">${V.escapeHTML(w.text)} <small>${Math.ceil(w.until-game.nightClock)}초</small></span>`).join('')||(!mobile?'<span>타워가 먼저 처치한 단어도 잠시 입력할 수 있어요</span>':'')}<span class="ttd-bank">지원 ${game.supportBank.length}/3</span>`;
+    if(lastUI!==recentHTML){recent.innerHTML=recentHTML;lastUI=recentHTML;}
+    if(mobile&&game.phase==='night')document.getElementById('mapTitleMain').textContent=line;
+  };
+  refreshAll=function(){previousRefresh();V.refreshBrief();};
+  const previousRenderOps=renderOps;
+  renderOps=function(){
+    previousRenderOps();
+    if(!game)return;
+    const overview=document.getElementById('overviewList');
+    const panel=document.createElement('div');panel.className='ttd-ops-strategy';
+    const forecast=V.forecast(game.cycle);
+    panel.innerHTML=`<strong>작전 · ${V.escapeHTML(forecast.summary)}</strong><small>${V.escapeHTML(forecast.notice)}</small>${V.bossPanelHTML()}`;
+    overview.prepend(panel);
+  };
+  // Keep mechanics legible directly on every boss, including both twins.
+  const oldLabels=drawEnemyLabels;
+  drawEnemyLabels=function(){oldLabels();for(const e of game.enemies.filter(x=>x.boss||x.guardLabel)){const p=pointAt(e.dist,e);const label=e.boss?(V.bossBadge?.(e)||e.bossLabel||'보스'):e.guardLabel;ctx.save();ctx.font='bold 11px "Malgun Gothic",sans-serif';const width=ctx.measureText(label).width+14,x=clamp(p.x-width/2,3,W-width-3),y=clamp(p.y+layout().tile*.65,12,H-17);ctx.fillStyle=e.boss?'rgba(77,52,101,.93)':'rgba(60,80,69,.9)';ctx.fillRect(x,y,width,17);ctx.fillStyle='#fff6dc';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,x+width/2,y+9);ctx.restore();}};
+  const extraHelp=document.createElement('div');extraHelp.className='ttd-help';extraHelp.innerHTML='<b>v10 · 세 갈래 방어 작전</b><br>출입구는 모두 왼쪽: 중단(처음), 상단(5일), 하단(10일). 15일부터 마지막 공세에 두 출입구가 함께 열립니다. 상·하단과 후방 갈림길은 처음부터 연결되어 보이며, 출입구만 해당 날짜에 활성화됩니다. 기존 세이브는 개방 일정을 미뤄 준비 시간을 제공합니다.<br>공세 예고 5초 → 짧은 공세 → 재정비 9초. 집중 정지 동안 공세·보스 주문 시계도 멈춥니다.<br>보스 카드에서 능력과 대응법을 확인하세요. 보라색 고정 주문을 입력하면 해당 행동을 저지합니다. 타워가 먼저 처치한 초록색 단어는 잠시 입력할 수 있으며 연계 공격과 집중 충전을 받습니다. 연계는 실제 등장했던 단어당 한 번만 인정합니다.';
+  document.getElementById('helpGrid').before(extraHelp);
+  document.querySelector('.brand small').textContent='세 갈래 길 · 보스 작전 v10';
+  document.getElementById('typingInput').setAttribute('aria-label','적 단어, 보스 중단 주문, 처치 연계 단어 입력');
+  document.getElementById('submitBtn').onclick=submitTyped;
+  document.getElementById('startBtn').onclick=startGame;
+  document.getElementById('saveGameBtn').onclick=saveGameToFile;
+  document.getElementById('focusButton').onclick=useFocus;
+  document.getElementById('skipRecordBtn').onclick=returnToMain;
+  // No test-only controls are displayed; deterministic simulation tests use the public game functions.
+  V.refreshBrief();
+})();
+
+/* Full-size bright night map; compact operational information stays in existing controls. */
+(() => {
+  'use strict';
+  const V=window.TTD10, app=document.getElementById('app');
+  const css=document.createElement('style');
+  css.textContent=`
+    #app.ttd-night{grid-template-rows:48px minmax(0,1fr) 76px!important}
+    .ttd-night .main{grid-template-columns:minmax(0,1fr)!important;padding:6px 10px!important;gap:0!important}
+    .ttd-night .status-panel{display:none!important}.ttd-night .topbar{padding:3px 13px!important;gap:9px!important}
+    .ttd-night .brand{min-width:155px!important}.ttd-night .brand h1{font-size:17px!important}.ttd-night .brand small{font-size:9px!important}.ttd-night .brand-emblem{width:32px!important;height:32px!important}
+    .ttd-night .hud{gap:7px!important}.ttd-night .hud-box{padding:2px 10px!important;min-width:64px!important;border-radius:9px!important}.ttd-night .hud-box span{font-size:8px!important}.ttd-night .hud-box b{font-size:15px!important}.ttd-night .phase-badge{padding:5px 9px!important;font-size:12px!important;min-width:80px!important}.ttd-night .top-actions .pixel-button{font-size:11px!important;padding:6px 9px!important}.ttd-night .top-actions{gap:6px!important}.ttd-night .combo-hud{display:none!important}
+    .ttd-night .inputbar{display:grid!important;grid-template-columns:minmax(180px,1fr) minmax(230px,330px) 108px;gap:11px!important;padding:6px 14px 24px!important;align-items:center}.ttd-night .input-help,.ttd-night .typing-metrics{display:none!important}.ttd-night .input-box{min-width:0!important}.ttd-night #typingInput{font-size:20px!important;padding:8px 13px!important}.ttd-night .input-submit{font-size:14px!important;padding:9px 18px!important;min-width:62px!important}
+    #ttdNightCommands{display:none;min-width:0;max-height:48px;overflow:hidden;background:#f2e9fa;border:1px solid #c7afd8;border-radius:10px;padding:4px 9px;color:#745685;line-height:1.35;font-size:10px}.ttd-night #ttdNightCommands{display:block}#ttdNightCommands strong{font-size:12px}#ttdNightCommands b{font-size:20px;color:#69418a;padding:0 5px}#ttdNightCommands small{font-size:10px}.ttd-command-title{display:flex;gap:7px;align-items:center;white-space:nowrap}.ttd-command-detail{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ttd-night #focusButton{position:static!important;inset:auto!important;margin:0!important;max-height:44px;padding:8px 6px!important;font-size:11px!important;width:108px;white-space:normal;line-height:1.25;box-sizing:border-box}.ttd-night #focusButton[disabled]{opacity:.65}
+    .ttd-night #mapTitle{top:10px!important;left:14px!important;padding:7px 11px!important;max-width:430px}.ttd-night #mapTitleMain{font-size:14px!important}.ttd-night #mapTitleSub{font-size:10px!important;max-width:410px!important;display:block!important}.ttd-night #ttdRecent{left:14px;right:14px;bottom:2px;font-size:10px;height:19px}.ttd-night .ttd-grace{font-size:11px;padding:0 6px}
+    #ttdRouteLegend{display:none;position:absolute;right:13px;top:11px;align-items:center;gap:9px;padding:5px 9px;border:1px solid #c6d6b0;border-radius:9px;background:rgba(255,253,236,.9);color:#748567;font-size:10px;pointer-events:none}.ttd-night #ttdRouteLegend{display:flex}#ttdRouteLegend strong{font-size:10px;font-weight:400}#ttdRouteLegend span{display:inline-flex;align-items:center;gap:4px}#ttdRouteLegend i{width:8px;height:8px;border-radius:50%;display:inline-block}
+    @media(max-width:1000px) and (min-width:801px){.ttd-night .brand{min-width:130px!important}.ttd-night .brand h1{font-size:15px!important}.ttd-night .brand small{display:none!important}.ttd-night .hud-box{min-width:53px!important;padding:2px 6px!important}.ttd-night .inputbar{grid-template-columns:minmax(180px,1fr) 260px 95px}.ttd-night #focusButton{width:95px}}
+    @media(max-width:800px){#app.ttd-night{grid-template-rows:48px minmax(0,1fr) 82px!important}.ttd-night .main{padding:5px 7px!important}.ttd-night .topbar{padding:3px 6px!important;gap:4px!important}.ttd-night .brand{min-width:0!important}.ttd-night .brand h1{font-size:12px!important}.ttd-night .hud{gap:3px!important}.ttd-night .hud-box{min-width:34px!important;padding:3px 4px!important}.ttd-night .hud-box b{font-size:11px!important}.ttd-night .hud-box span{font-size:8px!important}.ttd-night .phase-badge{min-width:48px!important;padding:5px 3px!important;font-size:10px!important}.ttd-night .top-actions .pixel-button{padding:7px 5px!important;font-size:9px!important}.ttd-night .inputbar{grid-template-columns:minmax(0,1fr) 61px!important;gap:6px!important;padding:6px 10px 25px!important}.ttd-night #ttdNightCommands{display:none!important}.ttd-night #focusButton{width:61px;height:43px;font-size:10px!important;padding:4px!important}.ttd-night #typingInput{font-size:18px!important;padding:9px 9px!important}.ttd-night .input-box{gap:6px!important}.ttd-night .input-submit{min-width:45px!important;padding:10px 7px!important;font-size:12px!important}.ttd-night #mapTitle{top:6px!important;left:7px!important;padding:5px 8px!important;max-width:calc(100% - 120px)!important}.ttd-night #mapTitleMain{font-size:11px!important}.ttd-night #mapTitleSub{display:none!important}.ttd-night #ttdRouteLegend{top:7px;right:7px;font-size:9px;gap:6px;padding:4px 6px}#ttdRouteLegend strong{display:none}.ttd-night #ttdRecent{left:10px;right:10px}.ttd-night .ttd-mobile-wave{max-width:170px}.ttd-night .ttd-bank{margin-left:auto}}
+  `;document.head.append(css);
+  const placement=document.createElement('style');placement.textContent=`
+    .ttd-night .inputbar .input-box{grid-column:1!important;grid-row:1!important}
+    .ttd-night #ttdNightCommands{grid-column:2!important;grid-row:1!important}
+    .ttd-night .inputbar #focusButton{grid-column:3!important;grid-row:1!important}
+    @media(max-width:800px){.ttd-night .inputbar #focusButton{grid-column:2!important;grid-row:1!important}}
+  `;document.head.append(placement);
+  const command=document.createElement('div');command.id='ttdNightCommands';document.querySelector('.inputbar').append(command);
+  const focus=document.getElementById('focusButton');document.querySelector('.inputbar').append(focus);
+  const legend=document.createElement('div');legend.id='ttdRouteLegend';boardWrap.append(legend);
+  let lastCommand='',lastLegend='',wasNight=null;
+  const oldRefresh=V.refreshBrief;
+  V.refreshBrief=function(){
+    oldRefresh();
+    const night=!!(game&&game.phase==='night'&&!game.opsOpen&&!game.gameOver);
+    const footer=document.querySelector('.inputbar');
+    if(night&&focus.parentNode!==footer)footer.append(focus);
+    else if(!night&&focus.parentNode!==boardWrap)boardWrap.append(focus);
+    app.classList.toggle('ttd-night',night);
+    if(night!==wasNight){wasNight=night;scheduleResize();}
+    if(!game)return;
+    const bosses=game.enemies.filter(e=>e.boss),casters=bosses.filter(e=>e.cast);
+    let html='';
+    if(casters.length){
+      html=casters.slice(0,2).map(e=>`<div class="ttd-command-title"><strong>${V.escapeHTML(e.bossLabel)}</strong><span>${V.escapeHTML(e.cast.label)} <b>${V.escapeHTML(e.cast.word)}</b> ${e.cast.left.toFixed(1)}초</span></div>`).join('');
+    }else if(bosses.length){
+      const e=bosses[0],info=V.bossCatalog.find(b=>b.id===e.bossKind)||V.bossInfo(game.cycle);
+      html=`<div class="ttd-command-title"><strong>${V.escapeHTML(e.bossLabel)}${bosses.length>1?' 외 '+(bosses.length-1)+'기':''}</strong></div><div class="ttd-command-detail">${V.escapeHTML(info.mechanic)}</div>`;
+    }else{
+      const day=Math.ceil(game.cycle/3)*3,info=V.bossInfo(day);
+      html=`<div class="ttd-command-title"><strong>${day}일 보스 · ${V.escapeHTML(info.name)}</strong></div><div class="ttd-command-detail">${V.escapeHTML(info.counter)}</div>`;
+    }
+    if(html!==lastCommand){command.innerHTML=html;lastCommand=html;}
+    if(night){
+      const colors=V.routeFamilyColors||{upper:'#32a4c8',middle:'#9c6ab4',lower:'#e18d57'};
+      const legendHTML=`<strong>입구별 고정 경로</strong>${[['upper','상단'],['middle','중단'],['lower','하단']].map(([id,name])=>`<span><i style="background:${colors[id]}"></i>${name}</span>`).join('')}`;
+      if(legendHTML!==lastLegend){legend.innerHTML=legendHTML;lastLegend=legendHTML;}
+      const a=game.assault,wave=a?.waves?.[a.index];
+      const phase=a?.legacy?'방어 중':a?.phase==='warning'?`공세 예고 ${Math.ceil(a.left)}초`:a?.phase==='rest'?`재정비 ${Math.ceil(a.left)}초`:a?.phase==='cleanup'?'마지막 적 정리':`제${(a?.index||0)+1}공세`;
+      document.getElementById('mapTitleMain').textContent=`밤 ${game.cycle}일 · ${phase}`;
+      document.getElementById('mapTitleSub').textContent='상단·중단·하단의 적은 각 입구의 고정된 색 경로로만 이동합니다.';
+    }
+  };
+  const help=document.querySelector('.ttd-help');
+  if(help)help.innerHTML+='<br>상단·중단·하단에는 각각 하나의 고정 경로만 있습니다. 적은 자기 입구의 색 화살표를 끝까지 따라가며, 길이 교차하거나 합류해도 다른 길을 고르지 않습니다. 밤에도 밝은 잔디와 모래길 색을 유지합니다. 자세한 보스 대응법은 운영·일시정지 → 전체 현황에서 확인할 수 있습니다.';
+  V.refreshBrief();
 })();
 
 </script>
