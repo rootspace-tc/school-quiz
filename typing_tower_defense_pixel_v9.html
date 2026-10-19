@@ -2580,8 +2580,9 @@ window.KINGDOM_ASSETS={"title":"data:image/webp;base64,UklGRtrfBQBXRUJQVlA4IM7fB
   const stage = () => typeof V.stageCycle === 'function' ? V.stageCycle() : game.cycle;
   const durations = () => ({first: 4, normal: 8 + Math.min(4, Math.floor(game.cycle / 8)), warning: 3, assault: 6 + Math.min(3, Math.floor(game.cycle / 10))});
   V.assaultIntervals = () => {
-    const normal = Math.max(.8, 1.35 - game.cycle * .012);
-    return {normal, surge: normal * .45};
+    const normal = Math.max(1.9, 2.4 - game.cycle * .01);
+    const surge = Math.max(1.5, 1.8 - game.cycle * .008);
+    return {normal, surge};
   };
   const available = a => a?.legacyOnly ? ['middle'] : [...new Set((V.routeIds(game.cycle) || ['middle']).map(canonical))];
   function plannedRoutes(a, surged = false) {
@@ -2592,8 +2593,8 @@ window.KINGDOM_ASSETS={"title":"data:image/webp;base64,UklGRtrfBQBXRUJQVlA4IM7fB
   }
   function estimatedCount() {
     const d = durations(), speed = V.assaultIntervals();
-    const first = (d.first + d.warning) / speed.normal + d.assault / speed.surge * 2;
-    const later = (d.normal + d.warning) / speed.normal + d.assault / speed.surge * 2;
+    const first = (d.first + d.warning) / speed.normal + d.assault / speed.surge;
+    const later = (d.normal + d.warning) / speed.normal + d.assault / speed.surge;
     return Math.max(1, 1 + Math.ceil(Math.max(0, game.spawnTarget - first) / later));
   }
   V.makeAssault = function () {
@@ -2633,7 +2634,7 @@ window.KINGDOM_ASSETS={"title":"data:image/webp;base64,UklGRtrfBQBXRUJQVlA4IM7fB
     return a;
   };
   V.isAssault = () => game?.assault?.system === 'continuous' && game.assault.phase === 'assault';
-  V.currentEnemyCap = () => V.screenEnemyCap() + (V.isAssault() ? (W < 650 ? 2 : 4) : 0);
+  V.currentEnemyCap = () => V.screenEnemyCap();
   function bossDue() {
     return game.cycle % 3 === 0 && !game.bossSpawned && game.spawned < game.spawnTarget &&
       (game.spawned >= Math.floor(game.spawnTarget * .65) || game.spawned >= game.spawnTarget - 1);
@@ -2660,8 +2661,8 @@ window.KINGDOM_ASSETS={"title":"data:image/webp;base64,UklGRtrfBQBXRUJQVlA4IM7fB
       V.feedback('집중 공세 예고 · 3초 후', a.routes.map(V.routeName).join(' + ') + ' · 일반 적은 계속 등장합니다.');
     } else if (a.phase === 'warning') {
       a.phase = 'assault'; a.left = d.assault; a.surgeNumber++; a.index = a.surgeNumber - 1;
-      a.count = Math.max(a.count, a.surgeNumber); a.spawnClock = Math.min(a.spawnClock, .12);
-      V.feedback(`제${a.surgeNumber}공세 · 출현 가속`, a.routes.map(V.routeName).join(' + ') + ' · 2기씩 빠르게 접근합니다.');
+      a.count = Math.max(a.count, a.surgeNumber);
+      V.feedback(`제${a.surgeNumber}공세 · 출현 가속`, a.routes.map(V.routeName).join(' + ') + ' · 한 마리씩 간격을 두고 접근합니다.');
     } else if (a.phase === 'assault') {
       a.index = a.surgeNumber; a.phase = 'normal'; a.left = d.normal;
       a.routes = plannedRoutes(a); a.normalRoute = a.routes[0];
@@ -2680,15 +2681,15 @@ window.KINGDOM_ASSETS={"title":"data:image/webp;base64,UklGRtrfBQBXRUJQVlA4IM7fB
     if (a.spawnClock > 0) return;
     const surge = a.phase === 'assault', intervals = V.assaultIntervals();
     const cap = V.currentEnemyCap();
-    const pack = surge ? 2 : 1;
-    let made = 0;
-    for (let i = 0; i < pack && game.spawned < game.spawnTarget; i++) {
-      if (game.enemies.length + nextEnemySlots() > cap) break;
-      const route = surge ? a.routes[a.spawnCursor % a.routes.length] : a.normalRoute;
-      if (V.spawnScheduled(route)) { a.spawnCursor++; made++; }
-      if (game.paused || game.gameOver) break;
+    if (game.enemies.length + nextEnemySlots() > cap) return;
+    const route = surge ? a.routes[a.spawnCursor % a.routes.length] : a.normalRoute;
+    // Keep a readable screen-space gap, even when the map shrinks on phones.
+    const entryGap = Math.max(PLAN_TILE * 2, 96 * PLAN_TILE / Math.max(1, layout().tile));
+    if (game.enemies.some(e => canonical(e.routeId) === route && e.dist < entryGap)) return;
+    if (V.spawnScheduled(route)) {
+      a.spawnCursor++;
+      a.spawnClock = surge ? intervals.surge : intervals.normal;
     }
-    if (made) a.spawnClock = surge ? intervals.surge : intervals.normal;
     if (game.spawned >= game.spawnTarget) { a.phase = 'cleanup'; a.left = 0; }
   };
 })();
@@ -2776,7 +2777,7 @@ window.KINGDOM_ASSETS={"title":"data:image/webp;base64,UklGRtrfBQBXRUJQVlA4IM7fB
     }
   };
   const help=document.querySelector('.ttd-help');
-  if(help){help.innerHTML=help.innerHTML.replace('공세 예고 5초 → 짧은 공세 → 재정비 9초.','평소와 공세 예고 중에도 적은 계속 나옵니다. 공세 중에는 더 빠른 간격으로 두 마리씩 출현하고, 배경에 옅은 붉은빛이 표시됩니다.');help.innerHTML+='<br>상단·중단·하단에는 각각 하나의 고정 경로만 있습니다. 적은 자기 입구의 색 화살표를 끝까지 따라가며, 길이 교차하거나 합류해도 다른 길을 고르지 않습니다. 밤에도 밝은 잔디와 모래길 색을 유지합니다. 자세한 보스 대응법은 운영·일시정지 → 전체 현황에서 확인할 수 있습니다.';}
+  if(help){help.innerHTML=help.innerHTML.replace('공세 예고 5초 → 짧은 공세 → 재정비 9초.','평소와 공세 예고 중에도 적은 계속 나옵니다. 일반 적은 평소 약 1.9~2.4초, 공세 중 약 1.5~1.8초 간격으로 한 마리씩 출현합니다. 같은 입구의 앞선 적이 두 칸 이상 이동한 뒤 다음 적이 나오며, 작은 화면에서는 간격을 더 넓힙니다. 공세 중에는 배경에 옅은 붉은빛이 표시됩니다.');help.innerHTML+='<br>상단·중단·하단에는 각각 하나의 고정 경로만 있습니다. 적은 자기 입구의 색 화살표를 끝까지 따라가며, 길이 교차하거나 합류해도 다른 길을 고르지 않습니다. 밤에도 밝은 잔디와 모래길 색을 유지합니다. 자세한 보스 대응법은 운영·일시정지 → 전체 현황에서 확인할 수 있습니다.';}
   V.refreshBrief();
 })();
 
