@@ -429,19 +429,19 @@ const TOWER_TYPES={
   sniper:{name:"저격탑",mark:"▰",color:"#ffe07a",cost:1380,desc:"가장 긴 사거리의 중화력 타워. 보스에게 큰 추가 피해를 줌.",stats:{damage:86,range:240,cooldown:2.35,targets:1,bossBonus:.75},growth:{damage:.45,range:.09,cooldown:.92,bossBonus:.10}}
 };
 const RESEARCH={
-  reward:{name:"금화 교육",desc:"낮 단어와 밤 적 처치의 기본 보상 기준 +4G/레벨. Lv.6 MAX에서 +24G.",base:430,max:6},
+  reward:{name:"금화 교육",desc:"낮 단어와 밤 직접 처치의 보상 기준 +4G/레벨. 매우 어려움의 타워 자동 처치는 +1G/레벨. Lv.6 MAX에서 +24G.",base:430,max:6},
   bonus:{name:"행운의 빨간 단어",desc:"빨간 2배 단어 출현 확률 +10%p/레벨. 기본 10% → Lv.5 MAX 60%.",base:590,max:5},
   goldenBurst:{name:"황금 단어 군집",desc:"황금 단어 출현 확률 0.5%는 그대로. 황금 이벤트 1회당 동시 출현 수가 Lv.1 2개, Lv.2 3개로 증가.",base:260,max:2},
   lifetime:{name:"생각할 시간",desc:"낮 단어 유지 시간 +1.4초/레벨. Lv.5 MAX에서 기본보다 +7.0초.",base:410,max:5},
   typing:{name:"타자 화력",desc:"밤 직접 타자 피해 배율: ×1.18 → 1.38 → 1.62 → 1.90 → 2.22 → 2.60 → 3.05 → 3.58 → 4.20 → Lv.10 ×4.95.",base:420,max:10,costs:[420,500,590,690,810,950,1110,1290,1490,1720]},
   comboGuard:{name:"콤보 보호막",desc:"정확 입력을 연속 성공하면 오답 1회를 막는 보호막 1개 충전. 필요 성공 수: 50 → 45 → 40 → 35 → Lv.5 30회. 최대 1개 저장, 사용 후 다시 충전.",base:520,max:5},
-  comboMastery:{name:"콤보 증폭",desc:"콤보 추가 피해와 5콤보마다 따로 지급되는 보너스 금화를 레벨당 20% 강화. 10의 배수에서는 보너스 2배. 일반 단어·처치 보상에는 적용되지 않음. Lv.5 ×2.0, 콤보 피해 상한 +300%.",base:720,max:5},
-  towerCombo:{name:"타워 연계",desc:"타워 처치 누적으로 +1콤보: Lv.1 10킬 → 9 → 8 → 7 → Lv.5 6킬. 타워 연계로 5의 배수에 도달해도 콤보 금화 지급. 타워 콤보는 보호막 충전에 포함되지 않음.",base:980,max:5},
+  comboMastery:{name:"콤보 증폭",desc:"콤보 추가 피해와 5콤보마다 따로 지급되는 보너스 금화를 레벨당 20% 강화. 10의 배수에서는 보너스 2배. 일반 단어·처치 보상에는 적용되지 않음. 매우 어려움의 콤보 금화는 100콤보 기준 상한. Lv.5 ×2.0, 콤보 피해 상한 +300%.",base:720,max:5},
+  towerCombo:{name:"타워 연계",desc:"타워 처치 누적으로 +1콤보: Lv.1 10킬 → 9 → 8 → 7 → Lv.5 6킬. 타워 연계로 5의 배수에 도달해도 콤보 금화 지급. 타워 콤보는 보호막 충전에 포함되지 않음. 매우 어려움의 연계 금화는 기본 최대 20G × 콤보 증폭.",base:980,max:5},
   analysis:{name:"적 분석",desc:"밤 적 이동 속도 -5%/레벨. Lv.5 MAX에서 -25%.",base:760,max:5},
   focusNeed:{name:"집중 숙련",desc:"집중 정지 발동에 필요한 정확 입력 -1회/레벨. 기본 10회 → Lv.5 MAX 5회.",base:790,max:5},
   focusTime:{name:"집중 연장",desc:"집중 정지 지속 시간 +0.6초/레벨. 기본 3.2초 → Lv.5 MAX 6.2초.",base:860,max:5},
-  shopDiscount:{name:"왕국 단골 할인",desc:"타워 구매 가격 -5%/레벨. Lv.5 MAX에서 -25%.",base:260,max:5},
-  upgradeDiscount:{name:"강화 공정 개선",desc:"타워 강화 가격 -5%/레벨. Lv.5 MAX에서 -25%.",base:280,max:5},
+  shopDiscount:{name:"왕국 단골 할인",desc:"타워 구매 가격 -5%/레벨. Lv.5 MAX에서 -25%.",base:520,max:5},
+  upgradeDiscount:{name:"강화 공정 개선",desc:"타워 강화 가격 -5%/레벨. Lv.5 MAX에서 -25%.",base:560,max:5},
   wall:{name:"성벽 보강",desc:"최대 성벽 체력 +10/레벨. Lv.6 MAX에서 +60. 연구해도 현재 체력은 즉시 회복되지 않음.",base:840,max:6}
 };
 const REPAIR_COST=260;
@@ -596,7 +596,7 @@ function towerUpgradeBaseCost(type,level){const base=TOWER_TYPES[type].cost;retu
 function towerUpgradeCost(t){return Math.max(1,Math.floor(towerUpgradeBaseCost(t.type,t.level)*(1-upgradeDiscountRate())))}
 function towerSpent(t){if(Number.isFinite(t.invested))return t.invested;let s=Number.isFinite(t.purchaseCost)?t.purchaseCost:TOWER_TYPES[t.type].cost;for(let lv=1;lv<t.level;lv++)s+=towerUpgradeBaseCost(t.type,lv);return s}
 function towerSell(t){return Math.floor(towerSpent(t)*.62)}
-function researchCost(k){const r=RESEARCH[k],lv=game.research[k];if(r.costs)return r.costs[Math.min(lv,r.costs.length-1)];return Math.floor(r.base*(1+lv*.7))}
+function researchCost(k){const r=RESEARCH[k],lv=game.research[k];if(r.costs)return r.costs[Math.min(lv,r.costs.length-1)];if(k==="shopDiscount"||k==="upgradeDiscount")return 2*Math.floor((r.base/2)*(1+lv*.7));return Math.floor(r.base*(1+lv*.7))}
 function statsDps(s){if(s.type==="fire")return s.damage/s.cooldown+s.dotDamage;if(s.type==="lightning"){let mult=0;for(let i=0;i<s.targets;i++)mult+=Math.max(s.chainFloor,1-i*s.chainStep);return s.damage*mult/s.cooldown}return s.damage*s.targets/s.cooldown}
 function towerDps(t){return statsDps(towerStats(t))}
 function dayWordLifetime(){return DIFFICULTY[selectedDifficulty].wordLife+game.research.lifetime*1.4}
@@ -732,7 +732,7 @@ function saveGameToFile(){
   if(!game||game.gameOver){showToast("저장할 진행 상황이 없습니다.");return}
   if(game.transitioning){showToast("낮·밤 전환이 끝난 뒤 저장해 주세요.");return}
   if(game.bossRewardPending){showToast("보스 상자를 하나 선택한 뒤 저장해 주세요.");return}
-  if(game.phase==="night"&&game.opsOpen){showToast("밤 운영 화면을 닫은 뒤 저장해 주세요.");return}
+  
   const snapshot=JSON.parse(JSON.stringify(game)),routeTotal=Math.max(1,routeMetrics().total);
   snapshot.effects=[];snapshot.paused=false;snapshot.opsOpen=false;snapshot.transitioning=false;snapshot.gameOver=false;snapshot.nightComplete=false;
   snapshot.enemies=snapshot.enemies.map((e,i)=>({...e,routeRatio:clamp((game.enemies[i]?.dist||0)/routeTotal,0,1)}));
@@ -757,12 +757,12 @@ function loadGamePayload(payload){
   document.querySelectorAll("#difficultyGrid .difficulty-card").forEach(c=>c.classList.toggle("active",c.dataset.diff===selectedDifficulty));
   ["startModal","gameoverModal","helpModal","phaseTransition","upgradeResultModal","placementModal","bossLootModal"].forEach(id=>document.getElementById(id).classList.add("hidden"));document.getElementById("nightClearPopup").classList.remove("show");document.getElementById("opsLayer").classList.add("hidden");document.getElementById("app").classList.remove("ops-open");
   const savedW=Math.max(1,Number(payload.board?.w)||W),savedH=Math.max(1,Number(payload.board?.h)||H);
-  viewMode=game.phase==="prepare"?"plan":game.phase==="night"?"night":"day";game.preparingNight=game.phase==="prepare";game.opsOpen=false;game.paused=game.phase==="prepare";input.value="";input.disabled=game.paused;
+  viewMode=game.phase==="prepare"?"plan":game.phase==="night"?"night":"day";game.preparingNight=game.phase==="prepare";game.opsOpen=false;game.paused=true;input.value="";input.disabled=game.paused;
   scheduleResize();
   requestAnimationFrame(()=>{
     game.enemies.forEach(e=>{const total=Math.max(1,routeMetrics(e).total);if(Number.isFinite(e.routeRatio))e.dist=clamp(e.routeRatio,0,1)*total;delete e.routeRatio});
     game.dayWords.forEach(w=>{w.x=clamp((Number(w.x)||W/2)/savedW*W,55,W-55);w.y=clamp((Number(w.y)||H/2)/savedH*H,55,H-55)});
-    if(game.phase==="prepare"){game.opsOpen=true;resetPlanCamera("start");document.getElementById("app").classList.add("ops-open");document.getElementById("opsLayer").classList.remove("hidden");document.getElementById("opsPhaseNote").textContent="저장한 운영 시간을 불러왔습니다. 준비를 마친 뒤 밤 전투를 시작하세요.";document.getElementById("pauseStamp").textContent="운영 시간 · 저장 파일 불러옴";document.getElementById("resumeBtn").textContent="준비 완료 · 밤 전투 시작";renderOps()}else{game.paused=false;input.disabled=false}
+    if(game.phase==="prepare"){game.opsOpen=true;resetPlanCamera("start");document.getElementById("app").classList.add("ops-open");document.getElementById("opsLayer").classList.remove("hidden");document.getElementById("opsPhaseNote").textContent="저장한 운영 시간을 불러왔습니다. 준비를 마친 뒤 밤 전투를 시작하세요.";document.getElementById("pauseStamp").textContent="운영 시간 · 저장 파일 불러옴";document.getElementById("resumeBtn").textContent="준비 완료 · 밤 전투 시작";renderOps()}else{openOps();}
     if(game.phase==="day"&&!game.quest)makeQuest();refreshAll();lastTime=performance.now();cancelAnimationFrame(animationId);animationId=requestAnimationFrame(loop);if(!input.disabled)setTimeout(()=>input.focus(),80);showToast(`저장 파일을 불러왔습니다 · ${game.cycle}일차`);
   });
 }
@@ -865,7 +865,7 @@ function renderOps(){if(!game)return;document.querySelectorAll(".ops-tab").forEa
   document.getElementById("shopList").innerHTML=Object.entries(TOWER_TYPES).map(([k,t])=>{const cost=towerShopCost(k),discount=shopDiscountRate();return `<div class="shop-card"><div class="shop-row"><h3>${t.mark} ${t.name}</h3><b class="price">${discount?`<small style="text-decoration:line-through;color:#8ca2b5">${t.cost}G</small> `:""}${cost}G</b></div><p>${t.desc}</p><div class="stat-chips"><span class="chip">공격 ${t.stats.damage}</span>${t.stats.dotDamage?`<span class="chip">화상 ${t.stats.dotDamage}/초 × ${t.stats.dotTime}초</span>`:""}${t.stats.slow?`<span class="chip">감속 ${Math.round((1-t.stats.slow)*100)}%</span>`:""}${t.stats.bossBonus?`<span class="chip">보스 +${Math.round(t.stats.bossBonus*100)}%</span>`:""}${t.stats.chainStep?`<span class="chip">연쇄 감쇠 ${Math.round(t.stats.chainStep*100)}%</span>`:""}<span class="chip">사거리 ${t.stats.range}</span><span class="chip">주기 ${t.stats.cooldown}초</span><span class="chip">동시 ${t.stats.targets}</span></div><button class="pixel-button gold buy-tower" data-type="${k}" ${day&&game.coins>=cost?"":"disabled"}>구매하여 보유 목록에 넣기</button></div>`}).join("");document.querySelectorAll(".buy-tower").forEach(b=>b.onclick=()=>buyTower(b.dataset.type));
   document.getElementById("researchList").innerHTML=Object.entries(RESEARCH).map(([k,r])=>{const lv=game.research[k],cost=researchCost(k);return `<div class="research-card"><div class="shop-row"><h3>${r.name} Lv.${lv}/${r.max}</h3><b class="price">${lv>=r.max?"MAX":cost+"G"}</b></div><p>${r.desc}</p>${researchPreviewHTML(k)}<button class="pixel-button green buy-research" data-key="${k}" ${day&&lv<r.max&&game.coins>=cost?"":"disabled"}>연구 진행</button></div>`}).join("")+`<div class="research-card"><div class="shop-row"><h3>응급 수리</h3><b class="price">${REPAIR_COST}G</b></div><p>성벽 체력 5 회복</p><button class="pixel-button green" id="repairBtn" ${day&&game.hp<game.maxHp&&game.coins>=REPAIR_COST?"":"disabled"}>수리</button></div>`;document.querySelectorAll(".buy-research").forEach(b=>b.onclick=()=>buyResearch(b.dataset.key));const rb=document.getElementById("repairBtn");if(rb)rb.onclick=()=>buyResearch("repair");
   document.getElementById("selectedTowerControl").innerHTML="";document.getElementById("overviewList").innerHTML=overviewHTML(true)}
-function overviewHTML(full=false){const counts=Object.keys(TOWER_TYPES).map(k=>{const arr=game.towers.filter(t=>t.type===k);if(!arr.length)return"";const lv={};arr.forEach(t=>lv[t.level]=(lv[t.level]||0)+1);return `<div class="tower-line"><span>${TOWER_TYPES[k].name} ${arr.length}기</span><b>${Object.entries(lv).map(([l,n])=>`Lv.${l}×${n}`).join(" · ")}</b></div>`}).join("")||`<p class="empty">설치 타워 없음</p>`;const rs=Object.entries(RESEARCH).map(([k,r])=>`<div class="research-line"><span>${r.name}</span><b>Lv.${game.research[k]}/${r.max}</b></div>`).join("");const dps=game.towers.reduce((sum,t)=>sum+towerDps(t),0),discount=Math.round(shopDiscountRate()*100),upDiscount=Math.round(upgradeDiscountRate()*100);const tickets=Object.keys(TOWER_TYPES).filter(k=>towerUpgradeTicketCount(k)>0).map(k=>`${TOWER_TYPES[k].name}×${towerUpgradeTicketCount(k)}`).join(" · ")||"없음",defense=`<div class="status-card"><h3>방어 전력</h3>${counts}<p>미설치 ${game.inventory.length}기 · 예상 DPS <b>${dps.toFixed(1)}</b></p><p>무료 강화권 ${tickets}</p></div>`;const applied=`<div class="status-card"><h3>현재 적용 수치</h3><p>낮·밤 기본 보상 ${scaledGold(dayBaseReward())}G · 황금 5배 ${goldenWordChance()*100}% · 황금 동시 ${goldenBurstCount()}개</p><p>타자 연구 +${Math.round((typingResearchMultiplier()-1)*100)}% · 콤보 피해 +${Math.round(comboDamageBonusRate()*100)}% · 집중 ${game.focusNeed}회 / ${focusTimeValue().toFixed(1)}초</p><p>유물: 타자 +${(game.relicTyping||0)*8}% · 타워 +${(game.relicTower||0)*5}%</p><p>상점 할인 ${discount}% · 강화 할인 ${upDiscount}% · 성벽 ${game.hp}/${game.maxHp}${game.wallShield?` + 보호막 ${game.wallShield}`:""}</p></div>`;return defense+applied+(full?`<div class="status-card"><h3>연구 현황</h3>${rs}</div><div class="status-card"><h3>최근 기록</h3>${game.log.map(x=>`<p>· ${x}</p>`).join("")||"<p class='empty'>기록 없음</p>"}</div>`:"")}
+function overviewHTML(full=false){const counts=Object.keys(TOWER_TYPES).map(k=>{const arr=game.towers.filter(t=>t.type===k);if(!arr.length)return"";const lv={};arr.forEach(t=>lv[t.level]=(lv[t.level]||0)+1);return `<div class="tower-line"><span>${TOWER_TYPES[k].name} ${arr.length}기</span><b>${Object.entries(lv).map(([l,n])=>`Lv.${l}×${n}`).join(" · ")}</b></div>`}).join("")||`<p class="empty">설치 타워 없음</p>`;const rs=Object.entries(RESEARCH).map(([k,r])=>`<div class="research-line"><span>${r.name}</span><b>Lv.${game.research[k]}/${r.max}</b></div>`).join("");const dps=game.towers.reduce((sum,t)=>sum+towerDps(t),0),discount=Math.round(shopDiscountRate()*100),upDiscount=Math.round(upgradeDiscountRate()*100);const tickets=Object.keys(TOWER_TYPES).filter(k=>towerUpgradeTicketCount(k)>0).map(k=>`${TOWER_TYPES[k].name}×${towerUpgradeTicketCount(k)}`).join(" · ")||"없음",defense=`<div class="status-card"><h3>방어 전력</h3>${counts}<p>미설치 ${game.inventory.length}기 · 예상 DPS <b>${dps.toFixed(1)}</b></p><p>무료 강화권 ${tickets}</p></div>`;const applied=`<div class="status-card"><h3>현재 적용 수치</h3><p>낮·밤 타자 보상 기준 ${scaledGold(dayBaseReward())}G · 황금 5배 ${goldenWordChance()*100}% · 황금 동시 ${goldenBurstCount()}개</p><p>타자 연구 +${Math.round((typingResearchMultiplier()-1)*100)}% · 콤보 피해 +${Math.round(comboDamageBonusRate()*100)}% · 집중 ${game.focusNeed}회 / ${focusTimeValue().toFixed(1)}초</p><p>유물: 타자 +${(game.relicTyping||0)*8}% · 타워 +${(game.relicTower||0)*5}%</p><p>상점 할인 ${discount}% · 강화 할인 ${upDiscount}% · 성벽 ${game.hp}/${game.maxHp}${game.wallShield?` + 보호막 ${game.wallShield}`:""}</p></div>`;return defense+applied+(full?`<div class="status-card"><h3>연구 현황</h3>${rs}</div><div class="status-card"><h3>최근 기록</h3>${game.log.map(x=>`<p>· ${x}</p>`).join("")||"<p class='empty'>기록 없음</p>"}</div>`:"")}
 
 function refreshStatus(){if(!game)return;const acc=game.attempts?Math.round(game.correct/game.attempts*100):100,cpm=Math.round(game.correctChars/Math.max(1,game.totalTime/60)),day=game.phase==="day",prep=game.phase==="prepare";let phaseCard;if(day){phaseCard=`<div class="status-card"><h3>낮 ${game.cycle}일 훈련</h3><div class="status-grid"><div class="mini-stat"><span>남은 시간</span><b>${Math.ceil(game.dayLeft)}초</b></div><div class="mini-stat"><span>현재 단어</span><b>${game.dayReady>0?`준비 ${Math.ceil(game.dayReady)}초`:`${game.dayWords.length}개`}</b></div><div class="mini-stat"><span>성공</span><b>${game.dayCorrect}</b></div><div class="mini-stat"><span>복습 예약</span><b>${game.dayMissed}</b></div></div><p>기본 보상 ${scaledGold(dayBaseReward())}G · 빨간 2배 ${Math.round(bonusWordChance()*100)}% · 황금 5배 0.5% · 황금 동시 ${goldenBurstCount()}개 · 유지 ${dayWordLifetime().toFixed(1)}초</p></div>`}else if(prep){phaseCard=`<div class="status-card"><h3>${game.cycle}일차 운영 시간</h3><p class="big">밤 전투 준비 중</p><p>타워를 구매·배치하고 연구를 마친 뒤 <b>밤 전투 시작</b>을 누르세요.</p></div>`}else{phaseCard=`<div class="status-card"><h3>밤 ${game.cycle}일 방어</h3><div class="status-grid"><div class="mini-stat"><span>현재 적</span><b>${game.enemies.length}</b></div><div class="mini-stat"><span>미출현</span><b>${Math.max(0,game.spawnTarget-game.spawned)}</b></div><div class="mini-stat"><span>타자 공격</span><b>${game.nightTyped}회</b></div><div class="mini-stat"><span>집중 정지</span><b>${game.focus}/${game.focusNeed}</b></div></div><p>타자 연구 +${Math.round((typingResearchMultiplier()-1)*100)}% · 콤보 피해 +${Math.round(comboDamageBonusRate()*100)}% · 집중 ${game.focusNeed}회 / ${focusTimeValue().toFixed(1)}초 · 적 속도 감소 ${game.research.analysis*5}%</p><p>타워 ${game.towers.length}기</p></div>`}
   const quest=game.quest?`<div class="status-card quest-card"><h3>오늘의 훈련 목표</h3><p class="big quest-goal">${game.questDone?"완료":`${questLabel(game.quest)} ${Math.min(game.quest.progress,game.quest.goal)}/${game.quest.goal}`}</p><p class="quest-reward">보상 ${game.quest.reward}G ${game.questDone?"수령 완료":""}</p></div>`:"";const milestone=nextComboMilestone(),milestoneGold=comboMilestoneGoldAt(milestone),guardLv=game.research.comboGuard||0,guardText=guardLv?(comboGuardReady()?"READY · 다음 오답 1회 보호":`${game.comboGuardProgress}/${comboGuardThreshold()} 정확 입력`):"연구 없음",finalTypingMult=typingResearchMultiplier()*(1+comboDamageBonusRate())*(1+(game.relicTyping||0)*.08),typing=`<div class="status-card"><h3>타자·콤보 현재 효과</h3><div class="status-grid"><div class="mini-stat"><span>현재 콤보</span><b>${game.combo}</b></div><div class="mini-stat"><span>콤보 피해</span><b>+${Math.round(comboDamageBonusRate()*100)}%</b></div><div class="mini-stat"><span>최종 타자 배율</span><b>×${finalTypingMult.toFixed(2)}</b></div><div class="mini-stat"><span>콤보 금화 배율</span><b>×${comboGoldBoost().toFixed(1)}</b></div></div><p><b>다음 콤보 보너스</b> ${milestone}콤보 · +${milestoneGold}G (증폭 추가 +${milestoneGold-comboMilestoneGoldAt(milestone,0)}G)</p><p><b>콤보 보호</b> ${guardText}${game.research.towerCombo?` · <b>타워 연계</b> ${game.towerKillsForCombo}/${towerComboThreshold()}`:""}</p><p>정확도 ${acc}% · ${cpm} CPM · 최고 ${game.bestCombo}콤보</p></div>`;document.getElementById("statusContent").innerHTML=phaseCard+quest+overviewHTML(false)+typing}
@@ -1776,22 +1776,21 @@ window.KINGDOM_ASSETS={"title":"data:image/webp;base64,UklGRtrfBQBXRUJQVlA4IM7fB
       }
       ctx.globalAlpha=planning?.34:.56;
       ctx.lineWidth=Math.max(1.3,tile*(planning?.035:.052));ctx.beginPath();
-      const arrows=new Set(),size=tile*(planning?.15:.19),step=tile*2;
-      for(const guide of family)for(let i=1;i<guide.points.length;i++) {
-        const a=guide.points[i-1],b=guide.points[i],dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy);
-        if(length<tile*.9)continue;
-        const horizontal=Math.abs(dx)>Math.abs(dy),origin=(horizontal?l.ox:l.oy)+tile*.5;
-        const min=Math.min(horizontal?a.x:a.y,horizontal?b.x:b.y)+tile*.40;
-        const max=Math.max(horizontal?a.x:a.y,horizontal?b.x:b.y)-tile*.40;
-        const ux=dx/length,uy=dy/length,nx=-uy,ny=ux;
-        // Grid-anchored arrows stay still while enemies advance along them.
-        for(let n=Math.ceil((min-origin)/step);n<=Math.floor((max-origin)/step);n++) {
-          const axis=origin+n*step;
-          const x=(horizontal?axis:a.x)+nx*lanes[entrance],y=(horizontal?a.y:axis)+ny*lanes[entrance];
-          const key=[Math.round(x*10),Math.round(y*10),Math.round(ux),Math.round(uy)].join(':');
-          if(arrows.has(key))continue;arrows.add(key);
-          ctx.moveTo(x-ux*size-nx*size*.64,y-uy*size-ny*size*.64);ctx.lineTo(x+ux*size*.45,y+uy*size*.45);
-          ctx.lineTo(x-ux*size+nx*size*.64,y-uy*size+ny*size*.64);
+      const size=tile*(planning?.15:.19);
+      for(const guide of family){
+        const points=lanePoints(guide.points,lanes[entrance]);
+        for(let i=1;i<points.length;i++){
+          const a=points[i-1],b=points[i],dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy);
+          if(length<tile*.3)continue;
+          const ux=dx/length,uy=dy/length,nx=-uy,ny=ux;
+          const count=Math.max(1,Math.floor(length/(tile*1.7)));
+          const arrowSize=Math.min(size,length*.25);
+          for(let j=0;j<count;j++){
+            const f=(j+.5)/count,x=a.x+dx*f,y=a.y+dy*f;
+            ctx.moveTo(x-ux*arrowSize-nx*arrowSize*.64,y-uy*arrowSize-ny*arrowSize*.64);
+            ctx.lineTo(x+ux*arrowSize*.45,y+uy*arrowSize*.45);
+            ctx.lineTo(x-ux*arrowSize+nx*arrowSize*.64,y-uy*arrowSize+ny*arrowSize*.64);
+          }
         }
       }
       ctx.stroke();ctx.restore();
@@ -1923,7 +1922,7 @@ window.KINGDOM_ASSETS={"title":"data:image/webp;base64,UklGRtrfBQBXRUJQVlA4IM7fB
   V.drawAssaultTint=function(planning=false) {
     const assault=typeof V.isAssault==='function'?V.isAssault():game?.assault?.phase==='assault';
     if(planning||game?.phase!=='night'||!assault)return false;
-    ctx.save();ctx.fillStyle='rgba(238,65,67,.06)';ctx.fillRect(0,0,W,H);ctx.restore();
+    ctx.save();ctx.fillStyle='rgba(238,65,67,.14)';ctx.fillRect(0,0,W,H);ctx.restore();
     return true;
   };
   drawDefenseMap=function(planning) {
@@ -2489,11 +2488,11 @@ window.KINGDOM_ASSETS={"title":"data:image/webp;base64,UklGRtrfBQBXRUJQVlA4IM7fB
     if(!game||game.gameOver){showToast('저장할 진행 상황이 없습니다.');return;}
     if(game.transitioning){showToast('낮·밤 전환이 끝난 뒤 저장해 주세요.');return;}
     if(game.bossRewardPending){showToast('보스 전리품을 선택한 뒤 저장해 주세요.');return;}
-    if(game.phase==='night'&&game.opsOpen){showToast('밤 운영 화면을 닫은 뒤 저장해 주세요.');return;}
+    
     const payload=V.snapshot(),url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
     const a=document.createElement('a'),stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
-    a.href=url;a.download=`타자디펜스_v10_${safeFilePart(DIFFICULTY[selectedDifficulty].label)}_${game.cycle}일차_${stamp}${SAVE_EXTENSION}`;
-    document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1200);showToast('v10 저장 파일을 다운로드했습니다.');
+    a.href=url;a.download=`타자디펜스_v16_${safeFilePart(DIFFICULTY[selectedDifficulty].label)}_${game.cycle}일차_${stamp}${SAVE_EXTENSION}`;
+    document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1200);showToast('저장 파일을 다운로드했습니다.');
   };
 
 
@@ -2781,6 +2780,110 @@ window.KINGDOM_ASSETS={"title":"data:image/webp;base64,UklGRtrfBQBXRUJQVlA4IM7fB
   V.refreshBrief();
 })();
 
+
+/* V16: fixed nightly rhythm, explicit save pause, and Very Hard economy. */
+(() => {
+  const V=window.TTD10;
+  const oldMake=V.makeAssault,oldEnsure=V.ensureContinuousAssault,oldTick=V.tickAssault,oldIntervals=V.assaultIntervals;
+  const hard=()=>selectedDifficulty==='veryHard';
+  const duration=()=>Math.max(40,Math.round(game.spawnTarget*Math.max(1.9,2.4-game.cycle*.01)/1.15));
+  V.makeAssault=function(){
+    if(!hard())return oldMake();
+    return {system:'continuous',scheduleVersion:2,phase:'normal',clock:0,duration:duration(),left:0,elapsed:0,index:0,surgeNumber:0,count:2,spawnClock:.35,spawnCursor:0,routes:['middle'],normalRoute:'middle',legacyOnly:false};
+  };
+  V.ensureContinuousAssault=function(){
+    if(!hard())return oldEnsure();
+    let a=game.assault;
+    if(a?.scheduleVersion!==2){
+      const previous=a;a=V.makeAssault();
+      // Keep the running old night's progress; no replay of its seven old surges.
+      a.clock=clamp(game.spawned/Math.max(1,game.spawnTarget),0,1)*a.duration;
+      a.spawnClock=Math.max(0,Math.min(2,Number(previous?.spawnClock)||.35));
+      a.spawnCursor=game.spawned;game.assault=a;
+    }
+    if(!Number.isFinite(a.duration)||a.duration<=0)a.duration=duration();
+    if(!Number.isFinite(a.clock)||a.clock<0)a.clock=0;
+    return a;
+  };
+  V.assaultIntervals=function(){
+    if(!hard())return oldIntervals();
+    const a=V.ensureContinuousAssault(),normal=a.duration*1.15/Math.max(1,game.spawnTarget);
+    return {normal,surge:normal/1.3};
+  };
+  V.syncNightRhythm=function(a){
+    const q=a.duration/4,t=a.clock,section=Math.min(3,Math.floor(t/q));
+    const surge=t<a.duration&&(section===1||section===3);
+    const next=section===0?q:section===2?q*3:Infinity;
+    const warning=!surge&&next-t<=3&&next>t;
+    a.phase=surge?'assault':warning?'warning':t>=a.duration?'cleanup':'normal';
+    a.left=surge?(section+1)*q-t:warning?next-t:Math.max(0,(section+1)*q-t);
+    a.index=section>=2?1:0;a.surgeNumber=section===0?0:section<3?1:2;a.count=2;
+    const unlocked=V.routeIds(game.cycle),primary=(game.cycle+(section>=2?1:0))%unlocked.length;
+    a.normalRoute=unlocked[primary];a.routes=[a.normalRoute];
+    if((surge||warning)&&V.stageCycle()>=15&&unlocked.length>1)a.routes.push(unlocked[(primary+1)%unlocked.length]);
+    return a;
+  };
+  V.tickAssault=function(dt){
+    if(!hard())return oldTick(dt);
+    const a=V.ensureContinuousAssault(),before=a.phase;
+    a.clock+=Math.max(0,Math.min(.5,dt));V.syncNightRhythm(a);
+    if(a.phase!==before&&a.phase==='warning'){V.feedback('공세 접근 · 3초 후',a.routes.map(V.routeName).join(' + '));playTone(420,.12,'triangle',.025);}
+    if(a.phase!==before&&a.phase==='assault'){V.feedback('집중 공세', '출현 빈도 · 이동 속도 ×1.3');playTone(240,.18,'triangle',.03);}
+    a.spawnClock=Math.max(0,a.spawnClock-dt);
+    if(game.spawned>=game.spawnTarget||a.spawnClock>0)return;
+    const due=game.cycle%3===0&&!game.bossSpawned&&game.spawned>=Math.floor(game.spawnTarget*.65);
+    const kind=due?V.bossInfo(game.cycle).id:'';
+    const slots=kind==='twins'?2:kind==='warden'?3:1;
+    if(game.enemies.length+slots>V.currentEnemyCap())return;
+    const route=a.phase==='assault'?a.routes[a.spawnCursor%a.routes.length]:a.normalRoute;
+    const entryGap=Math.max(PLAN_TILE*2,96*PLAN_TILE/Math.max(1,layout().tile));
+    if(game.enemies.some(e=>V.canonicalRouteId(e)===route&&e.dist<entryGap))return;
+    if(V.spawnScheduled(route)){a.spawnCursor++;const interval=V.assaultIntervals();a.spawnClock=a.phase==='assault'?interval.surge:interval.normal;}
+  };
+  const baseEnemy=enemyTemplate;
+  enemyTemplate=function(boss=false){const e=baseEnemy(boss);if(hard()){const growth=Math.pow(1.04,Math.max(0,game.cycle-12));e.hp*=growth;e.maxHp=e.hp;}return e;};
+  const oldMove=V.bossMove;
+  V.bossMove=e=>(oldMove?.(e)??1)*(hard()&&V.isAssault()?1.3:1);
+  const oldFinish=finishNight;
+  finishNight=function(){const a=game.assault;if(hard()&&a?.scheduleVersion===2&&a.clock<a.duration)return;oldFinish();};
+  // Teacher-facing difficulties retain their previous payouts and combat.
+  V.passiveReward=e=>hard()?e.reward*(6+(game.research.reward||0))/(6+4*(game.research.reward||0)):e.reward;
+  const oldKill=killEnemy;
+  killEnemy=function(e,source){if(hard()&&source!=='typing')e.reward=V.passiveReward(e);return oldKill(e,source);};
+  const oldGold=comboMilestoneGoldAt;let towerMilestone=false;
+  comboMilestoneGoldAt=function(combo,level=game?.research?.comboMastery||0){const gold=hard()&&combo>100&&combo%5===0?scaledGold(Math.round((4+40)*(combo%10===0?2:1)*comboGoldBoost(level))):oldGold(combo,level);return hard()&&towerMilestone?Math.min(gold,scaledGold(Math.round(20*comboGoldBoost(level)))):gold;};
+  const oldGain=gainCombo;
+  gainCombo=function(amount=1,source='typing',p=null){towerMilestone=source==='tower';try{return oldGain(amount,source,p);}finally{towerMilestone=false;}};
+  const oldGuide=nightRewardGuideValues;
+  nightRewardGuideValues=function(){if(!hard()||!game||game.phase!=='night')return oldGuide();const enemies=game.enemies.length?game.enemies:[{reward:dayBaseReward()}];const fmt=values=>{const lo=Math.min(...values),hi=Math.max(...values);return lo===hi?'+'+lo+'G':'+'+lo+'~'+hi+'G';};return{direct:fmt(enemies.map(e=>scaledGold(e.reward*2))),tower:fmt(enemies.map(e=>scaledGold(V.passiveReward(e))))};};
+  const oldBrief=V.refreshBrief;
+  V.refreshBrief=function(){
+    if(game?.phase==='night'&&hard())V.syncNightRhythm(V.ensureContinuousAssault());
+    oldBrief();
+    if(game?.phase!=='night'||!hard())return;
+    const a=game.assault,surge=a.phase==='assault',warning=a.phase==='warning';
+    const label=surge?'집중 공세 · 출현·이동 ×1.3':warning?'공세 접근 '+Math.ceil(a.left)+'초':a.clock>=a.duration?'남은 적 방어':'상시 방어';
+    document.getElementById('mapTitleMain').textContent='밤 '+game.cycle+'일 · '+label;
+    const track=document.getElementById('nightRhythm');
+    track.style.display=game.opsOpen?'none':'block';
+    track.style.setProperty('--night-position',clamp(a.clock/a.duration*100,0,100)+'%');
+    track.title='밤 진행 '+Math.floor(Math.min(a.clock,a.duration))+' / '+a.duration+'초 · 붉은 구간에서 공세';
+    track.setAttribute('aria-valuenow',Math.round(clamp(a.clock/a.duration*100,0,100)));
+    const brief=document.getElementById('ttdBrief');
+    brief.innerHTML='<strong>'+label+'</strong><p>붉은 구간에서 두 번의 공세 · 일반 적은 계속 등장합니다.</p>'+V.bossPanelHTML()+'<small>매우 어려움: 타워 처치에는 금화 교육 +1G/레벨 · 타워 연계 금화는 기본 최대 20G × 콤보 증폭. 직접 처치 보상 유지 · 콤보 금화는 100콤보 기준 상한 · 13일차부터 적 체력 매일 +4% 누적.</small>';
+  };
+  const refresh=refreshAll;
+  refreshAll=function(){refresh();if(game?.phase!=='night'||!hard())document.getElementById('nightRhythm').style.display='none';};
+  const saveButton=document.createElement('button');saveButton.className='pixel-button green';saveButton.textContent='진행 저장';saveButton.onclick=()=>saveGameToFile();document.getElementById('resumeBtn').parentNode.append(saveButton);
+  const track=document.createElement('div');track.id='nightRhythm';track.setAttribute('role','progressbar');track.setAttribute('aria-label','밤 진행 · 25~50%, 75~100% 공세');track.setAttribute('aria-valuemin','0');track.setAttribute('aria-valuemax','100');boardWrap.append(track);
+  const style=document.createElement('style');style.textContent=
+    '#nightRhythm{display:none;position:absolute;left:0;right:0;top:0;height:9px;z-index:18;background:linear-gradient(to right,#6d9d90 0% 25%,#db555b 25% 50%,#6d9d90 50% 75%,#db555b 75% 100%);pointer-events:none}' +
+    '#nightRhythm:after{content:"";position:absolute;top:0;bottom:0;left:clamp(0px,var(--night-position,0%),calc(100% - 4px));width:4px;background:#fff9dc;box-shadow:0 0 5px #211}' +
+    '.ttd-surge #boardWrap{border-color:#d95157!important;box-shadow:inset 0 0 45px rgba(200,35,45,.27),0 0 16px rgba(200,35,45,.3)!important}' +
+    '.ttd-surge #boardWrap:after{content:"";position:absolute;inset:0;pointer-events:none;z-index:4;box-shadow:inset 0 0 65px rgba(188,29,40,.28)}' +
+    '.ttd-surge #mapTitle{border-color:#d95157!important;background:#fff0e6!important}';document.head.append(style);
+  const help=document.querySelector('.ttd-help');if(help)help.innerHTML+='<br><b>v16 · 매우 어려움</b>: 밤 진행 25~50%, 75~100%에 두 번 공세. 출현 빈도와 이동 속도 ×1.3. 집중 정지에는 밤 진행도 멈춥니다. 타워 자동 처치는 금화 교육 +1G/레벨, 타워 연계 콤보 금화는 기본 최대 20G × 증폭입니다. 직접 처치 보상은 유지됩니다. 콤보 금화는 100콤보 기준으로 상한을 둡니다. 13일차부터 적 체력이 매일 4%씩 누적 증가하며, 보유 타워 수에 따른 숨은 보정은 없습니다.<br><b>저장</b>: ESC 일시정지에서도 저장할 수 있습니다. 불러오면 정지 화면에서 직접 재개합니다. 상점 할인·강화 할인 연구 비용은 기존의 두 배입니다.';
+})();
 </script>
 </body>
 </html>
